@@ -56,24 +56,25 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
 
-      /* `SingleOrder` is defined in `MgvLib.sol` and holds information for ordering the execution of one offer. */
-      MgvLib.SingleOrder memory sor;
-      sor.outbound_tkn = outbound_tkn;
-      sor.inbound_tkn = inbound_tkn;
-      (sor.global, sor.local) = config(outbound_tkn, inbound_tkn);
-      /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
-      sor.offerId = sor.local.best();
-      sor.offer = offers[outbound_tkn][inbound_tkn][sor.offerId];
-      /* `sor.wants` and `sor.gives` may evolve, but they are initially however much remains in the market order. */
-      sor.wants = takerWants;
-      sor.gives = takerGives;
-
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;
       mor.initialWants = takerWants;
       mor.initialGives = takerGives;
       mor.taker = taker;
       mor.fillWants = fillWants;
+
+      /* `SingleOrder` is defined in `MgvLib.sol` and holds information for ordering the execution of one offer. */
+      MgvLib.SingleOrder memory sor;
+      sor.outbound_tkn = outbound_tkn;
+      sor.inbound_tkn = inbound_tkn;
+      Pair storage pair;
+      (sor.global, sor.local, pair) = _config(outbound_tkn, inbound_tkn);
+      /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
+      sor.offerId = sor.local.best();
+      sor.offer = pair.offerData[sor.offerId].offer;
+      /* `sor.wants` and `sor.gives` may evolve, but they are initially however much remains in the market order. */
+      sor.wants = takerWants;
+      sor.gives = takerGives;
 
       /* For the market order to even start, the market needs to be both active, and not currently protected from reentrancy. */
       activeMarketOnly(sor.global, sor.local);
@@ -87,12 +88,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);
-      locals[outbound_tkn][inbound_tkn] = sor.local;
+      pair.local = sor.local;
 
       emit OrderStart();
 
       /* Call recursive `internalMarketOrder` function.*/
-      internalMarketOrder(mor, sor, true);
+      internalMarketOrder(pair, mor, sor, true);
 
       /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
@@ -109,7 +110,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* `internalMarketOrder` works recursively. Going downward, each successive offer is executed until the market order stops (due to: volume exhausted, bad price, or empty book). Then the [reentrancy lock is lifted](#internalMarketOrder/liftReentrancy). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book.
 
     The last argument is a boolean named `proceed`. If an offer was not executed, it means the price has become too high. In that case, we notify the next recursive call that the market order should end. In this initial call, no offer has been executed yet so `proceed` is true. */
-  function internalMarketOrder(MultiOrder memory mor, MgvLib.SingleOrder memory sor, bool proceed) internal {
+  function internalMarketOrder(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor, bool proceed)
+    internal
+  {
     unchecked {
       /* #### Case 1 : End of order */
       /* We execute the offer currently stored in `sor`. */
@@ -130,12 +133,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         bytes32 mgvData;
 
         /* Load additional information about the offer. We don't do it earlier to save one storage read in case `proceed` was false. */
-        sor.offerDetail = offerDetails[sor.outbound_tkn][sor.inbound_tkn][sor.offerId];
+        sor.offerDetail = pair.offerData[sor.offerId].detail;
 
         /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/notExecuted","mgv/tradeSuccess"]` means the failure is the maker's fault. */
         /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
 
-        (gasused, makerData, mgvData) = execute(mor, sor);
+        (gasused, makerData, mgvData) = execute(pair, mor, sor);
 
         /* Keep cached copy of current `sor` values. */
         uint takerWants = sor.wants;
@@ -154,11 +157,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         */
           sor.gives = mor.initialGives - mor.totalGave;
           sor.offerId = sor.offer.next();
-          sor.offer = offers[sor.outbound_tkn][sor.inbound_tkn][sor.offerId];
+          sor.offer = pair.offerData[sor.offerId].offer;
         }
 
         /* note that internalMarketOrder may be called twice with same offerId, but in that case `proceed` will be false! */
         internalMarketOrder(
+          pair,
           mor,
           sor,
           /* `proceed` value for next call. Currently, when an offer did not execute, it's because the offer's price was too high. In that case we interrupt the loop and let the taker leave with less than they asked for (but at a correct price). We could also revert instead of breaking; this could be a configurable flag for the taker to pick. */
@@ -181,7 +185,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* If `proceed` is false, the taker has gotten its requested volume, or we have reached the end of the book, we conclude the market order. */
       } else {
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
-        sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
+        sor.local = stitchOffers(pair, 0, sor.offerId, sor.local);
         /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we
 
       * lift the reentrancy lock, and
@@ -190,7 +194,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       so we are free from out of order storage writes.
       */
         sor.local = sor.local.lock(false);
-        locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
+        pair.local = sor.local;
 
         /* `payTakerMinusFees` keeps the fee in Mangrove, proportional to the amount purchased, and gives the rest to the taker */
         payTakerMinusFees(mor, sor);
@@ -229,14 +233,15 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     address taker
   ) internal returns (uint successCount, uint snipesGot, uint snipesGave, uint totalPenalty, uint feePaid) {
     unchecked {
-      MgvLib.SingleOrder memory sor;
-      sor.outbound_tkn = outbound_tkn;
-      sor.inbound_tkn = inbound_tkn;
-      (sor.global, sor.local) = config(outbound_tkn, inbound_tkn);
-
       MultiOrder memory mor;
       mor.taker = taker;
       mor.fillWants = fillWants;
+
+      MgvLib.SingleOrder memory sor;
+      sor.outbound_tkn = outbound_tkn;
+      sor.inbound_tkn = inbound_tkn;
+      Pair storage pair;
+      (sor.global, sor.local, pair) = _config(outbound_tkn, inbound_tkn);
 
       /* For the snipes to even start, the market needs to be both active and not currently protected from reentrancy. */
       activeMarketOnly(sor.global, sor.local);
@@ -248,7 +253,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       //+clear+
 
       /* Call `internalSnipes` function. */
-      (successCount, snipesGot, snipesGave) = internalSnipes(mor, sor, targets);
+      (successCount, snipesGot, snipesGave) = internalSnipes(pair, mor, sor, targets);
 
       /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
@@ -263,10 +268,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Internal snipes */
   //+clear+
   /* `internalSnipes` works by looping over targets. Each successive offer is executed under a [reentrancy lock](#internalSnipes/liftReentrancy), then its posthook is called. Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
-  function internalSnipes(MultiOrder memory mor, MgvLib.SingleOrder memory sor, uint[4][] calldata targets)
-    internal
-    returns (uint successCount, uint snipesGot, uint snipesGave)
-  {
+  function internalSnipes(
+    Pair storage pair,
+    MultiOrder memory mor,
+    MgvLib.SingleOrder memory sor,
+    uint[4][] calldata targets
+  ) internal returns (uint successCount, uint snipesGot, uint snipesGave) {
     unchecked {
       for (uint i = 0; i < targets.length; ++i) {
         /* Reset these amounts since every snipe is treated individually. Only the total penalty is sent at the end of all snipes. */
@@ -275,8 +282,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* Initialize single order struct. */
         sor.offerId = targets[i][0];
-        sor.offer = offers[sor.outbound_tkn][sor.inbound_tkn][sor.offerId];
-        sor.offerDetail = offerDetails[sor.outbound_tkn][sor.inbound_tkn][sor.offerId];
+        OfferData storage offerData = pair.offerData[sor.offerId];
+        sor.offer = offerData.offer;
+        sor.offerDetail = offerData.detail;
 
         /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
         if (!isLive(sor.offer) || sor.offerDetail.gasreq() > targets[i][3]) {
@@ -290,11 +298,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
           /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
           sor.local = sor.local.lock(true);
-          locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
+          pair.local = sor.local;
 
           /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/tradeSuccess","mgv/notExecuted"]` means the failure is the maker's fault. */
           /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. */
-          (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(mor, sor);
+          (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(pair, mor, sor);
 
           if (mgvData == "mgv/tradeSuccess") {
             successCount += 1;
@@ -302,7 +310,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
           /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since offers in the `targets` array may be anywhere in the book. So we stitch together offers immediately after each `execute`. */
           if (mgvData != "mgv/notExecuted") {
-            sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, sor.offer.prev(), sor.offer.next(), sor.local);
+            sor.local = stitchOffers(pair, sor.offer.prev(), sor.offer.next(), sor.local);
           }
 
           /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
@@ -312,7 +320,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         so we are free from out of order storage writes.
         */
           sor.local = sor.local.lock(false);
-          locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
+          pair.local = sor.local;
 
           /* `payTakerMinusFees` keeps the fee in Mangrove, proportional to the amount purchased, and gives the rest to the taker */
           payTakerMinusFees(mor, sor);
@@ -343,7 +351,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     * `makerData` is the data returned after executing the offer
     * `mgvData` is an [internal Mangrove status code](#MgvOfferTaking/statusCodes).
   */
-  function execute(MultiOrder memory mor, MgvLib.SingleOrder memory sor)
+  function execute(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor)
     internal
     returns (uint gasused, bytes32 makerData, bytes32 mgvData)
   {
@@ -465,9 +473,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       /* Delete the offer. The last argument indicates whether the offer should be stripped of its provision (yes if execution failed, no otherwise). We cannot partially strip an offer provision (for instance, remove only the penalty from a failing offer and leave the rest) since the provision associated with an offer is always deduced from the (gasprice,gasbase,gasreq) parameters and not stored independently. We delete offers whether the amount remaining on offer is > density or not for the sake of uniformity (code is much simpler). We also expect prices to move often enough that the maker will want to update their price anyway. To simulate leaving the remaining volume in the offer, the maker can program their `makerPosthook` to `updateOffer` and put the remaining volume back in. */
-      dirtyDeleteOffer(
-        sor.outbound_tkn, sor.inbound_tkn, sor.offerId, sor.offer, sor.offerDetail, mgvData != "mgv/tradeSuccess"
-      );
+      dirtyDeleteOffer(pair.offerData[sor.offerId], sor.offer, sor.offerDetail, mgvData != "mgv/tradeSuccess");
     }
   }
 

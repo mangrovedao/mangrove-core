@@ -16,26 +16,6 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0xb4A9Ac8Ae5b405193271A0e62682c9be47d578B9",
-    "name": "KandelSeeder"
-  },
-  {
-    "address": "0x0295a7f3093Fb656d982B6E2c52B07699aDA9594",
-    "name": "AaveKandelSeeder"
-  },
-  {
-    "address": "0x756fAc8bb6fb96A3b005ad7b3337052aE69aAf65",
-    "name": "MangroveOrder"
-  },
-  {
-    "address": "0xADdF5388C695e3F23A2509AA73677ED4a219f834",
-    "name": "MangroveOrder-Router"
-  },
-  {
-    "address": "0xB3ba79DB150E8650efa5c534EEaf6404a25Fdf00",
-    "name": "AavePooledRouter"
-  },
-  {
     "address": "0x193163EeFfc795F9d573b171aB12cCDdE10392e8",
     "name": "WMATIC"
   },

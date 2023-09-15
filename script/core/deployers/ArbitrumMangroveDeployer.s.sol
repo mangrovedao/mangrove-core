@@ -11,8 +11,13 @@ import {MangroveDeployer} from "./MangroveDeployer.s.sol";
  */
 contract ArbitrumMangroveDeployer is Deployer {
   MangroveDeployer public mangroveDeployer;
-  uint public gasprice = 30;
-  uint public gasmax = 5_000_000;
+  uint public gasprice = 3; /* Arbitrary choose value from https://dune.com/queries/1009797/1744913 */
+  /*
+    Value is fixed at 0x4000000000000, but it's important to note that Arbitrum currently has a 32M gas limit per block 
+    https://docs.arbitrum.io/arbitrum-ethereum-differences
+    15/09/2023.
+  */
+  uint public gasmax = 3_000_000;
 
   function run() public {
     runWithChainSpecificParams();

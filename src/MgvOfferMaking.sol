@@ -292,9 +292,8 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
+      // Checking that resulting tick is in range is not needed since tick out of range -> logprice out of range for all tick scales
       Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, tickScale);
-      // FIXME remove if tick can accomodate > max price
-      require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
       Tick cachedLocalTick;
@@ -353,13 +352,13 @@ contract MgvOfferMaking is MgvHasOffers {
 
         // Save current level0
         if (insertionIndex < currentIndex) {
-          Field localLeve0 = ofp.local.level0();
-          bool shouldSaveLevel0 = !localLeve0.isEmpty();
+          Field localLevel0 = ofp.local.level0();
+          bool shouldSaveLevel0 = !localLevel0.isEmpty();
           if (!shouldSaveLevel0) {
             shouldSaveLevel0 = !offerList.level0[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
           }
           if (shouldSaveLevel0) {
-            offerList.level0[currentIndex] = localLeve0.dirty();
+            offerList.level0[currentIndex] = localLevel0.dirty();
           }
         }
 
@@ -398,7 +397,29 @@ contract MgvOfferMaking is MgvHasOffers {
           }
           // if level1 was empty, flip tick on at level2
           if (field.isEmpty()) {
-            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
+            insertionIndex = insertionTick.level2Index();
+            currentIndex = cachedLocalTick.level2Index();
+
+            if (insertionIndex != currentIndex) {
+              field = offerList.level2[insertionIndex].clean();
+            } else {
+              field = ofp.local.level2();
+            }
+
+            if (insertionIndex < currentIndex) {
+              // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
+              offerList.level2[currentIndex] = ofp.local.level2().dirty();
+            }
+
+            if (insertionIndex <= currentIndex) {
+              ofp.local = ofp.local.level2(field.flipBitAtLevel2(insertionTick));
+            } else {
+              offerList.level2[insertionIndex] = field.flipBitAtLevel2(insertionTick).dirty();
+            }
+            // if level2 was empty, flip tick on at level3
+            if (field.isEmpty()) {
+              ofp.local = ofp.local.level3(ofp.local.level3().flipBitAtLevel3(insertionTick));
+            }
           }
         }
       }

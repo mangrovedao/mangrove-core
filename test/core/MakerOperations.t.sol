@@ -928,6 +928,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(level0, mgv.local(olKey).level0(), "level0 should have been restored");
   }
 
+  // function test_firstOffer_fuzz_price() public {
+  //   mkr.provisionMgv(10 ether);
+  //   uint ofr = mkr.newOfferByLogPrice(300_000, 0.0001 ether, 100_000, 0);
+  // }
+
   function test_update_branch_on_retract_level1() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);

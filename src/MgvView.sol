@@ -78,12 +78,26 @@ contract MgvView is MgvCommon {
     }
   }
 
-  function level2(OLKey memory olKey) external view returns (Field) {
+  function level2(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
-      return _local.level2();
+
+      if (_local.bestTick().level2Index() == index) {
+        return _local.level2();
+      } else {
+        return offerList.level2[index].clean();
+      }
+    }
+  }
+
+  function level3(OLKey memory olKey) external view returns (Field) {
+    unchecked {
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked _local = offerList.local;
+      unlockedMarketOnly(_local);
+      return _local.level3();
     }
   }
 

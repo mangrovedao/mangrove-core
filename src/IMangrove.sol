@@ -180,7 +180,9 @@ interface IMangrove is HasMgvEvents {
 
   function level1(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
 
-  function level2(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
+  function level2(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
+
+  function level3(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
 
   // # Internal functions
 

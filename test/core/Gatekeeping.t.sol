@@ -169,7 +169,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_setGasbase_ceiling() public {
-    vm.expectRevert("mgv/config/kilo_offer_gasbase/10bits");
+    vm.expectRevert("mgv/config/kilo_offer_gasbase/9bits");
     mgv.setGasbase(olKey, 1e3 * (1 << 10));
   }
 
@@ -201,27 +201,6 @@ contract GatekeepingTest is MangroveTest {
     mkr.updateOfferByLogPrice(MIN_LOG_PRICE - 1, 1 ether, 10_000, ofr);
     vm.expectRevert("mgv/writeOffer/logPrice/outOfRange");
     mkr.updateOfferByLogPrice(MAX_LOG_PRICE + 1, 1 ether, 10_000, ofr);
-  }
-
-  // FIXME remove when/if tick range is bigger than price range
-  function test_newOfferByLogPrice_extrema_tick() public {
-    mgv.setDensity(olKey, 0);
-    olKey.tickScale = 1;
-    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.newOfferByLogPrice(MIN_TICK - 1, type(uint96).max, 10_000, 0);
-    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.newOfferByLogPrice(MAX_TICK + 1, 1, 10_000, 0);
-  }
-
-  // FIXME remove when/if tick range is bigger than price range
-  function test_updateOfferByLogPrice_extrema_tick() public {
-    mgv.setDensity(olKey, 0);
-    olKey.tickScale = 1;
-    uint ofr = mkr.newOfferByLogPrice(0, 1 ether, 10_000, 0);
-    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.updateOfferByLogPrice(MIN_TICK - 1, type(uint96).max, 10_000, ofr);
-    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.updateOfferByLogPrice(MAX_TICK + 1, 1, 10_000, ofr);
   }
 
   function test_retractOffer_wrong_owner_fails() public {
@@ -717,7 +696,9 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.level1(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level2(olKey);
+    mgv.level2(olKey, 0);
+    vm.expectRevert("mgv/reentrancyLocked");
+    mgv.level3(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.best(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
@@ -749,7 +730,8 @@ contract GatekeepingTest is MangroveTest {
     mgv.leafs(olKey, 0);
     mgv.level0(olKey, 0);
     mgv.level1(olKey, 0);
-    mgv.level2(olKey);
+    mgv.level2(olKey, 0);
+    mgv.level3(olKey);
     mgv.best(olKey);
     mgv.offers(olKey, 0);
     mgv.offerDetails(olKey, 0);

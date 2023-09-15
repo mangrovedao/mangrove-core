@@ -53,17 +53,19 @@ function toString(LocalPacked __packed) pure returns (string memory) {
 }
 
 function toString(LocalUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tickPosInLeaf: ", vm.toString(__unpacked.tickPosInLeaf), ", ", "level0: ", toString(__unpacked.level0), ", ", "level1: ", toString(__unpacked.level1), ", ", "level2: ", toString(__unpacked.level2), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
+  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tickPosInLeaf: ", vm.toString(__unpacked.tickPosInLeaf), ", ", "level0: ", toString(__unpacked.level0), ", ", "level1: ", toString(__unpacked.level1), ", ", "level2: ", toString(__unpacked.level2), ", ", "level3: ", toString(__unpacked.level3), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
 }
 
 function tickBranchToString(Tick tick) pure returns (string memory) {
-  return string.concat(vm.toString(tick.posInLevel2()), "->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
+  return string.concat(vm.toString(tick.posInLevel3()), "->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
 }
 
 function toString(Tick tick) pure returns (string memory ret) {
   string memory suffix;
   if (MIN_TICK > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK) {
     suffix = "out of range";
+  } else if (MIN_TICK_ALLOWED > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK_ALLOWED) {
+    suffix = "out of logPrice range";
   } else {
     suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
   }

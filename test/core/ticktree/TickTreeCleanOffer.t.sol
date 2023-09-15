@@ -20,20 +20,20 @@ import "mgv_lib/Debug.sol";
 // The scenarios we want to test are:
 // - offer fails/doesn't fail
 // - cleaning tick
-//   - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
+//   - tick is a *tick of interest* (ToI) as listed in TickTreeTest
 //   - list:
 //     1. the offer to be cleaned is alone
 //     2. the offer to be cleaned is first of two offers
 //     3. the offer to be cleaned is last of two offers
 //     4. the offer to be cleaned is middle of three offers
 // - higher tick list
-//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//   - tick has higher position in same leaf or level0-3 as ToI
 //     - if feasible, given cleaning tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower tick list
-//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//   - tick has lower position in same leaf or level0-3 as ToI
 //     - if feasible, given cleaning tick
 //   - list:
 //     1. is empty
@@ -50,75 +50,51 @@ contract TickTreeCleanOfferTest is TickTreeTest {
   uint[2][] tickListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
-  // We therefore have a test case per tick instead.
+  // We therefore have a test case per ToI instead.
 
-  // Tick 0 tests (start leaf, start level0, start level1, mid level 2)
-  function test_clean_offer_for_tick_0() public {
-    run_clean_offer_scenarios_for_tick(0);
+  function test_clean_offer_for_TICK_MIN_L3_MAX_OTHERS() public {
+    run_clean_offer_scenarios_for_tick(TICK_MIN_L3_MAX_OTHERS);
   }
 
-  // Tick 1 tests (mid leaf, start level0, start level1, mid level 2)
-  function test_clean_offer_for_tick_1() public {
-    run_clean_offer_scenarios_for_tick(1);
+  function test_clean_offer_for_TICK_MAX_L3_MIN_OTHERS() public {
+    run_clean_offer_scenarios_for_tick(TICK_MAX_L3_MIN_OTHERS);
   }
 
-  // Tick 3 tests (end leaf, start level0, start level1, mid level 2)
-  function test_clean_offer_for_tick_3() public {
-    run_clean_offer_scenarios_for_tick(3);
+  function test_clean_offer_for_TICK_MIDDLE() public {
+    run_clean_offer_scenarios_for_tick(TICK_MIDDLE);
   }
 
-  // Tick -1 tests (end leaf, end level0, end level1, mid level 2)
-  function test_clean_offer_for_tick_negative_1() public {
-    run_clean_offer_scenarios_for_tick(-1);
+  function test_clean_offer_for_TICK_MIN_ALLOWED() public {
+    run_clean_offer_scenarios_for_tick(TICK_MIN_ALLOWED);
   }
 
-  // Tick -8323 tests (mid leaf, mid level0, mid level1, mid level 2)
-  function test_clean_offer_for_tick_negative_8323() public {
-    run_clean_offer_scenarios_for_tick(-8323);
-  }
-
-  // MAX_TICK tests (end leaf, end level0, end level1, end level 2)
-  function test_clean_offer_for_tick_max() public {
-    run_clean_offer_scenarios_for_tick(MAX_TICK);
-  }
-
-  // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
-  function test_clean_offer_for_tick_min() public {
-    run_clean_offer_scenarios_for_tick(MIN_TICK);
+  function test_clean_offer_for_TICK_MAX_ALLOWED() public {
+    run_clean_offer_scenarios_for_tick(TICK_MAX_ALLOWED);
   }
 
   // size of {lower,higher}TickList if the tick is present in the scenario
   uint[] otherTickListSizeScenarios = [1];
 
-  function run_clean_offer_scenarios_for_tick(int tick) internal {
+  function run_clean_offer_scenarios_for_tick(Tick tick) internal {
     vm.pauseGasMetering();
-    TickScenario[] memory tickScenarios =
-      generateTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
-    for (uint i = 0; i < tickScenarios.length; ++i) {
-      TickScenario memory tickScenario = tickScenarios[i];
-      for (uint j = 0; j < tickListScenarios.length; ++j) {
-        uint[2] storage tickListScenario = tickListScenarios[j];
-        run_clean_offer_scenario(
-          CleanOfferScenario({
-            tickScenario: tickScenario,
-            offerTickListSize: tickListScenario[0],
-            offerPos: tickListScenario[1],
-            offerFail: true
-          }),
-          false
-        );
-        run_clean_offer_scenario(
-          CleanOfferScenario({
-            tickScenario: tickScenario,
-            offerTickListSize: tickListScenario[0],
-            offerPos: tickListScenario[1],
-            offerFail: false
-          }),
-          false
-        );
-      }
-    }
+    runTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
     vm.resumeGasMetering();
+  }
+
+  function runTickScenario(TickScenario memory tickScenario) internal override {
+    CleanOfferScenario memory scenario;
+    scenario.tickScenario = tickScenario;
+    for (uint j = 0; j < tickListScenarios.length; ++j) {
+      uint[2] storage tickListScenario = tickListScenarios[j];
+      scenario.offerTickListSize = tickListScenario[0];
+      scenario.offerPos = tickListScenario[1];
+
+      scenario.offerFail = true;
+      run_clean_offer_scenario(scenario, false);
+
+      scenario.offerFail = false;
+      run_clean_offer_scenario(scenario, false);
+    }
   }
 
   // This test is useful for debugging a single scneario
@@ -126,17 +102,17 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     run_clean_offer_scenario(
       CleanOfferScenario({
         tickScenario: TickScenario({
-          tick: 0,
+          tick: Tick.wrap(0),
           hasHigherTick: false,
-          higherTick: 0,
+          higherTick: Tick.wrap(0),
           higherTickListSize: 0,
           hasLowerTick: false,
-          lowerTick: 0,
+          lowerTick: Tick.wrap(0),
           lowerTickListSize: 0
         }),
         offerTickListSize: 1,
         offerPos: 0,
-        offerFail: false
+        offerFail: true
       }),
       true
     );
@@ -145,15 +121,16 @@ contract TickTreeCleanOfferTest is TickTreeTest {
   function run_clean_offer_scenario(CleanOfferScenario memory scenario, bool printToConsole) internal {
     if (printToConsole) {
       console.log("clean offer scenario");
-      console.log("  cleaningTick: %s", toString(Tick.wrap(scenario.tickScenario.tick)));
+      console.log("  cleaningTick: %s", toString(scenario.tickScenario.tick));
       console.log("  offerTickListSize: %s", scenario.offerTickListSize);
       console.log("  offerPos: %s", scenario.offerPos);
+      console.log("  offerFail: %s", scenario.offerFail);
       if (scenario.tickScenario.hasHigherTick) {
-        Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
+        Tick higherTick = scenario.tickScenario.higherTick;
         console.log("  higherTick: %s", toString(higherTick));
       }
       if (scenario.tickScenario.hasLowerTick) {
-        console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
+        console.log("  lowerTick: %s", toString(scenario.tickScenario.lowerTick));
       }
     }
 
@@ -186,9 +163,9 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     }
 
     // 5. Assert that Mangrove and tick tree are equal
-    tickTree.assertEqToMgvOffer();
+    tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
-    // assertMgvTickTreeIsConsistent();
+    // tickTree.assertMgvTickTreeIsConsistent();
 
     // 6. Restore state from before test
     vm.revertTo(vmSnapshotId);

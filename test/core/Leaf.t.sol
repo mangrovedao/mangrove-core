@@ -274,18 +274,24 @@ contract TickTest is Test {
     assertEq(Tick.wrap(tick).level1Index(), index);
   }
 
-  function test_tickFromBranch_matches_positions_accessor(uint tickPosInLeaf, uint _level0, uint _level1, uint _level2)
-    public
-  {
+  function test_tickFromBranch_matches_positions_accessor(
+    uint tickPosInLeaf,
+    uint _level0,
+    uint _level1,
+    uint _level2,
+    uint _level3
+  ) public {
     tickPosInLeaf = bound(tickPosInLeaf, 0, 3);
     Field level0 = Field.wrap(bound(_level0, 1, uint(LEVEL0_SIZE) - 1));
     Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL1_SIZE) - 1));
     Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL2_SIZE) - 1));
-    Tick tick = TickLib.tickFromBranch(tickPosInLeaf, level0, level1, level2);
+    Field level3 = Field.wrap(bound(_level3, 1, uint(LEVEL3_SIZE) - 1));
+    Tick tick = TickLib.tickFromBranch(tickPosInLeaf, level0, level1, level2, level3);
     assertEq(tick.posInLeaf(), tickPosInLeaf, "wrong pos in leaf");
     assertEq(tick.posInLevel0(), BitLib.ctz(Field.unwrap(level0)), "wrong pos in level0");
     assertEq(tick.posInLevel1(), BitLib.ctz(Field.unwrap(level1)), "wrong pos in level1");
     assertEq(tick.posInLevel2(), BitLib.ctz(Field.unwrap(level2)), "wrong pos in level2");
+    assertEq(tick.posInLevel3(), BitLib.ctz(Field.unwrap(level3)), "wrong pos in level3");
   }
 
   // HELPER FUNCTIONS
@@ -317,9 +323,18 @@ contract FieldTest is Test {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL2_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    int adjustedPos = int(uint(posInLevel)) - LEVEL2_SIZE / 2;
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * adjustedPos);
+    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * int(uint(posInLevel)));
     Field flipped = base.flipBitAtLevel2(tick);
+    assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
+  }
+
+  function test_flipBit3(uint _field, uint8 posInLevel) public {
+    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL3_SIZE - 1)));
+    bytes32 field = bytes32(_field);
+    Field base = Field.wrap(uint(field));
+    int adjustedPos = int(uint(posInLevel)) - LEVEL3_SIZE / 2;
+    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE * adjustedPos);
+    Field flipped = base.flipBitAtLevel3(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 

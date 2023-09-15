@@ -53,7 +53,7 @@ library OfferDetailUnpackedExtra {
 // number of bits in each field
 uint constant maker_bits              = 160;
 uint constant gasreq_bits             = 24;
-uint constant kilo_offer_gasbase_bits = 10;
+uint constant kilo_offer_gasbase_bits = 9;
 uint constant gasprice_bits           = 16;
 
 // number of bits before each field
@@ -83,7 +83,7 @@ uint constant gasprice_cast_mask           = ~(ONES << gasprice_bits);
 // size-related error message
 string constant maker_size_error              = "mgv/config/maker/160bits";
 string constant gasreq_size_error             = "mgv/config/gasreq/24bits";
-string constant kilo_offer_gasbase_size_error = "mgv/config/kilo_offer_gasbase/10bits";
+string constant kilo_offer_gasbase_size_error = "mgv/config/kilo_offer_gasbase/9bits";
 string constant gasprice_size_error           = "mgv/config/gasprice/16bits";
 
 library Library {

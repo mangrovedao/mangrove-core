@@ -256,13 +256,24 @@ contract MgvReader {
           field = MGV.level1(olKey, index);
           field = field.eraseToTick1(offerTick);
           if (field.isEmpty()) {
-            field = MGV.level2(olKey);
+            index = offerTick.level2Index();
+            field = MGV.level2(olKey, index);
             field = field.eraseToTick2(offerTick);
-            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+            // // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+            // if (field.isEmpty()) {
+            //   return 0;
+            // }
             if (field.isEmpty()) {
-              return 0;
+              field = MGV.level3(olKey);
+              field = field.eraseToTick3(offerTick);
+              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+              if (field.isEmpty()) {
+                return 0;
+              }
+              index = field.firstLevel2Index();
+              field = MGV.level2(olKey, index);
             }
-            index = field.firstLevel1Index();
+            index = field.firstLevel1Index(index);
             field = MGV.level1(olKey, index);
           }
           index = field.firstLevel0Index(index);
@@ -302,13 +313,20 @@ contract MgvReader {
           field = MGV.level1(olKey, index);
           field = field.eraseFromTick1(offerTick);
           if (field.isEmpty()) {
-            field = MGV.level2(olKey);
+            index = offerTick.level2Index();
+            field = MGV.level2(olKey, index);
             field = field.eraseFromTick2(offerTick);
-            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
             if (field.isEmpty()) {
-              return 0;
+              field = MGV.level3(olKey);
+              field = field.eraseFromTick3(offerTick);
+              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+              if (field.isEmpty()) {
+                return 0;
+              }
+              index = field.lastLevel2Index();
+              field = MGV.level2(olKey, index);
             }
-            index = field.lastLevel1Index();
+            index = field.lastLevel1Index(index);
             field = MGV.level1(olKey, index);
           }
           index = field.lastLevel0Index(index);

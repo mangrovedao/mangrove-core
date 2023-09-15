@@ -152,17 +152,38 @@ contract MgvHasOffers is MgvCommon {
             offerList.level1[index] = field.dirty();
           }
           if (field.isEmpty()) {
-            field = local.level2().flipBitAtLevel2(offerTick);
-            local = local.level2(field);
-
-            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
-            // Why am I setting tick to 0 before I return?
+            index = offerTick.level2Index(); // level0Index or level1Index
+            if (index == bestTick.level2Index()) {
+              field = local.level2().flipBitAtLevel2(offerTick);
+              local = local.level2(field);
+              if (shouldUpdateBranch && field.isEmpty()) {
+                // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
+                offerList.level2[index] = field.dirty();
+              }
+            } else {
+              // note: useless dirty/clean cycle here
+              field = offerList.level2[index].clean().flipBitAtLevel2(offerTick);
+              offerList.level2[index] = field.dirty();
+            }
             if (field.isEmpty()) {
-              return (local, shouldUpdateBranch); // shouldUpdateBranch always true here
+              field = local.level3().flipBitAtLevel3(offerTick);
+              local = local.level3(field);
+
+              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+              // Why am I setting tick to 0 before I return?
+              if (field.isEmpty()) {
+                return (local, shouldUpdateBranch);
+              }
+              // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
+              if (shouldUpdateBranch) {
+                index = field.firstLevel2Index();
+                field = offerList.level2[index].clean();
+                local = local.level2(field);
+              }
             }
             // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
             if (shouldUpdateBranch) {
-              index = field.firstLevel1Index();
+              index = field.firstLevel1Index(index);
               field = offerList.level1[index].clean();
               local = local.level1(field);
             }

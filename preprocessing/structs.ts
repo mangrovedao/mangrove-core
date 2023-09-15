@@ -84,7 +84,7 @@ const fields = {
   gives: { name: "gives", bits: 96, type: "uint" },
   gasprice: { name: "gasprice", bits: 16, type: "uint" },
   gasreq: { name: "gasreq", bits: 24, type: "uint" },
-  kilo_offer_gasbase: { name: "kilo_offer_gasbase", bits: 10, type: "uint" },
+  kilo_offer_gasbase: { name: "kilo_offer_gasbase", bits: 9, type: "uint" },
 };
 
 const id_field = (name: string) => {
@@ -190,7 +190,7 @@ They have the following fields: */
     provision per unit of gas used. `gasprice` should approximate the average gas
     price at offer creation time.
 
-    `kilo_offer_gasbase` is the actual field name, and is _10 bits wide_ and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
+    `kilo_offer_gasbase` is the actual field name, and is _9 bits wide_ and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
 
     `kilo_offer_gasbase` is also the name of a local Mangrove
     parameters. When an offer is created, their current value is copied from Mangrove local configuration. The maker does not choose it.
@@ -283,6 +283,7 @@ library OfferDetailUnpackedExtra {
       { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
+      { name: "level3", bits: 2, type: "Field", underlyingType: "uint" },
       /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to a pair, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.kilo_offer_gasbase,
       /* * If `lock` is true, orders may not be added nor executed.
@@ -308,7 +309,7 @@ using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | level3_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
   function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
@@ -321,7 +322,7 @@ library LocalPackedExtra {
     return local.kilo_offer_gasbase(val/1e3);
   }}
   function bestTick(LocalPacked local) internal pure returns (Tick) {
-    return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
+    return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2(),local.level3());
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -343,7 +344,7 @@ library LocalUnpackedExtra {
     local.kilo_offer_gasbase = val/1e3;
   }}
   function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
-    return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2);
+    return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2,local.level3);
   }
 }
 `,

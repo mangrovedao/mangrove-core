@@ -1,5 +1,9 @@
 # Next version
 
+# 1.5.10
+
+- Duplicate 1.5.9
+
 # 1.5.9
 
 - deploy new Mangrove and periphery contracts to Arbitrum

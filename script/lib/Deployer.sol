@@ -7,6 +7,7 @@ import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
 import {EthereumFork} from "mgv_test/lib/forks/Ethereum.sol";
+import {ArbitrumFork} from "mgv_test/lib/forks/Arbitrum.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
 import {TestnetZkevmFork} from "mgv_test/lib/forks/TestnetZkevm.sol";
 import {GoerliFork} from "mgv_test/lib/forks/Goerli.sol";
@@ -65,6 +66,8 @@ abstract contract Deployer is Script2 {
         fork = new TestnetZkevmFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
+      } else if (block.chainid == 42161) {
+        fork = new ArbitrumFork();
       } else if (block.chainid == 80001) {
         fork = new MumbaiFork();
       } else {

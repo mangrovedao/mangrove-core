@@ -137,7 +137,7 @@ contract DynamicTicksTest is MangroveTest {
       insertionTick.posInLevel2(),
       "wrong pos in level2"
     );
-    assertEq(mgv.level3(olKey).firstOnePosition(), insertionTick.posInLevel3(), "wrong pos in level2");
+    assertEq(mgv.level3(olKey).firstOnePosition(), insertionTick.posInLevel3(), "wrong pos in level3");
   }
 
   // creating offer at zero tickScale is impossible

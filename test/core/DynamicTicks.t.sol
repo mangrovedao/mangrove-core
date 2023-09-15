@@ -151,8 +151,6 @@ contract DynamicTicksTest is MangroveTest {
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_00, 30);
   }
 
-  // FIXME think of more tests
-
   function test_id_is_correct(OLKey memory olKey) public {
     assertEq(olKey.hash(), keccak256(abi.encode(olKey)), "id() is hashing incorrect data");
   }

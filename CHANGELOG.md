@@ -1,5 +1,11 @@
 # Next version
 
+# 1.5.9
+
+- deploy new Mangrove and periphery contracts to Arbitrum
+- deploy MangroveOrder to Arbitrum
+- deploy KandelSeeders to Arbitrum
+
 # 1.5.8-2
 
 - Can now pin fork to an arbitrary block number

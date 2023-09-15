@@ -55,10 +55,9 @@ contract DynamicTicksTest is MangroveTest {
 
     int insertionLogPrice =
       int24(LogPriceLib.fromTick(TickLib.closestLowerTickToLogPrice(logPrice, tickScale), tickScale));
+
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
-    uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, gives);
-    vm.assume(wants > 0);
-    vm.assume(wants <= type(uint96).max);
+
     uint ofr = mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
     assertTrue(mgv.offers(olKey, ofr).isLive(), "ofr created at tickScale but not found there");
     assertFalse(mgv.offers(ol2, ofr).isLive(), "ofr created at tickScale but found at tickScale2");
@@ -78,9 +77,7 @@ contract DynamicTicksTest is MangroveTest {
     int insertionLogPrice =
       int24(LogPriceLib.fromTick(TickLib.closestLowerTickToLogPrice(logPrice, tickScale), tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
-    uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, gives);
-    vm.assume(wants > 0);
-    vm.assume(wants <= type(uint96).max);
+
     mgv.activate(olKey, 0, 100, 0);
     mgv.activate(ol2, 0, 100, 0);
     uint ofr = mgv.newOfferByLogPrice(ol2, 0, gives, 100_000, 30);
@@ -114,9 +111,7 @@ contract DynamicTicksTest is MangroveTest {
     Tick insertionTick = TickLib.closestLowerTickToLogPrice(logPrice, tickScale);
     int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
-    uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, gives);
-    vm.assume(wants > 0);
-    vm.assume(wants <= type(uint96).max);
+
     mgv.activate(olKey, 0, 100, 0);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
     assertEq(
@@ -142,13 +137,11 @@ contract DynamicTicksTest is MangroveTest {
 
   // creating offer at zero tickScale is impossible
   function test_noOfferAtZeroTickScale(int24 logPrice, uint96 gives) public {
-    // TODO is it really necessary to constraint wants < 96 bits? Or can it go to any size no problem?
-    olKey.tickScale = 0;
+    vm.assume(gives > 0);
     logPrice = boundLogPrice(logPrice);
+    olKey.tickScale = 0;
     mgv.activate(olKey, 0, 100, 0);
-    uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
-    vm.assume(wants > 0);
-    vm.assume(wants <= type(uint96).max);
+
     vm.expectRevert(stdError.divisionError);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_00, 30);
   }
@@ -175,9 +168,7 @@ contract DynamicTicksTest is MangroveTest {
     int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
     olKey.tickScale = tickScale;
-    uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, 1 ether);
-    vm.assume(wants > 0);
-    vm.assume(wants <= type(uint96).max);
+
     mgv.activate(olKey, 0, 100, 0);
     uint id = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 100_00, 30);
     assertEq(mgv.offers(olKey, id).logPrice(), insertionLogPrice, "recorded logPrice does not match closest lower tick");

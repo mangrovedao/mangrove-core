@@ -230,9 +230,6 @@ contract MgvOfferMaking is MgvHasOffers {
 
   function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionLogPrice, bool update) internal {
     unchecked {
-      uint tickScale = ofp.olKey.tickScale;
-      // normalize logPrice to tickScale
-      insertionLogPrice = LogPriceLib.fromTick(TickLib.fromLogPrice(insertionLogPrice, tickScale), tickScale);
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(MgvStructs.Global.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
 
@@ -252,6 +249,11 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* The following checks are for the maker's convenience only. */
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
+
+      uint tickScale = ofp.olKey.tickScale;
+      // normalize logPrice to tickScale
+      Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, tickScale);
+      insertionLogPrice = LogPriceLib.fromTick(insertionTick, tickScale);
       require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
 
       /* Log the write offer event. */
@@ -291,9 +293,6 @@ contract MgvOfferMaking is MgvHasOffers {
           creditWei(msg.sender, oldProvision - provision);
         }
       }
-
-      // Checking that resulting tick is in range is not needed since tick out of range -> logprice out of range for all tick scales
-      Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, tickScale);
 
       // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
       Tick cachedLocalTick;

@@ -252,7 +252,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       uint tickScale = ofp.olKey.tickScale;
       // normalize logPrice to tickScale
-      Tick insertionTick = TickLib.closestLowerTickToLogPrice(insertionLogPrice, tickScale);
+      Tick insertionTick = TickLib.nearestHigherTickToLogPrice(insertionLogPrice, tickScale);
       insertionLogPrice = LogPriceLib.fromTick(insertionTick, tickScale);
       require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
 

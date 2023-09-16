@@ -181,15 +181,21 @@ library TickLib {
     return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
   }
 
-  // Returns the closest, lower tick to the given logPrice at the given tickScale
-  function closestLowerTickToLogPrice(int logPrice, uint tickScale) internal pure returns (Tick) {
+  // Returns the nearest, higher tick to the given logPrice at the given tickScale
+  function nearestHigherTickToLogPrice(int logPrice, uint tickScale) internal pure returns (Tick) {
     // Do not force logPrices to fit the tickScale (aka logPrice%tickScale==0)
-    // Round all prices down (aka cheaper for taker)
+    // Round maker prices up such that maker is always paid at least what they asked for
     int tick = logPrice / int(tickScale);
-    if (logPrice < 0 && logPrice % int(tickScale) != 0) {
-      tick = tick - 1;
+    if (logPrice > 0 && logPrice % int(tickScale) != 0) {
+      tick = tick + 1;
     }
     return Tick.wrap(tick);
+  }
+
+  // Optimized conversion for logPrices that are known to map exactly to a tick at the given tickScale,
+  // eg for offers in the offer list which are always written with a tick-aligned logPrice
+  function fromTickAlignedLogPrice(int logPrice, uint tickScale) internal pure returns (Tick) {
+    return Tick.wrap(logPrice / int(tickScale));
   }
 
   function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {

@@ -29,15 +29,15 @@ contract DynamicTicksTest is MangroveTest {
 
   function test_logPrice_to_tick(int96 logPrice, uint16 _tickScale) public {
     vm.assume(_tickScale != 0);
-    Tick tick = TickLib.closestLowerTickToLogPrice(logPrice, _tickScale);
-    assertLe(
+    Tick tick = TickLib.nearestHigherTickToLogPrice(logPrice, _tickScale);
+    assertGe(
       LogPriceLib.fromTick(tick, _tickScale), logPrice, "logPrice -> tick -> logPrice must give same or lower logPrice"
     );
 
     int tickScale = int(uint(_tickScale));
     int expectedTick = logPrice / tickScale;
-    if (logPrice < 0 && logPrice % tickScale != 0) {
-      expectedTick = expectedTick - 1;
+    if (logPrice > 0 && logPrice % tickScale != 0) {
+      expectedTick = expectedTick + 1;
     }
     assertEq(Tick.unwrap(tick), expectedTick, "wrong logPrice -> tick");
   }
@@ -59,7 +59,7 @@ contract DynamicTicksTest is MangroveTest {
     uint gives = 1 ether;
 
     int insertionLogPrice =
-      int24(LogPriceLib.fromTick(TickLib.closestLowerTickToLogPrice(logPrice, tickScale), tickScale));
+      int24(LogPriceLib.fromTick(TickLib.nearestHigherTickToLogPrice(logPrice, tickScale), tickScale));
 
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
 
@@ -80,7 +80,7 @@ contract DynamicTicksTest is MangroveTest {
     uint gives = 1 ether;
 
     int insertionLogPrice =
-      int24(LogPriceLib.fromTick(TickLib.closestLowerTickToLogPrice(logPrice, tickScale), tickScale));
+      int24(LogPriceLib.fromTick(TickLib.nearestHigherTickToLogPrice(logPrice, tickScale), tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
 
     mgv.activate(olKey, 0, 100, 0);
@@ -113,7 +113,7 @@ contract DynamicTicksTest is MangroveTest {
     logPrice = boundLogPrice(logPrice);
     vm.assume(tickScale != 0);
     uint gives = 1 ether;
-    Tick insertionTick = TickLib.closestLowerTickToLogPrice(logPrice, tickScale);
+    Tick insertionTick = TickLib.nearestHigherTickToLogPrice(logPrice, tickScale);
     int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
 
@@ -167,14 +167,14 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(tickScale != 0);
     vm.assume(int(logPrice) % int(uint(tickScale)) != 0);
     logPrice = boundLogPrice(logPrice);
-    Tick insertionTick = TickLib.closestLowerTickToLogPrice(logPrice, tickScale);
+    Tick insertionTick = TickLib.nearestHigherTickToLogPrice(logPrice, tickScale);
     int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
     olKey.tickScale = tickScale;
 
     mgv.activate(olKey, 0, 100, 0);
     uint id = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 100_00, 30);
-    assertEq(mgv.offers(olKey, id).logPrice(), insertionLogPrice, "recorded logPrice does not match closest lower tick");
+    assertEq(mgv.offers(olKey, id).logPrice(), insertionLogPrice, "recorded logPrice does not match nearest lower tick");
     assertEq(
       int(mgv.offers(olKey, id).logPrice()) % int(uint(tickScale)),
       0,

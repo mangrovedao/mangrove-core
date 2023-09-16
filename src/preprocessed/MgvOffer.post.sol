@@ -49,7 +49,7 @@ library OfferPackedExtra {
     }
   }
   function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
-    return TickLib.fromLogPrice(offer.logPrice(),tickScale);
+    return TickLib.closestLowerTickToLogPrice(offer.logPrice(),tickScale);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -73,7 +73,7 @@ library OfferUnpackedExtra {
     }
   }
   function tick(OfferUnpacked memory offer, uint tickScale) internal pure returns (Tick) {
-    return TickLib.fromLogPrice(offer.logPrice,tickScale);
+    return TickLib.closestLowerTickToLogPrice(offer.logPrice,tickScale);
   }
 
 }

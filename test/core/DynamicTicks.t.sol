@@ -27,7 +27,7 @@ contract DynamicTicksTest is MangroveTest {
     assertEq(LogPriceLib.fromTick(tick, tickScale), int(_tick) * int(uint(tickScale)), "wrong tick -> logPrice");
   }
 
-  function test_logPrice_to_tick(int96 logPrice, uint16 _tickScale) public {
+  function test_logPrice_to_nearest_tick(int96 logPrice, uint16 _tickScale) public {
     vm.assume(_tickScale != 0);
     Tick tick = TickLib.nearestHigherTickToLogPrice(logPrice, _tickScale);
     assertGe(
@@ -40,6 +40,15 @@ contract DynamicTicksTest is MangroveTest {
       expectedTick = expectedTick + 1;
     }
     assertEq(Tick.unwrap(tick), expectedTick, "wrong logPrice -> tick");
+  }
+
+  function test_aligned_logPrice_to_tick(int96 logPrice, uint _tickScale) public {
+    vm.assume(_tickScale != 0);
+    vm.assume(logPrice % int(uint(_tickScale)) == 0);
+    Tick tick = TickLib.fromTickAlignedLogPrice(logPrice, _tickScale);
+    assertEq(
+      LogPriceLib.fromTick(tick, _tickScale), logPrice, "aligned logPrice -> tick -> logPrice must give same logPrice"
+    );
   }
 
   // get a valid logPrice from a random int24

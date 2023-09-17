@@ -154,6 +154,7 @@ library LeafLib {
   }
 
   // Will check for the first position (0,1,2 or 3) that has a nonzero first-of-tick or a nonzero last-of-tick offer. Leafs where only one of those is nonzero are invalid anyway.
+  // Offers are ordered msb to lsb
   function firstOfferPosition(Leaf leaf) internal pure returns (uint ret) {
     unchecked {
       assembly("memory-safe") {
@@ -199,16 +200,15 @@ library TickLib {
 
   // Utility for tests&unpacked structs, less gas-optimal
   // Must not be called with any of level0, level1, level2 or level3 empty
-  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {
+  function bestTickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {
     unchecked {
       LocalPacked local;
       local = local.tickPosInLeaf(tickPosInLeaf).level0(level0).level1(level1).level2(level2).level3(level3);
-      return tickFromLocal(local);
+      return bestTickFromLocal(local);
     }
   }
 
-  // Must not be called with a local that has any of level0, level1, level2 or level3 empty
-  function tickFromLocal(LocalPacked local) internal pure returns (Tick) {
+  function bestTickFromLocal(LocalPacked local) internal pure returns (Tick) {
     unchecked {
       uint utick = local.tickPosInLeaf() |
         ((BitLib.ctz64(Field.unwrap(local.level0())) |

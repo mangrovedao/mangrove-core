@@ -299,7 +299,7 @@ contract TickTest is Test {
     local = local.level1(level1);
     local = local.level2(level2);
     local = local.level3(level3);
-    Tick tick = TickLib.tickFromLocal(local);
+    Tick tick = TickLib.bestTickFromLocal(local);
     assertEq(tick.posInLeaf(), tickPosInLeaf, "wrong pos in leaf");
     assertEq(tick.posInLevel0(), BitLib.ctz64(Field.unwrap(level0)), "wrong pos in level0");
     assertEq(tick.posInLevel1(), BitLib.ctz64(Field.unwrap(level1)), "wrong pos in level1");

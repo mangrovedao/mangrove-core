@@ -324,7 +324,7 @@ library LocalPackedExtra {
     return local.kilo_offer_gasbase(val/1e3);
   }}
   function bestTick(LocalPacked local) internal pure returns (Tick) {
-    return TickLib.tickFromLocal(local);
+    return TickLib.bestTickFromLocal(local);
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -346,7 +346,7 @@ library LocalUnpackedExtra {
     local.kilo_offer_gasbase = val/1e3;
   }}
   function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
-    return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2,local.level3);
+    return TickLib.bestTickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2,local.level3);
   }
 }
 `,

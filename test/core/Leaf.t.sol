@@ -466,6 +466,7 @@ contract FieldTest is Test {
 
   // non-optimized divExpUp
   function divExpUp_spec(uint a, uint exp) public returns (uint) {
+    if (a == 0) return 0;
     if (exp > 255) return 1;
     uint den = 2 ** exp;
     uint carry = a % den == 0 ? 0 : 1;
@@ -486,14 +487,6 @@ contract FieldTest is Test {
     //outboundFromInboundUp
     (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(-logPrice);
     assertEq(LogPriceLib.outboundFromInboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
-  }
-
-  function test_outuboundFromInboundUp(int logPrice, uint amt) public {
-    amt = bound(amt, 0, MAX_SAFE_VOLUME);
-    logPrice = bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE);
-
-    (uint sig, uint exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(logPrice);
-    assertEq(LogPriceLib.inboundFromOutboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
   }
 
   function test_divExpUp(uint a, uint exp) public {

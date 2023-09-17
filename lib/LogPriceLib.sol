@@ -65,15 +65,11 @@ function divExpUp(uint a, uint e) pure returns (uint) {
   unchecked {
     uint carry;
     /* 
-    Would like to write
-
-      carry = (e<<1 == 0 || prod % (e<<1) != 0) ? 1 : 0
-
-    but solidity reverts on a%0 even inside unchecked blocks
+    Easier to represent carry in assembly.
+    carry is 1 if a&mask > 0, where mask is (1<<e)-1, and carry is 0 otherwise
     */
     assembly("memory-safe") {
-      let den := shl(e,1)
-      carry := gt(or(mod(a,den),iszero(den)),0)
+      carry := gt(and(a,sub(shl(e,1),1)),0)
     }
     return (a>>e) + carry;
   }

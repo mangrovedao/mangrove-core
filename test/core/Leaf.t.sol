@@ -464,6 +464,11 @@ contract FieldTest is Test {
     assertEq(field.isDirty(), DirtyField.unwrap(field) & TOPBIT == TOPBIT);
   }
 
+  // checks that there is no overflow
+  function test_maxSafeVolumeIsSafeLowLevel() public {
+    assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
+  }
+
   // non-optimized divExpUp
   function divExpUp_spec(uint a, uint exp) public returns (uint) {
     if (a == 0) return 0;
@@ -480,6 +485,7 @@ contract FieldTest is Test {
     uint sig;
     uint exp;
 
+    console.log("a");
     //inboundFromOutboundUp
     (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(logPrice);
     assertEq(LogPriceLib.inboundFromOutboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
@@ -491,5 +497,11 @@ contract FieldTest is Test {
 
   function test_divExpUp(uint a, uint exp) public {
     assertEq(divExpUp(a, exp), divExpUp_spec(a, exp));
+  }
+
+  function test_reg() public {
+    test_inboundFromOutboundUp_and_converse(
+      -54271064541045503660684391704445709817833179946248632485713722474725243879423, 40563092832766382179548136906699
+    );
   }
 }

@@ -156,11 +156,9 @@ library LeafLib {
   // Will check for the first position (0,1,2 or 3) that has a nonzero first-of-tick or a nonzero last-of-tick offer. Leafs where only one of those is nonzero are invalid anyway.
   // Offers are ordered msb to lsb
   function firstOfferPosition(Leaf leaf) internal pure returns (uint ret) {
-    unchecked {
-      assembly("memory-safe") {
-        ret := shl(1,gt(0xffffffffffffffffffffffffffffffff,leaf))
-        ret := or(ret,gt(0xffffffffffffffff,shr(shl(7,iszero(ret)),leaf)))
-      }
+    assembly("memory-safe") {
+      ret := gt(leaf,0xffffffffffffffffffffffffffffffff)
+      ret := or(shl(1,iszero(ret)),iszero(gt(shr(shl(7,ret),leaf),0xffffffffffffffff)))
     }
   }
 

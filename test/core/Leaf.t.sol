@@ -274,7 +274,7 @@ contract TickTest is Test {
     assertEq(Tick.wrap(tick).level1Index(), index);
   }
 
-  function test_bestTickFromBranch_matches_positions_accessor(
+  function test_tickFromBranch_matches_positions_accessor(
     uint tickPosInLeaf,
     uint _level0,
     uint _level1,

@@ -69,7 +69,7 @@ library TickTreeUtil {
     return Tick.wrap((leafIndex << LEAF_SIZE_BITS) | int(pos));
   }
 
-  function bestTickFromBranch(uint posInLevel3, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
+  function tickFromBranch(uint posInLevel3, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
     public
     pure
     returns (Tick)

@@ -618,14 +618,6 @@ contract GatekeepingTest is MangroveTest {
     assertEq(mgv.level0(olKey, index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
   }
 
-  // FIXME Not Gatekeeping!
-  function test_leaf_update_both_first_and_last() public {
-    uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
-    Tick tick0 = mgv.offers(olKey, ofr0).tick(olKey.tickScale);
-    mgv.retractOffer(olKey, ofr0, true);
-    assertEq(mgv.leafs(olKey, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
-  }
-
   /* Clean failure */
 
   function cleanKO(uint id, int logPrice) external {

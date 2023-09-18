@@ -6,16 +6,16 @@ import "mgv_lib/Test2.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 
 contract BitLibTest is Test2 {
-  // from solady's LibBit.t.sol
-  function test_ctz() public {
-    assertEq(BitLib.ctz(0xff << 3), 3);
+  // adapted from solady's LibBit.t.sol
+  function test_ctz64() public {
+    assertEq(BitLib.ctz64(0xff << 3), 3);
     uint brutalizer = uint(keccak256(abi.encode(address(this), block.timestamp)));
-    for (uint i = 0; i < 256; i++) {
-      assertEq(BitLib.ctz(1 << i), i);
-      assertEq(BitLib.ctz(type(uint).max << i), i);
-      assertEq(BitLib.ctz((brutalizer | 1) << i), i);
+    for (uint i = 0; i < 64; i++) {
+      assertEq(BitLib.ctz64(1 << i), i);
+      assertEq(BitLib.ctz64(type(uint).max << i), i);
+      assertEq(BitLib.ctz64((brutalizer | 1) << i), i);
     }
-    assertEq(BitLib.ctz(0), 256);
+    assertEq(BitLib.ctz64(0), 64);
   }
 
   function test_fls() public {

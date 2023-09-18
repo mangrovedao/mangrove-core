@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 import {console2 as csf} from "forge-std/console2.sol";
+import {LocalPacked} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 type Leaf is uint;
 type DirtyLeaf is uint;
@@ -129,6 +130,7 @@ library LeafLib {
   }
 
   // Will check for the first position (0,1,2 or 3) that has a nonzero first-of-tick or a nonzero last-of-tick offer. Leafs where only one of those is nonzero are invalid anyway.
+  // Offers are ordered msb to lsb
   function firstOfferPosition(Leaf leaf) internal pure returns (uint ret) {
     assembly("memory-safe") {
       ret := gt(leaf,0xffffffffffffffffffffffffffffffff)
@@ -169,13 +171,24 @@ library TickLib {
     return Tick.wrap(logPrice / int(tickScale));
   }
 
-  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {
+  // Utility for tests&unpacked structs, less gas-optimal
+  // Must not be called with any of level0, level1, level2 or level3 empty
+  function bestTickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {
     unchecked {
-      uint utick = tickPosInLeaf |
-        ((BitLib.ctz(Field.unwrap(level0)) |
-          (BitLib.ctz(Field.unwrap(level1)) |
-            (BitLib.ctz(Field.unwrap(level2)) |
-              uint((int(BitLib.ctz(Field.unwrap(level3)))-LEVEL3_SIZE/2) << LEVEL2_SIZE_BITS)) 
+      LocalPacked local;
+      local = local.tickPosInLeaf(tickPosInLeaf).level0(level0).level1(level1).level2(level2).level3(level3);
+      return bestTickFromLocal(local);
+    }
+  }
+
+  function bestTickFromLocal(LocalPacked local) internal pure returns (Tick) {
+    unchecked {
+      uint utick = local.tickPosInLeaf() |
+        ((BitLib.ctz64(Field.unwrap(local.level0())) |
+          (BitLib.ctz64(Field.unwrap(local.level1())) |
+            (BitLib.ctz64(Field.unwrap(local.level2())) |
+              uint(
+                (int(BitLib.ctz64(Field.unwrap(local.level3())))-LEVEL3_SIZE/2) << LEVEL2_SIZE_BITS)) 
               << LEVEL1_SIZE_BITS)
             << LEVEL0_SIZE_BITS)
           << LEAF_SIZE_BITS);
@@ -391,7 +404,7 @@ library FieldLib {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
     require(!field.isEmpty(),"field is 0");
     unchecked {
-      return BitLib.ctz(Field.unwrap(field));
+      return BitLib.ctz64(Field.unwrap(field));
     }
   }
 

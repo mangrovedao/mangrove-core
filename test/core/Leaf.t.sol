@@ -463,4 +463,38 @@ contract FieldTest is Test {
   function field_isDirty(DirtyField field) public {
     assertEq(field.isDirty(), DirtyField.unwrap(field) & TOPBIT == TOPBIT);
   }
+
+  // checks that there is no overflow
+  function test_maxSafeVolumeIsSafeLowLevel() public {
+    assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
+  }
+
+  // non-optimized divExpUp
+  function divExpUp_spec(uint a, uint exp) public returns (uint) {
+    if (a == 0) return 0;
+    if (exp > 255) return 1;
+    uint den = 2 ** exp;
+    uint carry = a % den == 0 ? 0 : 1;
+    return a / den + carry;
+  }
+
+  function test_inboundFromOutboundUp_and_converse(int logPrice, uint amt) public {
+    amt = bound(amt, 0, MAX_SAFE_VOLUME);
+    logPrice = bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE);
+
+    uint sig;
+    uint exp;
+
+    //inboundFromOutboundUp
+    (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(logPrice);
+    assertEq(LogPriceLib.inboundFromOutboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
+
+    //outboundFromInboundUp
+    (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(-logPrice);
+    assertEq(LogPriceLib.outboundFromInboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
+  }
+
+  function test_divExpUp(uint a, uint exp) public {
+    assertEq(divExpUp(a, exp), divExpUp_spec(a, exp));
+  }
 }

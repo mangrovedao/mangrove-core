@@ -132,7 +132,7 @@ library LeafLib {
   function firstOfferPosition(Leaf leaf) internal pure returns (uint ret) {
     assembly("memory-safe") {
       ret := gt(leaf,0xffffffffffffffffffffffffffffffff)
-      ret := or(shl(1,iszero(ret)),gt(0xffffffffffffffff,shr(shl(7,ret),leaf)))
+      ret := or(shl(1,iszero(ret)),iszero(gt(shr(shl(7,ret),leaf),0xffffffffffffffff)))
     }
   }
 

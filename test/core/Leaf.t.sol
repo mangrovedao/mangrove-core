@@ -46,6 +46,21 @@ contract LeafTest is Test2 {
     assertEq(leaf.firstOfferPosition(), 2);
   }
 
+  function test_firstOfferPosition_leaf_quarter_1s_lsb() public {
+    Leaf leaf;
+    leaf = Leaf.wrap((1 << 64) - 1);
+    assertEq(leaf.firstOfferPosition(), 3);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 64);
+    assertEq(leaf.firstOfferPosition(), 2);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 128);
+    assertEq(leaf.firstOfferPosition(), 1);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 192);
+    assertEq(leaf.firstOfferPosition(), 0);
+  }
+
   function test_firstOfferPosition() public {
     Leaf leaf = LeafLib.EMPTY;
     leaf = leaf.setTickFirst(Tick.wrap(1), 31);

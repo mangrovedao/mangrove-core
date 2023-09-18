@@ -41,6 +41,26 @@ contract LeafTest is Test2 {
     assertStr(leaf, "[32,0][19992,711][4,1][0,1208]");
   }
 
+  function test_firstOfferPosition_invalid_leaf_half_1s_lsb() public {
+    Leaf leaf = Leaf.wrap((1 << 128) - 1);
+    assertEq(leaf.firstOfferPosition(), 2);
+  }
+
+  function test_firstOfferPosition_leaf_quarter_1s_lsb() public {
+    Leaf leaf;
+    leaf = Leaf.wrap((1 << 64) - 1);
+    assertEq(leaf.firstOfferPosition(), 3);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 64);
+    assertEq(leaf.firstOfferPosition(), 2);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 128);
+    assertEq(leaf.firstOfferPosition(), 1);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 192);
+    assertEq(leaf.firstOfferPosition(), 0);
+  }
+
   function test_firstOfferPosition() public {
     Leaf leaf = LeafLib.EMPTY;
     leaf = leaf.setTickFirst(Tick.wrap(1), 31);
@@ -66,6 +86,13 @@ contract LeafTest is Test2 {
     assertEq(leaf.lastOfIndex(index), lastId, "last id");
   }
 
+  function test_firstOfferPosition_on_invalid_leaf() public {
+    Leaf leaf = LeafLib.EMPTY;
+    leaf = leaf.setIndexFirstOrLast(0, 1, true);
+    leaf = leaf.setIndexFirstOrLast(1, 2, false);
+    assertEq(leaf.firstOfferPosition(), 0, "first offer position should be 0 (despite leaf being invalid)");
+  }
+
   function test_next_offer_id() public {
     Leaf leaf = LeafLib.EMPTY;
     assertEq(leaf.getNextOfferId(), 0);
@@ -75,9 +102,9 @@ contract LeafTest is Test2 {
     checkFirstOffer(leaf2, 0);
     leaf2 = leaf.setIndexFirstOrLast(1, 27, false);
     checkFirstOffer(leaf2, 27);
-    leaf = leaf.setIndexFirstOrLast(0, 13, true);
     leaf2 = leaf.setIndexFirstOrLast(1, 823, false);
-    checkFirstOffer(leaf2, 823);
+    leaf2 = leaf.setIndexFirstOrLast(0, 13, true);
+    checkFirstOffer(leaf2, 0);
     leaf = leaf.setIndexFirstOrLast(3, 2113, false);
     checkFirstOffer(leaf, 2113);
     leaf = leaf.setIndexFirstOrLast(3, 2, false);

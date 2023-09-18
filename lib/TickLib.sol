@@ -128,45 +128,16 @@ library LeafLib {
     return uint(raw << (OFFER_BITS * ((index * 2) + 1)) >> (256 - OFFER_BITS));
   }
 
-  // TODO optimize with a hashmap, or:
-  // if > half: +=1; if += quarter: +=1, or:
-  // or nested if dichotomy
+  // Will check for the first position (0,1,2 or 3) that has a nonzero first-of-tick or a nonzero last-of-tick offer. Leafs where only one of those is nonzero are invalid anyway.
   function firstOfferPosition(Leaf leaf) internal pure returns (uint ret) {
-    uint offerId = Leaf.unwrap(leaf) >> (OFFER_BITS * 7);
-    if (offerId != 0) {
-      ret = 0;
-    } else {
-      offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 2) >> (OFFER_BITS * 7);
-      if (offerId != 0) {
-        ret = 1;
-      } else {
-        offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 4) >> (OFFER_BITS * 7);
-        if (offerId != 0) {
-          ret = 2;
-        } else {
-          offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 6) >> (OFFER_BITS * 7);
-          if (offerId != 0) {
-            ret = 3;
-          }
-        }
-      }
+    assembly("memory-safe") {
+      ret := gt(leaf,0xffffffffffffffffffffffffffffffff)
+      ret := or(shl(1,iszero(ret)),iszero(gt(shr(shl(7,ret),leaf),0xffffffffffffffff)))
     }
   }
 
-  // TODO: a debruijn hashtable would be less gasexpensive?
-  // returns the 0 offer if empty
-  // FIXME find a version with way fewer jumps
   function getNextOfferId(Leaf leaf) internal pure returns (uint offerId) {
-    offerId = Leaf.unwrap(leaf) >> (OFFER_BITS * 7);
-    if (offerId == 0) {
-      offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 2) >> (OFFER_BITS * 7);
-      if (offerId == 0) {
-        offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 4) >> (OFFER_BITS * 7);
-        if (offerId == 0) {
-          offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 6) >> (OFFER_BITS * 7);
-        }
-      }
-    }
+    return firstOfIndex(leaf,firstOfferPosition(leaf));
   }
 }
 

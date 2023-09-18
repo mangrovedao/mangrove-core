@@ -665,16 +665,15 @@ contract TakerOperationsTest is MangroveTest {
     }
   }
 
-  // FIXME error should not depend on the other volume argument being > 0
   function test_marketOrderByVolume_takerGives_extrema() public {
     vm.expectRevert("priceFromVolumes/inbound/tooBig");
-    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, true);
+    mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, true);
     vm.expectRevert("priceFromVolumes/outbound/tooBig");
-    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, true);
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, true);
     vm.expectRevert("priceFromVolumes/inbound/tooBig");
-    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, false);
+    mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, false);
     vm.expectRevert("priceFromVolumes/outbound/tooBig");
-    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, false);
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, false);
   }
 
   function test_clean_with_0_wants_ejects_offer() public {

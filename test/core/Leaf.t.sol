@@ -41,6 +41,11 @@ contract LeafTest is Test2 {
     assertStr(leaf, "[32,0][19992,711][4,1][0,1208]");
   }
 
+  function test_firstOfferPosition_invalid_leaf_half_1s_lsb() public {
+    Leaf leaf = Leaf.wrap((1 << 128) - 1);
+    assertEq(leaf.firstOfferPosition(), 2);
+  }
+
   function test_firstOfferPosition() public {
     Leaf leaf = LeafLib.EMPTY;
     leaf = leaf.setTickFirst(Tick.wrap(1), 31);

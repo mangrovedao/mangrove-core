@@ -63,14 +63,17 @@ library LogPriceLib {
 // Return a/2**e rounded up
 function divExpUp(uint a, uint e) pure returns (uint) {
   unchecked {
-    uint carry;
+    uint rem;
     /* 
-    Easier to represent carry in assembly.
-    carry is 1 if a&mask > 0, where mask is (1<<e)-1, and carry is 0 otherwise
+    Let mask be (1<<e)-1, rem is 1 if a & mask > 0, and 0 otherwise.
+    Explanation:
+    * if a is 0 then rem must be 0. 0 & mask is 0.
+    * else if e > 255 then 0 < a < 2^e, so rem must be 1. (1<<e)-1 is type(uint).max, so a & mask is a > 0.
+    * else a & mask is a % 2**e
     */
     assembly("memory-safe") {
-      carry := gt(and(a,sub(shl(e,1),1)),0)
+      rem := gt(and(a,sub(shl(e,1),1)),0)
     }
-    return (a>>e) + carry;
+    return (a>>e) + rem;
   }
 }

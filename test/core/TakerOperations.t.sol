@@ -710,16 +710,27 @@ contract TakerOperationsTest is MangroveTest {
     mgv.marketOrderByLogPrice{gas: 291_000}(olKey, logPrice, 1 ether, true);
   }
 
-  // FIXME Make a token that goes out of gas on transfer to taker
-  // So we don't have to find exact gas values here
-  // function test_unsafe_gas_left_fails_to_pay_taker() public {
-  //   mgv.setGasbase(olKey, 1);
-  //   quote.approve($(mgv), 1 ether);
-  //   uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 220_000, 0);
-  //   Tick offerTick = mgv.offers(olKey,ofr).tick();
-  //   vm.expectRevert("mgv/MgvFailToPayTaker");
-  //   testMgv.snipesInTest{gas: 240_000}($(mgv), olKey, wrap_dynamic([ofr, logPrice, 1 ether, 220_000]), true);
-  // }
+  // Check conditions under which MgvFailToPayTaker can occur
+  // This happens when:
+  // - outbound token goes OOG / reverts
+  // - Mangrove still has enough gas to revert
+  // Here we test the OOG case with a special token "OutOfGasToken"
+  function test_unsafe_gas_left_fails_to_pay_taker() public {
+    OutOfGasToken oogtt = new OutOfGasToken(address(this),"OutOfGasToken","OOGTT",18);
+    oogtt.setTaker(address(this));
+    deal($(oogtt), address(mkr), 100 ether);
+    mkr.approveMgv(oogtt, type(uint).max);
+
+    olKey.outbound = address(oogtt);
+    mgv.activate(olKey, 0, 0, 1);
+
+    int logPrice = 0;
+    mkr.newOfferByLogPrice(olKey, logPrice, 1 ether, 220_000, 0);
+    vm.expectRevert("mgv/MgvFailToPayTaker");
+
+    // Give a normal gas amount (gas available in tests is so high the gas-waste of OutOfGasToken would run for ages)
+    mgv.marketOrderByLogPrice{gas: 400_000}(olKey, logPrice, 1 ether, true);
+  }
 
   function test_marketOrder_on_empty_book_does_not_revert() public {
     mgv.marketOrderByVolume(olKey, 1 ether, 1 ether, true);
@@ -1102,5 +1113,31 @@ contract BadMangrove is AbstractMangrove {
 
   function flashloan(MgvLib.SingleOrder calldata, address) external pure override returns (uint, bytes32) {
     revert("badRevert");
+  }
+}
+
+// simulates what happens if the call to transfer tokens to the taker runs out of gas
+// runs out of gas when transferring to taker
+contract OutOfGasToken is TestToken {
+  constructor(address admin, string memory name, string memory symbol, uint8 _decimals)
+    TestToken(admin, name, symbol, _decimals)
+  {}
+
+  address taker;
+  mapping(uint => bool) internal waste;
+
+  function setTaker(address t) external {
+    taker = t;
+  }
+
+  function transfer(address to, uint amount) public virtual override returns (bool ret) {
+    if (to == taker) {
+      uint i;
+      while (++i > 0) {
+        waste[i] = true;
+      }
+    } else {
+      ret = super.transfer(to, amount);
+    }
   }
 }

@@ -515,7 +515,7 @@ contract FieldTest is Test {
   }
 
   // non-optimized divExpUp
-  function divExpUp_spec(uint a, uint exp) public returns (uint) {
+  function divExpUp_spec(uint a, uint exp) internal pure returns (uint) {
     if (a == 0) return 0;
     if (exp > 255) return 1;
     uint den = 2 ** exp;

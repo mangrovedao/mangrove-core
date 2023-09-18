@@ -14,12 +14,8 @@ Density can be < 1.
 The density of a semibook is stored as a 9 bits float. For convenience, governance functions read density as a 96x32 fixed point number. The functions below give conversion utilities between the two formats
 
 As a guideline, fixed-point densities should be uints and should use hungarian notation (for instance `uint densityFixed`). Floating-point densities should use the Density user-defined type.
-*/
 
-// FIXME: optimize more (assembly), operate on single stack value to avoid double-work with Local bit manipulation.
-
-/* 
-the float <-> fixed conversion is format agnostic but the expectation is that fixed points are 96x32, and floats are 2-bit mantissa, 7bit exponent with bias 32. 
+The float <-> fixed conversion is format agnostic but the expectation is that fixed points are 96x32, and floats are 2-bit mantissa, 7bit exponent with bias 32. 
 
 The encoding is nonstandard so the code can be simpler.
 
@@ -133,7 +129,8 @@ library DensityLib {
     uint outbound_display_in_usdx100, 
     uint cover_factor
   ) internal pure returns (uint) {
-    require(uint8(outbound_decimals) == outbound_decimals,"DensityLib: decimals must be uint8");
+    // Do not use unchecked here
+    require(uint8(outbound_decimals) == outbound_decimals,"DensityLib/fixedFromParams1/decimals/wrong");
     uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals) * eth_in_usdx100;
     // use * instead of << to trigger overflow check
     return (num * (1 << FIXED_FRACTIONAL_BITS)) / (outbound_display_in_usdx100 * 1e9);
@@ -145,7 +142,8 @@ library DensityLib {
     uint outbound_display_in_gwei, 
     uint cover_factor
   ) internal pure returns (uint) {
-    require(uint8(outbound_decimals) == outbound_decimals,"DensityLib: decimals must be uint8");
+    // Do not use unchecked here
+    require(uint8(outbound_decimals) == outbound_decimals,"DensityLib/fixedFromParams2/decimals/wrong");
     uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals);
     // use * instead of << to trigger overflow check
     return (num * (1 << FIXED_FRACTIONAL_BITS)) / outbound_display_in_gwei;

@@ -9,7 +9,7 @@ import "mgv_src/MgvLib.sol";
  * reports to Mangrove. */
 contract MgvOracle is IMgvMonitor {
   event SetGasprice(uint gasPrice);
-  event SetDensity96X32(uint densityFixed);
+  event SetDensity96X32(uint density96X32);
 
   address governance;
   address mutator;
@@ -66,15 +66,15 @@ contract MgvOracle is IMgvMonitor {
   }
 
   /* Density is given as a 96.32 fixed point number. It will be stored as a 9-bit float and be approximated towards 0. The maximum error is 20%. See `DensityLib` for more information. */
-  function setDensity96X32(uint densityFixed) external {
+  function setDensity96X32(uint density96X32) external {
     // governance or mutator are allowed to update the density
     require(msg.sender == governance || msg.sender == mutator, "MgvOracle/unauthorized");
 
     /* Checking the size of `density` is necessary to prevent overflow before storing density as a float. */
-    require(DensityLib.checkDensityFixed(densityFixed), "MgvOracle/config/density96X32/wrong");
+    require(DensityLib.checkDensity96X32(density96X32), "MgvOracle/config/density96X32/wrong");
 
-    lastReceivedDensity = DensityLib.fromFixed(densityFixed);
-    emit SetDensity96X32(densityFixed);
+    lastReceivedDensity = DensityLib.from96X32(density96X32);
+    emit SetDensity96X32(density96X32);
   }
 
   function read(OLKey memory) external view override returns (uint gasprice, Density density) {

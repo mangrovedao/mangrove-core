@@ -62,8 +62,8 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(tickScale != 0);
     olKey.tickScale = tickScale;
     OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickScale2);
-    mgv.activate(olKey, 0, 100, 0);
-    mgv.activate(ol2, 0, 100, 0);
+    mgv.activate(olKey, 0, 100 << 32, 0);
+    mgv.activate(ol2, 0, 100 << 32, 0);
     logPrice = boundLogPrice(logPrice);
     uint gives = 1 ether;
 
@@ -92,8 +92,8 @@ contract DynamicTicksTest is MangroveTest {
       int24(LogPriceLib.fromTick(TickLib.nearestHigherTickToLogPrice(logPrice, tickScale), tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
 
-    mgv.activate(olKey, 0, 100, 0);
-    mgv.activate(ol2, 0, 100, 0);
+    mgv.activate(olKey, 0, 100 << 32, 0);
+    mgv.activate(ol2, 0, 100 << 32, 0);
     uint ofr = mgv.newOfferByLogPrice(ol2, 0, gives, 100_000, 30);
     assertTrue(mgv.offers(ol2, ofr).isLive(), "offer created at tickScale2 but not found there");
     assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer found at tickScale2 but with wrong price");
@@ -126,7 +126,7 @@ contract DynamicTicksTest is MangroveTest {
     int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
 
-    mgv.activate(olKey, 0, 100, 0);
+    mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
     assertEq(
       mgv.leafs(olKey, insertionTick.leafIndex()).firstOfferPosition(), insertionTick.posInLeaf(), "wrong pos in leaf"
@@ -154,7 +154,7 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(gives > 0);
     logPrice = boundLogPrice(logPrice);
     olKey.tickScale = 0;
-    mgv.activate(olKey, 0, 100, 0);
+    mgv.activate(olKey, 0, 1 << 32, 0);
 
     vm.expectRevert(stdError.divisionError);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_00, 30);
@@ -181,7 +181,7 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
     olKey.tickScale = tickScale;
 
-    mgv.activate(olKey, 0, 100, 0);
+    mgv.activate(olKey, 0, 100 << 32, 0);
     uint id = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 100_00, 30);
     assertEq(mgv.offers(olKey, id).logPrice(), insertionLogPrice, "recorded logPrice does not match nearest lower tick");
     assertEq(

@@ -124,7 +124,7 @@ contract GatekeepingTest is MangroveTest {
   function test_only_gov_can_set_active() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.activate(lo, 0, 100, 0);
+    mgv.activate(lo, 0, 100 << 32, 0);
   }
 
   function test_only_gov_can_setGasprice() public {
@@ -928,12 +928,12 @@ contract GatekeepingTest is MangroveTest {
     mgv.flashloan(sor, address(0));
   }
 
-  function test_configInfo(OLKey memory olKey, address monitor, uint128 densityFixed) public {
-    mgv.activate(olKey, 0, densityFixed, 0);
+  function test_configInfo(OLKey memory olKey, address monitor, uint128 density96X32) public {
+    mgv.activate(olKey, 0, density96X32, 0);
     mgv.setMonitor(monitor);
     (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = reader.configInfo(olKey);
     assertEq(g.monitor, monitor, "wrong monitor");
-    assertEq(l.density.toFixed(), DensityLib.fromFixed(densityFixed).toFixed(), "wrong density");
+    assertEq(l.density.to96X32(), DensityLib.from96X32(density96X32).to96X32(), "wrong density");
   }
 
   function test_nonadmin_cannot_withdrawERC20(address from, address token, uint amount) public {

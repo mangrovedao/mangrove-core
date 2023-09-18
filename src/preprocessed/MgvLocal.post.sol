@@ -44,8 +44,8 @@ using LocalUnpackedExtra for LocalUnpacked global;
 uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | level3_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
-  function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
-    return local.density(DensityLib.fromFixed(densityFixed));
+  function densityFrom96X32(LocalPacked local, uint density96X32) internal pure returns (LocalPacked) { unchecked {
+    return local.density(DensityLib.from96X32(density96X32));
   }}
   function offer_gasbase(LocalPacked local) internal pure returns (uint) { unchecked {
     return local.kilo_offer_gasbase() * 1e3;
@@ -66,8 +66,8 @@ library LocalPackedExtra {
 }
 
 library LocalUnpackedExtra {
-  function densityFromFixed(LocalUnpacked memory local, uint densityFixed) internal pure { unchecked {
-    local.density = DensityLib.fromFixed(densityFixed);
+  function densityFrom96X32(LocalUnpacked memory local, uint density96X32) internal pure { unchecked {
+    local.density = DensityLib.from96X32(density96X32);
   }}
   function offer_gasbase(LocalUnpacked memory local) internal pure returns (uint) { unchecked {
     return local.kilo_offer_gasbase * 1e3;

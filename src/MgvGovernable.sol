@@ -30,7 +30,7 @@ contract MgvGovernable is MgvCommon {
 
   /* ## Locals */
   /* ### `active` */
-  function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) public {
+  function activate(OLKey memory olKey, uint fee, uint density96X32, uint offer_gasbase) public {
     unchecked {
       authOnly();
       bytes32 olKeyHash = olKey.hash();
@@ -41,7 +41,7 @@ contract MgvGovernable is MgvCommon {
       offerList.local = offerList.local.active(true);
       emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickScale, true);
       setFee(olKey, fee);
-      setDensity96X32(olKey, densityFixed);
+      setDensity96X32(olKey, density96X32);
       setGasbase(olKey, offer_gasbase);
       // warm level2s
       offerList.level2[-1] = DirtyFieldLib.DIRTY_EMPTY;
@@ -71,17 +71,17 @@ contract MgvGovernable is MgvCommon {
   /* ### `density` */
   /* Useless if `global.useOracle != 0` and oracle returns a valid density. */
   /* Density is given as a 96.32 fixed point number. It will be stored as a 9-bit float and be approximated towards 0. The maximum error is 20%. See `DensityLib` for more information. */
-  function setDensity96X32(OLKey memory olKey, uint densityFixed) public {
+  function setDensity96X32(OLKey memory olKey, uint density96X32) public {
     unchecked {
       authOnly();
 
       //+clear+
       OfferList storage offerList = offerLists[olKey.hash()];
       /* Checking the size of `density` is necessary to prevent overflow before storing density as a float. */
-      require(DensityLib.checkDensityFixed(densityFixed), "mgv/config/density96X32/wrong");
+      require(DensityLib.checkDensity96X32(density96X32), "mgv/config/density96X32/wrong");
 
-      offerList.local = offerList.local.densityFromFixed(densityFixed);
-      emit SetDensity96X32(olKey.hash(), densityFixed);
+      offerList.local = offerList.local.densityFrom96X32(density96X32);
+      emit SetDensity96X32(olKey.hash(), density96X32);
     }
   }
 

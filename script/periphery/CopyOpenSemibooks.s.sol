@@ -48,7 +48,7 @@ contract CopyOpenSemibooks is Deployer {
       currentMangrove.activate({
         olKey: olKey,
         fee: cAB.fee,
-        densityFixed: cAB.density.toFixed(),
+        density96X32: cAB.density.to96X32(),
         offer_gasbase: cAB.offer_gasbase()
       });
     }

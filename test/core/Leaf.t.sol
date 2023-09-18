@@ -248,8 +248,23 @@ contract TickTest is Test {
       expected_exp: 132
     });
 
-    //FIXME
-    // Do -1,0,1,max
+    inner_test_priceFromLogPrice({
+      tick: -1,
+      expected_sig: 5708419928830956428590284849313049240594808832,
+      expected_exp: 152
+    });
+
+    inner_test_priceFromLogPrice({
+      tick: 0,
+      expected_sig: 2854495385411919762116571938898990272765493248,
+      expected_exp: 151
+    });
+
+    inner_test_priceFromLogPrice({
+      tick: 1,
+      expected_sig: 2854780834950460954092783596092880171791548416,
+      expected_exp: 151
+    });
   }
 
   function inner_test_priceFromLogPrice(int tick, uint expected_sig, uint expected_exp) internal {

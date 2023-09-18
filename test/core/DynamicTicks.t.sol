@@ -154,7 +154,7 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(gives > 0);
     logPrice = boundLogPrice(logPrice);
     olKey.tickScale = 0;
-    mgv.activate(olKey, 0, 1 << 32, 0);
+    mgv.activate(olKey, 0, 0, 0);
 
     vm.expectRevert(stdError.divisionError);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_00, 30);

@@ -53,9 +53,6 @@ library DensityLib {
   uint constant MASK = ~(ONES << BITS);
   uint constant MANTISSA_INTEGER = 1 << MANTISSA_BITS;
   uint constant EXPONENT_BITS = BITS - MANTISSA_BITS;
-  uint constant FIXED_INTEGER_BITS = 96;
-  uint constant FIXED_FRACTIONAL_BITS = 32;
-  uint constant FIXED_BITS = FIXED_INTEGER_BITS + FIXED_FRACTIONAL_BITS;
 
   function eq(Density a, Density b) internal pure returns (bool) { unchecked {
     return Density.unwrap(a) == Density.unwrap(b);
@@ -63,7 +60,7 @@ library DensityLib {
 
   // Check the size of a fixed-point formatted density
   function checkDensity96X32(uint density96X32) internal pure returns (bool) { unchecked {
-    return density96X32 < (1<<FIXED_BITS);
+    return density96X32 < (1<<(96+32));
   }}
 
   // fixed-point -> float conversion
@@ -113,13 +110,13 @@ library DensityLib {
   // Multiply the density with m, rounded towards zero.
   // May overflow if |m|>96
   function multiply(Density density, uint m) internal pure returns (uint) { unchecked {
-    return (m * density.to96X32())>>FIXED_FRACTIONAL_BITS;
+    return (m * density.to96X32())>>32;
   }}
   // Multiply the density with m, rounded towards +infinity.
   // May overflow if |m|>96
   function multiplyUp(Density density, uint m) internal pure returns (uint) { unchecked {
     uint part = m * density.to96X32();
-    return (part >> FIXED_FRACTIONAL_BITS) + (part%(2<<FIXED_FRACTIONAL_BITS) == 0 ? 0 : 1);
+    return (part >> 32) + (part%(2<<32) == 0 ? 0 : 1);
   }}
 
   // Convenience function: get a fixed-point density from the given parameters. Computes the price of gas in outbound base tokens, then multiplies by cover_factor.
@@ -135,7 +132,7 @@ library DensityLib {
     require(uint8(outbound_decimals) == outbound_decimals,"DensityLib: decimals must be uint8");
     uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals) * eth_in_usdx100;
     // use * instead of << to trigger overflow check
-    return (num * (1 << FIXED_FRACTIONAL_BITS)) / (outbound_display_in_usdx100 * 1e9);
+    return (num * (1 << 32)) / (outbound_display_in_usdx100 * 1e9);
   }
 
   function paramsTo96X32(
@@ -147,6 +144,6 @@ library DensityLib {
     require(uint8(outbound_decimals) == outbound_decimals,"DensityLib: decimals must be uint8");
     uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals);
     // use * instead of << to trigger overflow check
-    return (num * (1 << FIXED_FRACTIONAL_BITS)) / outbound_display_in_gwei;
+    return (num * (1 << 32)) / outbound_display_in_gwei;
   }
 }

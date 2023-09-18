@@ -156,12 +156,12 @@ contract GatekeepingTest is MangroveTest {
 
   function test_set_density_fixed_below_ceiling() public {
     // check no revert
-    uint ceiling = 2 ** DensityLib.FIXED_BITS - 1;
+    uint ceiling = 2 ** (96 + 32) - 1;
     mgv.setDensity96X32(olKey, ceiling);
   }
 
   function test_set_density_fixed_ceiling() public {
-    uint ceiling = 2 ** DensityLib.FIXED_BITS - 1;
+    uint ceiling = 2 ** (96 + 32) - 1;
     vm.expectRevert("mgv/config/density96X32/wrong");
     mgv.setDensity96X32(olKey, ceiling + 1);
   }
@@ -285,7 +285,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerGasreq_lower_than_density_fails_newOfferByVolume() public {
-    mgv.setDensity96X32(olKey, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
+    mgv.setDensity96X32(olKey, 100 << 32);
     (, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     vm.expectRevert("mgv/writeOffer/density/tooLow");
@@ -293,7 +293,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerGasreq_at_density_suceeds() public {
-    mgv.setDensity96X32(olKey, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
+    mgv.setDensity96X32(olKey, 100 << 32);
     (MgvStructs.GlobalPacked glob, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     // Logging tests

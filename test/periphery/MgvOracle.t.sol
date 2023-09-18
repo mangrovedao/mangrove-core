@@ -167,7 +167,7 @@ contract MgvOracleTest is Test2 {
     address mutator = freshAddress("mutator");
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
 
-    uint ceiling = 2 ** DensityLib.FIXED_BITS - 1;
+    uint ceiling = 2 ** (96 + 32) - 1;
 
     // check no revert
     vm.prank(governance);

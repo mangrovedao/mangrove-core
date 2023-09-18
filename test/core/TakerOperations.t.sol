@@ -481,11 +481,8 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 
-  // before ticks: testing that a wants of 0 works
-  // after ticks: wants of 0 as input not acceptd for now but *resulting* wants is doable thanks to approximatoin
-  // FIXME: maybe wants=0 should be allowed
   function test_fillGives_at_0_wants_works() public {
-    uint wants = 1;
+    uint wants = 0;
     uint ofr = mkr.newOfferByVolume(wants, 2 ether, 100_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
     mkr.expect("mgv/tradeSuccess");

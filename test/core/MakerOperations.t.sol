@@ -1039,9 +1039,6 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(mgv.level0(olKey, lowTick.level0Index()), FieldLib.EMPTY, "lowTick's level0 should have been flushed");
   }
 
-  // FIXME
-  // fix test_higher_tick so I'm sure the posInLeaf I'm testing is right
-
   function test_higher_tick() public {
     mgv.newOfferByLogPrice(olKey, 2, 1 ether, 100_000, 0);
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);

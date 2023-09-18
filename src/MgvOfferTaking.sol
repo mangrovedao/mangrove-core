@@ -341,7 +341,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /* # Cleaning */
-  // FIXME: Document cleaning
   /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penaly as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `clean` function itself will not revert.
   
   It takes a `CleanTarget[]` as penultimate argument, with each `CleanTarget` identifying an offer to clean and the execution parameters that will make it fail. The return values are the number of successfully cleaned offers and the total bounty received.
@@ -424,11 +423,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       activeMarketOnly(sor.global, sor.local);
       unlockedMarketOnly(sor.local);
 
-      /* FIXME: edit comment: If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
+      /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). */
       require(sor.offer.isLive(), "mgv/clean/offerNotLive");
+      /* We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. */
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
+      /* A mismatched price will be detected by `execute`. */
       require(sor.offer.logPrice() == logPrice, "mgv/clean/tickMismatch");
-      // FIXME: Not sure what events we need for cleaning? Maybe none?
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);
@@ -745,8 +745,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         gasused = gasreq;
       }
 
-      /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/tradeSuccess"]` */
-      // FIXME: nor if `mgvData` is in `["mgv/notEnoughGasForMakerTrade","mgv/takerTransferFail"]
+      /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/tradeSuccess", "mgv/notEnoughGasForMakerTrade","mgv/takerTransferFail"] */
       uint penalty = 10 ** 9 * sor.global.gasprice() * (gasused + sor.local.offer_gasbase());
 
       if (penalty > provision) {

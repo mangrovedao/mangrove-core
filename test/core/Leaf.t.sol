@@ -41,6 +41,26 @@ contract LeafTest is Test2 {
     assertStr(leaf, "[32,0][19992,711][4,1][0,1208]");
   }
 
+  function test_firstOfferPosition_invalid_leaf_half_1s_lsb() public {
+    Leaf leaf = Leaf.wrap((1 << 128) - 1);
+    assertEq(leaf.firstOfferPosition(), 2);
+  }
+
+  function test_firstOfferPosition_leaf_quarter_1s_lsb() public {
+    Leaf leaf;
+    leaf = Leaf.wrap((1 << 64) - 1);
+    assertEq(leaf.firstOfferPosition(), 3);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 64);
+    assertEq(leaf.firstOfferPosition(), 2);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 128);
+    assertEq(leaf.firstOfferPosition(), 1);
+
+    leaf = Leaf.wrap(((1 << 64) - 1) << 192);
+    assertEq(leaf.firstOfferPosition(), 0);
+  }
+
   function test_firstOfferPosition() public {
     Leaf leaf = LeafLib.EMPTY;
     leaf = leaf.setTickFirst(Tick.wrap(1), 31);
@@ -66,6 +86,13 @@ contract LeafTest is Test2 {
     assertEq(leaf.lastOfIndex(index), lastId, "last id");
   }
 
+  function test_firstOfferPosition_on_invalid_leaf() public {
+    Leaf leaf = LeafLib.EMPTY;
+    leaf = leaf.setIndexFirstOrLast(0, 1, true);
+    leaf = leaf.setIndexFirstOrLast(1, 2, false);
+    assertEq(leaf.firstOfferPosition(), 0, "first offer position should be 0 (despite leaf being invalid)");
+  }
+
   function test_next_offer_id() public {
     Leaf leaf = LeafLib.EMPTY;
     assertEq(leaf.getNextOfferId(), 0);
@@ -75,9 +102,9 @@ contract LeafTest is Test2 {
     checkFirstOffer(leaf2, 0);
     leaf2 = leaf.setIndexFirstOrLast(1, 27, false);
     checkFirstOffer(leaf2, 27);
-    leaf = leaf.setIndexFirstOrLast(0, 13, true);
     leaf2 = leaf.setIndexFirstOrLast(1, 823, false);
-    checkFirstOffer(leaf2, 823);
+    leaf2 = leaf.setIndexFirstOrLast(0, 13, true);
+    checkFirstOffer(leaf2, 0);
     leaf = leaf.setIndexFirstOrLast(3, 2113, false);
     checkFirstOffer(leaf, 2113);
     leaf = leaf.setIndexFirstOrLast(3, 2, false);
@@ -480,5 +507,39 @@ contract FieldTest is Test {
     assertGt(LEVEL1_SIZE, 0);
     assertLe(LEVEL0_SIZE, int(MAX_LEVEL_SIZE), "bad level0 size");
     assertGt(LEVEL0_SIZE, 0);
+  }
+
+  // checks that there is no overflow
+  function test_maxSafeVolumeIsSafeLowLevel() public {
+    assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
+  }
+
+  // non-optimized divExpUp
+  function divExpUp_spec(uint a, uint exp) public returns (uint) {
+    if (a == 0) return 0;
+    if (exp > 255) return 1;
+    uint den = 2 ** exp;
+    uint carry = a % den == 0 ? 0 : 1;
+    return a / den + carry;
+  }
+
+  function test_inboundFromOutboundUp_and_converse(int logPrice, uint amt) public {
+    amt = bound(amt, 0, MAX_SAFE_VOLUME);
+    logPrice = bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE);
+
+    uint sig;
+    uint exp;
+
+    //inboundFromOutboundUp
+    (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(logPrice);
+    assertEq(LogPriceLib.inboundFromOutboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
+
+    //outboundFromInboundUp
+    (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(-logPrice);
+    assertEq(LogPriceLib.outboundFromInboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
+  }
+
+  function test_divExpUp(uint a, uint exp) public {
+    assertEq(divExpUp(a, exp), divExpUp_spec(a, exp));
   }
 }

@@ -1144,8 +1144,8 @@ contract TakerOperationsTest is MangroveTest {
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
     MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);
     Leaf leaf = mgv.leafs(olKey, best.tick(olKey.tickScale).leafIndex());
-    assertEq(leaf.firstOfIndex(tick.posInLeaf()), bestId, "wrong first of tick");
-    assertEq(leaf.lastOfIndex(tick.posInLeaf()), ofr4, "wrong last of tick");
+    assertEq(leaf.firstOfPos(tick.posInLeaf()), bestId, "wrong first of tick");
+    assertEq(leaf.lastOfPos(tick.posInLeaf()), ofr4, "wrong last of tick");
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
     assertEq(local.tickPosInLeaf(), tick.posInLeaf(), "wrong local.tickPosInleaf");
     assertEq(best.prev(), 0, "best.prev should be 0");

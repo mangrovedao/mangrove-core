@@ -16,28 +16,28 @@ contract LeafTest is Test2 {
     assertEq(toString(leaf), str);
   }
 
-  function test_index_edit() public {
+  function test_pos_edit() public {
     Leaf leaf = LeafLib.EMPTY;
     assertStr(leaf, "[0,0][0,0][0,0][0,0]");
-    leaf = leaf.setIndexFirstOrLast(0, 32, false);
+    leaf = leaf.setPosFirstOrLast(0, 32, false);
     assertStr(leaf, "[32,0][0,0][0,0][0,0]");
-    leaf = leaf.setIndexFirstOrLast(0, 31, true);
+    leaf = leaf.setPosFirstOrLast(0, 31, true);
     assertStr(leaf, "[32,31][0,0][0,0][0,0]");
-    leaf = leaf.setIndexFirstOrLast(3, 12, true);
+    leaf = leaf.setPosFirstOrLast(3, 12, true);
     assertStr(leaf, "[32,31][0,0][0,0][0,12]");
-    leaf = leaf.setIndexFirstOrLast(0, 0, true);
+    leaf = leaf.setPosFirstOrLast(0, 0, true);
     assertStr(leaf, "[32,0][0,0][0,0][0,12]");
-    leaf = leaf.setIndexFirstOrLast(2, 0, true);
+    leaf = leaf.setPosFirstOrLast(2, 0, true);
     assertStr(leaf, "[32,0][0,0][0,0][0,12]");
-    leaf = leaf.setIndexFirstOrLast(2, 1, true);
+    leaf = leaf.setPosFirstOrLast(2, 1, true);
     assertStr(leaf, "[32,0][0,0][0,1][0,12]");
-    leaf = leaf.setIndexFirstOrLast(2, 4, false);
+    leaf = leaf.setPosFirstOrLast(2, 4, false);
     assertStr(leaf, "[32,0][0,0][4,1][0,12]");
-    leaf = leaf.setIndexFirstOrLast(3, 1208, true);
+    leaf = leaf.setPosFirstOrLast(3, 1208, true);
     assertStr(leaf, "[32,0][0,0][4,1][0,1208]");
-    leaf = leaf.setIndexFirstOrLast(1, 19992, false);
+    leaf = leaf.setPosFirstOrLast(1, 19992, false);
     assertStr(leaf, "[32,0][19992,0][4,1][0,1208]");
-    leaf = leaf.setIndexFirstOrLast(1, 711, true);
+    leaf = leaf.setPosFirstOrLast(1, 711, true);
     assertStr(leaf, "[32,0][19992,711][4,1][0,1208]");
   }
 
@@ -77,41 +77,41 @@ contract LeafTest is Test2 {
   int constant BP = 1.0001 * 1e18;
   // current max tick with solady fixedpoint lib 1353127
 
-  function test_x_of_index(uint index, uint32 firstId, uint32 lastId) public {
+  function test_x_of_pos(uint pos, uint32 firstId, uint32 lastId) public {
     Leaf leaf = LeafLib.EMPTY;
-    index = bound(index, 0, 3);
-    leaf = leaf.setIndexFirstOrLast(index, firstId, false);
-    leaf = leaf.setIndexFirstOrLast(index, lastId, true);
-    assertEq(leaf.firstOfIndex(index), firstId, "first id");
-    assertEq(leaf.lastOfIndex(index), lastId, "last id");
+    pos = bound(pos, 0, 3);
+    leaf = leaf.setPosFirstOrLast(pos, firstId, false);
+    leaf = leaf.setPosFirstOrLast(pos, lastId, true);
+    assertEq(leaf.firstOfPos(pos), firstId, "first id");
+    assertEq(leaf.lastOfPos(pos), lastId, "last id");
   }
 
   function test_firstOfferPosition_on_invalid_leaf() public {
     Leaf leaf = LeafLib.EMPTY;
-    leaf = leaf.setIndexFirstOrLast(0, 1, true);
-    leaf = leaf.setIndexFirstOrLast(1, 2, false);
+    leaf = leaf.setPosFirstOrLast(0, 1, true);
+    leaf = leaf.setPosFirstOrLast(1, 2, false);
     assertEq(leaf.firstOfferPosition(), 0, "first offer position should be 0 (despite leaf being invalid)");
   }
 
   function test_next_offer_id() public {
     Leaf leaf = LeafLib.EMPTY;
     assertEq(leaf.getNextOfferId(), 0);
-    Leaf leaf2 = leaf.setIndexFirstOrLast(0, 32, false);
+    Leaf leaf2 = leaf.setPosFirstOrLast(0, 32, false);
     checkFirstOffer(leaf2, 32);
-    leaf2 = leaf.setIndexFirstOrLast(0, 12, true);
+    leaf2 = leaf.setPosFirstOrLast(0, 12, true);
     checkFirstOffer(leaf2, 0);
-    leaf2 = leaf.setIndexFirstOrLast(1, 27, false);
+    leaf2 = leaf.setPosFirstOrLast(1, 27, false);
     checkFirstOffer(leaf2, 27);
-    leaf2 = leaf.setIndexFirstOrLast(1, 823, false);
-    leaf2 = leaf.setIndexFirstOrLast(0, 13, true);
+    leaf2 = leaf.setPosFirstOrLast(1, 823, false);
+    leaf2 = leaf.setPosFirstOrLast(0, 13, true);
     checkFirstOffer(leaf2, 0);
-    leaf = leaf.setIndexFirstOrLast(3, 2113, false);
+    leaf = leaf.setPosFirstOrLast(3, 2113, false);
     checkFirstOffer(leaf, 2113);
-    leaf = leaf.setIndexFirstOrLast(3, 2, false);
+    leaf = leaf.setPosFirstOrLast(3, 2, false);
     checkFirstOffer(leaf, 2);
-    leaf = leaf.setIndexFirstOrLast(2, 909, false);
+    leaf = leaf.setPosFirstOrLast(2, 909, false);
     checkFirstOffer(leaf, 909);
-    leaf = leaf.setIndexFirstOrLast(2, 0, false);
+    leaf = leaf.setPosFirstOrLast(2, 0, false);
     checkFirstOffer(leaf, 2);
   }
 

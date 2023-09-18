@@ -83,7 +83,7 @@ function logPriceToString(int logPrice) pure returns (string memory ret) {
 function toString(Leaf leaf) pure returns (string memory ret) {
   for (uint i = 0; i < 4; i++) {
     ret = string.concat(
-      ret, string.concat("[", vm.toString(leaf.firstOfIndex(i)), ",", vm.toString(leaf.lastOfIndex(i)), "]")
+      ret, string.concat("[", vm.toString(leaf.firstOfPos(i)), ",", vm.toString(leaf.lastOfPos(i)), "]")
     );
   }
 }

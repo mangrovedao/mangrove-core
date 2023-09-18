@@ -404,14 +404,14 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint densityFixed = (10 ** 7) << DensityLib.FIXED_FRACTIONAL_BITS;
     mgv.setGasbase(olKey, 1);
-    mgv.setDensityFixed(olKey, densityFixed);
+    mgv.setDensity96X32(olKey, densityFixed);
     mkr.newOfferByVolume(1 ether, DensityLib.fromFixed(densityFixed).multiply(1), 0, 0);
   }
 
   function test_low_density_fails_newOffer() public {
     uint densityFixed = (10 ** 7) << DensityLib.FIXED_FRACTIONAL_BITS;
     mgv.setGasbase(olKey, 1000);
-    mgv.setDensityFixed(olKey, densityFixed);
+    mgv.setDensity96X32(olKey, densityFixed);
     vm.expectRevert("mgv/writeOffer/density/tooLow");
     mkr.newOfferByVolume(1 ether, DensityLib.fromFixed(densityFixed).multiply(1000) - 1, 0, 0);
   }
@@ -816,7 +816,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     mgv.setGasbase(olKey, offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensityFixed(olKey, 0);
+    mgv.setDensity96X32(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     tkr.clean(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
@@ -827,7 +827,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     mgv.setGasbase(olKey, offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensityFixed(olKey, 0);
+    mgv.setDensity96X32(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     tkr.clean(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");

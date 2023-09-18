@@ -220,7 +220,7 @@ interface HasMgvEvents {
 
   The `olKeyHash` is indexed, so that we can filter on it when doing RPC calls.
   */
-  event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
+  event SetDensity96X32(bytes32 indexed olKeyHash, uint value);
 
   /*
   This event is emitted when the max recursion depth of Mangrove is set.

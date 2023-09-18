@@ -45,7 +45,7 @@ contract MgvOracleForInternal is MgvOracle {
 contract MgvOracleTest is Test2 {
   // Same events as in MgvOracle, needed to test that the events gets emitted
   event SetGasprice(uint gasPrice);
-  event SetDensityFixed(uint densityFixed);
+  event SetDensity96X32(uint densityFixed);
 
   function test_authOnly() public {
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
@@ -115,7 +115,7 @@ contract MgvOracleTest is Test2 {
     assertEq(mgvOracle.getGasprice(), 40, "gas should be set");
   }
 
-  function test_setDensityFixed() public {
+  function test_setDensity96X32() public {
     address governance = freshAddress("governance");
     address mutator = freshAddress("mutator");
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
@@ -123,12 +123,12 @@ contract MgvOracleTest is Test2 {
     assertEq(Density.unwrap(mgvOracle.getDensity()), type(uint).max, "density should be set to max");
 
     vm.expectRevert("MgvOracle/unauthorized");
-    mgvOracle.setDensityFixed(20 << DensityLib.FIXED_FRACTIONAL_BITS);
+    mgvOracle.setDensity96X32(20 << DensityLib.FIXED_FRACTIONAL_BITS);
 
     vm.startPrank(governance);
     vm.expectEmit(false, false, false, true);
-    emit SetDensityFixed(DensityLib.fromFixed(20 << DensityLib.FIXED_FRACTIONAL_BITS).toFixed());
-    mgvOracle.setDensityFixed(20 << DensityLib.FIXED_FRACTIONAL_BITS);
+    emit SetDensity96X32(DensityLib.fromFixed(20 << DensityLib.FIXED_FRACTIONAL_BITS).toFixed());
+    mgvOracle.setDensity96X32(20 << DensityLib.FIXED_FRACTIONAL_BITS);
     vm.stopPrank();
 
     assertEq(
@@ -139,8 +139,8 @@ contract MgvOracleTest is Test2 {
 
     vm.startPrank(mutator);
     vm.expectEmit(false, false, false, true);
-    emit SetDensityFixed(DensityLib.fromFixed(40 << DensityLib.FIXED_FRACTIONAL_BITS).toFixed());
-    mgvOracle.setDensityFixed(40 << DensityLib.FIXED_FRACTIONAL_BITS);
+    emit SetDensity96X32(DensityLib.fromFixed(40 << DensityLib.FIXED_FRACTIONAL_BITS).toFixed());
+    mgvOracle.setDensity96X32(40 << DensityLib.FIXED_FRACTIONAL_BITS);
     vm.stopPrank();
 
     assertEq(
@@ -156,7 +156,7 @@ contract MgvOracleTest is Test2 {
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
 
     vm.startPrank(governance);
-    mgvOracle.setDensityFixed(20 << DensityLib.FIXED_FRACTIONAL_BITS);
+    mgvOracle.setDensity96X32(20 << DensityLib.FIXED_FRACTIONAL_BITS);
     mgvOracle.setGasPrice(30);
     vm.stopPrank();
 
@@ -166,5 +166,21 @@ contract MgvOracleTest is Test2 {
     assertEq(
       density.toFixed(), DensityLib.fromFixed(20 << DensityLib.FIXED_FRACTIONAL_BITS).toFixed(), "density should be 20"
     );
+  }
+
+  function test_set_density_fixed() public {
+    address governance = freshAddress("governance");
+    address mutator = freshAddress("mutator");
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
+
+    uint ceiling = 2 ** DensityLib.FIXED_BITS - 1;
+
+    // check no revert
+    vm.prank(governance);
+    mgvOracle.setDensity96X32(ceiling);
+
+    vm.expectRevert("MgvOracle/config/density96X32/wrong");
+    vm.prank(governance);
+    mgvOracle.setDensity96X32(ceiling + 1);
   }
 }

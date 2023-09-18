@@ -146,9 +146,7 @@ interface IMangrove is HasMgvEvents {
 
   function kill() external;
 
-  function setDensityFixed(OLKey memory olKey, uint densityFixed) external;
-
-  function setDensity(OLKey memory olKey, uint density) external;
+  function setDensity96X32(OLKey memory olKey, uint densityFixed) external;
 
   function setFee(OLKey memory olKey, uint fee) external;
 

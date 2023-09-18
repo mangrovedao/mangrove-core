@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MgvLib, OLKey, DensityLib} from "mgv_src/MgvLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
 
 /**
@@ -103,7 +103,7 @@ contract MarketHealth is Test2, Deployer {
     IERC20 outTkn = IERC20(olKey.outbound);
     if (densityOverrides > 0) {
       vm.prank(mgv.governance());
-      mgv.setDensity(olKey, densityOverrides);
+      mgv.setDensity96X32(olKey, densityOverrides << 32);
     }
     HeapVars memory vars;
     vars.data = reader.simulateMarketOrderByVolume(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);

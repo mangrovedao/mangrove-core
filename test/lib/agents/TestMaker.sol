@@ -14,7 +14,7 @@ contract TrivialTestMaker is IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) external virtual {}
 }
 
-//TODO add posthookShouldRevert/posthookReturnData
+// could add offer-specific posthookShouldRevert/posthookReturnData here if needed
 struct OfferData {
   bool shouldRevert;
   string executeData;

@@ -94,7 +94,6 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     );
 
     expectFrom($(mgv));
-    // FIXME why does this pass?
     emit OfferWrite(olKey.hash(), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.marketOrderWithSuccess(0.5 ether);
     assertTrue(success, "Snipe should succeed");
@@ -120,7 +119,6 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       "Incorrect maker balance before take"
     );
 
-    // FIXME why does this expect pass?
     expectFrom($(mgv));
     emit OfferWrite(olKey.hash(), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.marketOrderWithSuccess(2 ether);

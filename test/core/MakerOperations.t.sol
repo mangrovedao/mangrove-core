@@ -1039,9 +1039,6 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(mgv.level0(olKey, lowTick.level0Index()), FieldLib.EMPTY, "lowTick's level0 should have been flushed");
   }
 
-  // FIXME
-  // fix test_higher_tick so I'm sure the posInLeaf I'm testing is right
-
   function test_higher_tick() public {
     mgv.newOfferByLogPrice(olKey, 2, 1 ether, 100_000, 0);
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
@@ -1049,5 +1046,17 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.newOfferByLogPrice(olKey, 3, 1 ether, 100_000, 0);
     (, local) = mgv.config(olKey);
     assertEq(local.tickPosInLeaf(), 2);
+  }
+
+  function test_leaf_update_both_first_and_last(int logPrice) public {
+    logPrice = bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE);
+    uint ofr0 = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 0, 0);
+    Tick tick = TickLib.nearestHigherTickToLogPrice(logPrice, olKey.tickScale);
+    Leaf expected = LeafLib.EMPTY;
+    expected = expected.setPosFirstOrLast(tick.posInLeaf(), ofr0, true);
+    expected = expected.setPosFirstOrLast(tick.posInLeaf(), ofr0, false);
+    assertEq(mgv.leafs(olKey, tick.leafIndex()), expected, "leaf not as expected");
+    mgv.retractOffer(olKey, ofr0, true);
+    assertEq(mgv.leafs(olKey, tick.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 }

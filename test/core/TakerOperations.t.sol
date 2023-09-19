@@ -481,11 +481,8 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 
-  // before ticks: testing that a wants of 0 works
-  // after ticks: wants of 0 as input not acceptd for now but *resulting* wants is doable thanks to approximatoin
-  // FIXME: maybe wants=0 should be allowed
   function test_fillGives_at_0_wants_works() public {
-    uint wants = 1;
+    uint wants = 0;
     uint ofr = mkr.newOfferByVolume(wants, 2 ether, 100_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
     mkr.expect("mgv/tradeSuccess");
@@ -556,81 +553,6 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(bounty > 0, "offer should fail");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
   }
-
-  // FIXME remove this manual test when the reason for why it was failing is clear
-  /* It stops failing if I redefine inboundFromOutboundUpTick as
-      uint nextPrice_e18 = Tick.wrap(logPrice+1).priceFromTick_e18();
-      uint prod = nextPrice_e18 * outboundAmt;
-      return prod/1e18 + (prod%1e18==0 ? 0 : 1);
-  */
-  // function test_manual() public {
-  //   test_snipe_correct_amount_auto(22701, 20214603739982190561, 2, 0);
-  // }
-
-  // FIXME restricting to uint72 so maximum price is not reached
-  // FIXME: This fails with args=[1, 2, 1, 0], unclear why. Commenting out for now.
-  // function test_snipe_correct_amount_auto(uint72 makerWants, uint72 makerGives, uint72 factor1, uint16 pc) public {
-  //   vm.assume(factor1 > 0);
-  //   vm.assume(makerWants > 0);
-  //   vm.assume(makerGives > 0);
-
-  //   // uint takerWants = uint(makerGives) / (uint(factor1)*uint(factor2));
-  //   uint takerWants = uint(makerGives) / uint(factor1);
-  //   // uint takerWants = uint(makerGives) *100 / (uint(factor1)*uint(factor2)*100);
-  //   // uint takerGives = uint(makerWants) *100 / (uint(factor1)*100);
-
-  //   // vm.assume(takerWants > 0);
-
-  //   mgv.setDensity96X32(olKey, 0);
-  //   uint ofr = mkr.newOfferByVolume(makerWants, makerGives, 100_000, 0);
-  //   MgvStructs.OfferPacked offer = mgv.offers(olKey,ofr);
-  //   pc = uint16(bound(pc, 0, 10_000));
-  //   Tick takerTick = offer.tick(olKey.tickScale);
-  //   // if I round down takerGives: what? well I reudce the price allowed, and so might mistakenly think (in execute()) that the taker is not ok with the offer (because I reduced the price more here, than I reduced it when I stored the offer?).
-  //   // but then if I round it up, somehow I get also a roudned down takerGave in execute(), that is even lower a.... ahhh?
-
-  //   // Actual makerWants due to loss of precision when inserting offer.
-  //   makerWants = uint72(offer.wants());
-  //   uint takerGives = takerWants == 0 ? 0 : takerTick.inboundFromOutboundUpTick(takerWants);
-  //   vm.assume(uint72(takerGives) == takerGives);
-
-  //   if (takerGives > 0) {
-  //     uint takerPriceE18 = takerGives * 1e18 / takerWants;
-  //     // If price is not high enough then we it must because of rounding due to too small gives/wants.
-  //     if (takerTick.priceFromTick_e18() > takerPriceE18) {
-  //       // ensure just one more gives passes price
-  //       assertLe(takerTick.priceFromTick_e18(), (takerGives + 1) * 1e18 / takerWants);
-  //       // TODO: Hopefully this is removed by changing targets to tick,volume - otherwise, try stabilizing test without this assume(false).
-  //       // bail out as price is too low
-  //       vm.assume(false);
-  //     }
-  //     assertLe(
-  //       takerPriceE18,
-  //       Tick.wrap(logPrice + 1).priceFromTick_e18(),
-  //       "TakerGives should not overestimate too much"
-  //     );
-  //   }
-
-  //   // Tick takerTick = Tick.wrap(logPrice)*10_000/(pc*10_000));
-  //   // takerWants = random
-  //   // takerGives =
-  //   // if you want to snipe offer (tick,og):
-  //   // - goal is to give (tw,tg) such that tick.ow(og)*tw <= og*tg
-  //   // - i don't want to do tick compare for now because how do I do tick compare for market order?
-  //   // - i woud like takerGives=0 OK (and takerWants=0 ok too?)
-  //   // - if I take tw as given and apply the tick, I get tg=tick.ow(tw), which... will work?
-
-  //   deal($(quote), address(this), type(uint).max);
-  //   deal($(base), address(mkr), type(uint).max);
-  //   mkr.approveMgv(base, type(uint).max);
-  //   quote.approve($(mgv), type(uint).max);
-
-  //   (uint successes, uint takerGot,,,) =
-  //     testMgv.snipesInTest(olKey, wrap_dynamic([ofr, takerWants, takerGives, 100_000]), true);
-  //   assertEq(successes, 1, "order should succeed");
-  //   assertEq(takerGot, takerWants, "wrong takerGot");
-  //   // Taker does not give all it has since it overestimates price - assertEq(takerGave, takerGives, "wrong takerGave");
-  // }
 
   function test_maker_revert_is_logged() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
@@ -743,16 +665,15 @@ contract TakerOperationsTest is MangroveTest {
     }
   }
 
-  // FIXME error should not depend on the other volume argument being > 0
   function test_marketOrderByVolume_takerGives_extrema() public {
     vm.expectRevert("priceFromVolumes/inbound/tooBig");
-    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, true);
+    mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, true);
     vm.expectRevert("priceFromVolumes/outbound/tooBig");
-    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, true);
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, true);
     vm.expectRevert("priceFromVolumes/inbound/tooBig");
-    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, false);
+    mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, false);
     vm.expectRevert("priceFromVolumes/outbound/tooBig");
-    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, false);
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, false);
   }
 
   function test_clean_with_0_wants_ejects_offer() public {
@@ -789,16 +710,29 @@ contract TakerOperationsTest is MangroveTest {
     mgv.marketOrderByLogPrice{gas: 291_000}(olKey, logPrice, 1 ether, true);
   }
 
-  // FIXME Make a token that goes out of gas on transfer to taker
-  // So we don't have to find exact gas values here
-  // function test_unsafe_gas_left_fails_to_pay_taker() public {
-  //   mgv.setGasbase(olKey, 1);
-  //   quote.approve($(mgv), 1 ether);
-  //   uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 220_000, 0);
-  //   Tick offerTick = mgv.offers(olKey,ofr).tick();
-  //   vm.expectRevert("mgv/MgvFailToPayTaker");
-  //   testMgv.snipesInTest{gas: 240_000}($(mgv), olKey, wrap_dynamic([ofr, logPrice, 1 ether, 220_000]), true);
-  // }
+  // Check conditions under which MgvFailToPayTaker can occur
+  // This happens when:
+  // - outbound token goes OOG / reverts
+  // - Mangrove still has enough gas to revert
+  // Here we test the OOG case with a special token "OutOfGasToken"
+  function test_unsafe_gas_left_fails_to_pay_taker() public {
+    OutOfGasToken oogtt = new OutOfGasToken(address(this),"OutOfGasToken","OOGTT",18);
+    oogtt.setTaker(address(this));
+    deal($(oogtt), address(mkr), 100 ether);
+    mkr.approveMgv(oogtt, type(uint).max);
+
+    IERC20(olKey.inbound).approve($(mgv), type(uint).max);
+
+    olKey.outbound = address(oogtt);
+    mgv.activate(olKey, 0, 0, 1);
+
+    int logPrice = 0;
+    mkr.newOfferByLogPrice(olKey, logPrice, 1 ether, 220_000, 0);
+    vm.expectRevert("mgv/MgvFailToPayTaker");
+
+    // Give a normal gas amount (gas available in tests is so high the gas-waste of OutOfGasToken would run for ages)
+    mgv.marketOrderByLogPrice{gas: 400_000}(olKey, logPrice, 1 ether, true);
+  }
 
   function test_marketOrder_on_empty_book_does_not_revert() public {
     mgv.marketOrderByVolume(olKey, 1 ether, 1 ether, true);
@@ -880,8 +814,6 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
-
-  // FIXME implement a test that checks a gives+price too high results in an error (should p
 
   /* Clean offer state&match validation */
   function test_clean_on_nonexistent_offer_fails() public {
@@ -1181,5 +1113,31 @@ contract BadMangrove is AbstractMangrove {
 
   function flashloan(MgvLib.SingleOrder calldata, address) external pure override returns (uint, bytes32) {
     revert("badRevert");
+  }
+}
+
+// simulates what happens if the call to transfer tokens to the taker runs out of gas
+// runs out of gas when transferring to taker
+contract OutOfGasToken is TestToken {
+  constructor(address admin, string memory name, string memory symbol, uint8 _decimals)
+    TestToken(admin, name, symbol, _decimals)
+  {}
+
+  address taker;
+  mapping(uint => bool) internal waste;
+
+  function setTaker(address t) external {
+    taker = t;
+  }
+
+  function transfer(address to, uint amount) public virtual override returns (bool ret) {
+    if (to == taker) {
+      uint i;
+      while (++i > 0) {
+        waste[i] = true;
+      }
+    } else {
+      ret = super.transfer(to, amount);
+    }
   }
 }

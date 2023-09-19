@@ -140,15 +140,13 @@ interface IMangrove is HasMgvEvents {
 
   function governance() external view returns (address);
 
-  function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) external;
+  function activate(OLKey memory olKey, uint fee, uint density96X32, uint offer_gasbase) external;
 
   function deactivate(OLKey memory olKey) external;
 
   function kill() external;
 
-  function setDensityFixed(OLKey memory olKey, uint densityFixed) external;
-
-  function setDensity(OLKey memory olKey, uint density) external;
+  function setDensity96X32(OLKey memory olKey, uint density96X32) external;
 
   function setFee(OLKey memory olKey, uint fee) external;
 

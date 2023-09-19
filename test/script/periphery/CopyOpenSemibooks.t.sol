@@ -35,7 +35,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
 
   function test_copy_simple(Market memory market) public {
     vm.prank(chief);
-    mgv.activate(toOLKey(market), 3, 4, 2);
+    mgv.activate(toOLKey(market), 3, 4 << 32, 2);
     reader.updateMarket(market);
 
     copier.broadcaster(chief2);
@@ -55,12 +55,12 @@ contract CopyOpenSemibooksTest is MangroveTest {
     uint expectedDensity = 4;
     uint expectedOfferGasbase = 2000;
     vm.prank(chief);
-    mgv.activate(toOLKey(market), expectedFee, expectedDensity >> 32, expectedOfferGasbase);
+    mgv.activate(toOLKey(market), expectedFee, expectedDensity << 32, expectedOfferGasbase);
 
     reader.updateMarket(market);
 
     vm.prank(chief2);
-    mgv2.activate(toOLKey(market), 1, 1, 1);
+    mgv2.activate(toOLKey(market), 1, 1 << 32, 1);
     reader2.updateMarket(market);
 
     copier.broadcaster(chief2);
@@ -75,7 +75,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
     }
     console.log(toString(mgv2.local(toOLKey(market))));
     assertEq(mgv2.local(toOLKey(market)).fee(), expectedFee, "wrong fee");
-    assertEq(mgv2.local(toOLKey(market)).density().toFixed(), expectedDensity >> 32, "wrong density");
+    assertEq(mgv2.local(toOLKey(market)).density().to96X32(), expectedDensity << 32, "wrong density");
     assertEq(mgv2.local(toOLKey(market)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
   }
 }

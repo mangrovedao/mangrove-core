@@ -402,18 +402,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_min_density_with_newOffer_ok() public {
     mkr.provisionMgv(1 ether);
-    uint densityFixed = (10 ** 7) << DensityLib.FIXED_FRACTIONAL_BITS;
+    uint density96X32 = (10 ** 7) << 32;
     mgv.setGasbase(olKey, 1);
-    mgv.setDensityFixed(olKey, densityFixed);
-    mkr.newOfferByVolume(1 ether, DensityLib.fromFixed(densityFixed).multiply(1), 0, 0);
+    mgv.setDensity96X32(olKey, density96X32);
+    mkr.newOfferByVolume(1 ether, DensityLib.from96X32(density96X32).multiply(1), 0, 0);
   }
 
   function test_low_density_fails_newOffer() public {
-    uint densityFixed = (10 ** 7) << DensityLib.FIXED_FRACTIONAL_BITS;
+    uint density96X32 = (10 ** 7) << 32;
     mgv.setGasbase(olKey, 1000);
-    mgv.setDensityFixed(olKey, densityFixed);
+    mgv.setDensity96X32(olKey, density96X32);
     vm.expectRevert("mgv/writeOffer/density/tooLow");
-    mkr.newOfferByVolume(1 ether, DensityLib.fromFixed(densityFixed).multiply(1000) - 1, 0, 0);
+    mkr.newOfferByVolume(1 ether, DensityLib.from96X32(density96X32).multiply(1000) - 1, 0, 0);
   }
 
   function test_maker_gets_no_mgv_balance_on_partial_fill() public {
@@ -816,7 +816,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     mgv.setGasbase(olKey, offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensityFixed(olKey, 0);
+    mgv.setDensity96X32(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     tkr.clean(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
@@ -827,7 +827,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     mgv.setGasbase(olKey, offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensityFixed(olKey, 0);
+    mgv.setDensity96X32(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     tkr.clean(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");

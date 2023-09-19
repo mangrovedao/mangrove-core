@@ -333,7 +333,7 @@ contract DeepCollectTest is MangroveTest {
   //receive() external payable {}
 
   function setUp() public override {
-    options.density = 10;
+    options.density96X32 = 10 << 32;
     super.setUp();
     tkr = setupTaker(olKey, "taker");
 

@@ -62,7 +62,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint gasprice;
     uint gasbase;
     uint gasmax;
-    uint density;
+    uint density96X32;
   }
 
   IMangrove internal mgv;
@@ -81,7 +81,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     gasprice: 40,
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
-    density: 2 ** 32,
+    density96X32: 2 ** 32,
     gasmax: 2_000_000
   });
 
@@ -252,8 +252,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   function setupMarket(IMangrove _mgv, OLKey memory _ol) internal {
     assertNot0x(olKey.outbound);
     assertNot0x(olKey.inbound);
-    _mgv.activate(_ol, options.defaultFee, options.density, options.gasbase);
-    _mgv.activate(lo, options.defaultFee, options.density, options.gasbase);
+    _mgv.activate(_ol, options.defaultFee, options.density96X32, options.gasbase);
+    _mgv.activate(lo, options.defaultFee, options.density96X32, options.gasbase);
     // logging
     vm.label(olKey.outbound, IERC20(olKey.outbound).symbol());
     vm.label(olKey.inbound, IERC20(olKey.inbound).symbol());

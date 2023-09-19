@@ -18,8 +18,6 @@ address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279c
 string constant SINGLETON_FORK = "Deployer:Fork";
 string constant SINGLETON_BROADCASTER = "Deployer:broadcaster";
 
-// TODO Add constants for singleton labels (instead of repeating the string everywhere)
-
 /* Writes deployments in 2 ways:
    1. In a json file. Easier to write one directly than to parse&transform
    foundry broadcast log files.

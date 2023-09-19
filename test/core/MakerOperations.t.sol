@@ -1048,10 +1048,15 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(local.tickPosInLeaf(), 2);
   }
 
-  function test_leaf_update_both_first_and_last() public {
-    uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
-    Tick tick0 = mgv.offers(olKey, ofr0).tick(olKey.tickScale);
+  function test_leaf_update_both_first_and_last(int logPrice) public {
+    logPrice = bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE);
+    uint ofr0 = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 0, 0);
+    Tick tick = TickLib.nearestHigherTickToLogPrice(logPrice, olKey.tickScale);
+    Leaf expected = LeafLib.EMPTY;
+    expected = expected.setPosFirstOrLast(tick.posInLeaf(), ofr0, true);
+    expected = expected.setPosFirstOrLast(tick.posInLeaf(), ofr0, false);
+    assertEq(mgv.leafs(olKey, tick.leafIndex()), expected, "leaf not as expected");
     mgv.retractOffer(olKey, ofr0, true);
-    assertEq(mgv.leafs(olKey, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
+    assertEq(mgv.leafs(olKey, tick.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 }

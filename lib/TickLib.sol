@@ -472,18 +472,16 @@ library FieldLib {
     }
   }
 
-  // Will throw if field is empty
+  // Will return 64 if field is empty
   function firstOnePosition(Field field) internal pure returns (uint) {
     unchecked {
-      require(!field.isEmpty(),"field is 0");
       return BitLib.ctz64(Field.unwrap(field));
     }
   }
 
-  // Will throw if field is empty
+  // Will return 64 if field is empty
   function lastOnePosition(Field field) internal pure returns (uint) {
     unchecked {
-      require(!field.isEmpty(), "field is 0");
       return BitLib.fls(Field.unwrap(field));
     }
   }

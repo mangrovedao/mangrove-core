@@ -1,12 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-// those tests should be run with -vv so correct gas estimates are shown
-
 pragma solidity ^0.8.10;
 
-// import "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Test2.sol";
-// import "abdk-libraries-solidity/ABDKMathQuad.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 

@@ -721,6 +721,8 @@ contract TakerOperationsTest is MangroveTest {
     deal($(oogtt), address(mkr), 100 ether);
     mkr.approveMgv(oogtt, type(uint).max);
 
+    IERC20(olKey.inbound).approve($(mgv), type(uint).max);
+
     olKey.outbound = address(oogtt);
     mgv.activate(olKey, 0, 0, 1);
 

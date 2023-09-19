@@ -67,10 +67,6 @@ contract MgvOfferMaking is MgvHasOffers {
       if (msg.value > 0) {
         creditWei(msg.sender, msg.value);
       }
-      // TODO this resolve to memory instead of a stackvalue
-      // Need a parametric function to get the nth tickleaf
-      // ofp.tickleaf = offerList.leafs[tick. ..] tickleaf;
-
       ofp.id = 1 + ofp.local.last();
       require(uint32(ofp.id) == ofp.id, "mgv/offerIdOverflow");
 
@@ -86,8 +82,6 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* Since we locally modified a field of the local configuration (`last`), we save the change to storage. Note that `writeOffer` may have further modified the local configuration by updating the current `best` offer. */
       offerList.local = ofp.local;
-      // TODO only update tickleaf if it has changed?
-      // offerList.level2 = ofp.level2;
       return ofp.id;
     }
   }
@@ -144,8 +138,6 @@ contract MgvOfferMaking is MgvHasOffers {
       if (!oldLocal.eq(ofp.local)) {
         offerList.local = ofp.local;
       }
-      // TODO only update tickleaf if it has changed
-      // tickleaf = ofp.tickleaf;
     }
   }
 
@@ -271,7 +263,6 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         /* If the offer is new, has a new `gasprice`, `gasreq`, or if Mangrove's `offer_gasbase` configuration parameter has changed, we also update `offerDetails`. */
-        // TODO Can this be optimized to a single packed comparison? eg offerDetail != ofp.detail ?
         if (
           !update || offerDetail.gasreq() != ofp.gasreq || offerDetail.gasprice() != ofp.gasprice
             || offerDetail.offer_gasbase() != ofp.local.offer_gasbase()

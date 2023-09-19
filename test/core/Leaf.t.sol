@@ -1,12 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-// those tests should be run with -vv so correct gas estimates are shown
-
 pragma solidity ^0.8.10;
 
-// import "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Test2.sol";
-// import "abdk-libraries-solidity/ABDKMathQuad.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 
@@ -201,14 +197,12 @@ contract TickTest is Test {
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
     assertEq(int(Tick.wrap(tick).posInLevel0()), tn / LEAF_SIZE % LEVEL0_SIZE);
   }
-  // TODO test_posInLevel1_manual
 
   function test_posInLevel1_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
     assertEq(int(Tick.wrap(tick).posInLevel1()), tn / (LEAF_SIZE * LEVEL0_SIZE) % LEVEL1_SIZE);
   }
-  // TODO test_posInLevel2_manual
 
   function test_posInLevel2_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);

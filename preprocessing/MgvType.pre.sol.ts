@@ -1,4 +1,3 @@
-// TODO Try to reduce codesize by having all functions go through a common parametric "modify there" function
 import { format, tabulate } from "./lib/format";
 
 export const template = ({ preamble, struct_utilities, struct: s }) => {

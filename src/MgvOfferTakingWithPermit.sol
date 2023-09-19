@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import {HasMgvEvents, Tick, LogPriceLib, OLKey} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
-import {TickLib} from "./../lib/TickLib.sol";
+import {TickLib} from "mgv_lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 import {MgvStructs} from "./MgvLib.sol";
 import "mgv_lib/Debug.sol";

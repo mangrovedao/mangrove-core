@@ -19,7 +19,7 @@ import {
   OLKey
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {TickLib} from "./../lib/TickLib.sol";
+import {TickLib} from "mgv_lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {

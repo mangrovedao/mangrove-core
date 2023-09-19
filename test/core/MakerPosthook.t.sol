@@ -299,11 +299,10 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     makerRevert = true;
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
-    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
-    vm.expectEmit(true, true, true, false, $(mgv));
-    emit Credit($(this), 0 /*penalty*/ );
-    vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
+    expectFrom($(mgv));
+    emit Credit($(this), 10699440000000000);
+    expectFrom($(mgv));
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8500560000000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(!success, "market order should fail");
     assertTrue(called, "PostHook not called");
@@ -389,11 +388,10 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     makerRevert = true; // maker should fail
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
-    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
-    vm.expectEmit(true, true, true, false, $(mgv));
-    emit Credit($(this), 0 /*refund*/ );
-    vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
+    expectFrom($(mgv));
+    emit Credit($(this), 10699440000000000);
+    expectFrom($(mgv));
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8500560000000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
 

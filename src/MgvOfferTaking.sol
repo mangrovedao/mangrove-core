@@ -21,6 +21,7 @@ import {
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "mgv_lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */

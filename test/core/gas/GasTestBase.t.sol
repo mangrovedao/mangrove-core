@@ -13,7 +13,7 @@ int constant MIDDLE_LOG_PRICE =
   /* mid leaf */ LEAF_SIZE / 2 + 
   /* mid level0 */ LEAF_SIZE * (LEVEL0_SIZE / 2) +
   /* mid level 1 */ LEAF_SIZE * LEVEL0_SIZE * (LEVEL1_SIZE / 2) +
-  /* mid level 2 */ LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE + (LEVEL2_SIZE / 2);
+  /* mid level 2 */ LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * (LEVEL2_SIZE / 3);
 // forgefmt: disable-end
 
 int constant LEAF_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - 1;
@@ -46,29 +46,30 @@ abstract contract GasTestBaseStored {
 
   function newOfferOnAllLowerThanMiddleTestPrices() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
-    logPriceOfferIds[LEAF_LOWER_LOG_PRICE] = mgv.newOfferByLogPrice(_olKey, LEAF_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEAF_LOWER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEAF_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL0_LOWER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL0_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL0_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL1_LOWER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL1_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL1_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL2_LOWER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL2_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL2_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL3_LOWER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL3_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL3_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
   }
 
   function newOfferOnAllHigherThanMiddleTestPrices() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     logPriceOfferIds[LEAF_HIGHER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEAF_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEAF_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL0_HIGHER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL0_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL0_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL1_HIGHER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL2_HIGHER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL2_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL2_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL3_HIGHER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL3_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, LEVEL3_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
   }
 }
 

@@ -30,13 +30,13 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   function setUp() public virtual override {
     super.setUp();
     logPrice = MIDDLE_LOG_PRICE;
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description = "Worst case scenario of taking the last offer from an offer list which now becomes empty";
   }
 
   function setUpLogPrice(int _logPrice) public virtual {
     logPrice = _logPrice;
-    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 0.00001 ether, 100_000, 0);
   }
 
   function test_market_order_partial() public {
@@ -65,7 +65,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, false);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order by log price full fill");
@@ -74,7 +74,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
 
   function test_market_order_by_volume_full() public {
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
-    uint takerGives = 1 ether;
+    uint takerGives = 0.00001 ether;
     uint takerWants = LogPriceLib.outboundFromInbound(MIDDLE_LOG_PRICE, takerGives);
     vm.prank($(taker));
     _gas();
@@ -89,7 +89,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, false);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order by price full fill");
@@ -104,14 +104,14 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
     super.setUp();
     // The offer to take
     logPrice = MIDDLE_LOG_PRICE;
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description = "Market order taking an offer which moves the price up various tick-distances";
   }
 
   function setUpLogPrice(int _logPrice) public virtual {
     // The offer price ends up at
     logPrice = _logPrice;
-    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 0.00001 ether, 100_000, 0);
   }
 
   function test_market_order_partial() public {
@@ -189,9 +189,9 @@ contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_L
 abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick is SingleGasTestBase {
   function setUpOffers(uint count) internal {
     for (uint i; i < count; ++i) {
-      _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+      _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     }
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE + 1, 1 ether, 100_000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE + 1, 0.00001 ether, 100_000, 0);
     description = string.concat(string.concat("Market order taking ", vm.toString(count), " offers at same tick"));
   }
 
@@ -243,12 +243,16 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks is Tick
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _logPrice) internal virtual override {
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, _logPrice, 2 ** 96, false);
+    mgv.marketOrderByLogPrice(_olKey, _logPrice, 2 ** 104 - 1, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
     // In some tests the market order takes all offers, in others not. `local.bestTick()` must only be called when the book is non-empty
     if (!local.level3().isEmpty()) {
-      assertLt(_logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+      assertLt(
+        _logPrice,
+        LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale),
+        "logPrice should be strictly less than current logPrice"
+      );
     }
   }
 }

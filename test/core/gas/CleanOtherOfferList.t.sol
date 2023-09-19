@@ -30,7 +30,7 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
   function setUp() public virtual override {
     super.setUp();
     logPrice = MIDDLE_LOG_PRICE;
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description = "Worst case scenario where cleaning an offer from an offer list which now becomes empty";
   }
 
@@ -40,7 +40,7 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
 
   function setUpLogPrice(int _logPrice) public virtual {
     logPrice = _logPrice;
-    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 0.00001 ether, 100_000, 0);
     description = "Cleaning an offer when another offer exists at various tick-distances to the offer's price";
   }
 
@@ -301,10 +301,10 @@ contract ExternalCleanOfferOtherOfferList_WithPriorCleanOfferAndNoOtherOffersGas
 
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
     this.newOfferOnAllTestPrices();
-    offerId2 = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    offerId2 = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description = "Cleaning a second offer at various tick-distances after cleaning an offer at MIDDLE_LOG_PRICE";
   }
 
@@ -339,7 +339,10 @@ abstract contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTes
     for (uint i; i < count; ++i) {
       targets.push(
         MgvLib.CleanTarget(
-          mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0), MIDDLE_LOG_PRICE, 100_000, 0.05 ether
+          mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0),
+          MIDDLE_LOG_PRICE,
+          100_000,
+          0.05 ether
         )
       );
     }

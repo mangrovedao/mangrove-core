@@ -24,13 +24,13 @@ import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBase {
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description =
       "Worst case scenario if strat retracts an offer from an offer list which has now become empty - with and without deprovision";
   }
 
   function setUpLogPrice(int _logPrice) public virtual {
-    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 0.00001 ether, 100_000, 0);
     description = "Retracting an offer when another offer exists at various tick-distances to the offer's price";
   }
 
@@ -297,10 +297,10 @@ contract ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffer
 
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
     this.newOfferOnAllTestPrices();
-    offerId2 = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
+    offerId2 = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description = "Retracting a second offer at various tick-distances after retracting an offer at MIDDLE_LOG_PRICE";
   }
 

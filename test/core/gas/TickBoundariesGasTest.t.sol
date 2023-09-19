@@ -17,7 +17,8 @@ import {
   LEVEL3_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
 
-import {IMangrove, TestTaker, OLKey} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker, OLKey, MgvStructs} from "mgv_test/lib/MangroveTest.sol";
+import "mgv_lib/Debug.sol";
 
 /// Implements tests for all boundaries of tick values. Starting from a MIDDLE_LOG_PRICE it goes above and below creating new branches for all levels.
 abstract contract TickBoundariesGasTest is GasTestBaseStored {
@@ -26,6 +27,7 @@ abstract contract TickBoundariesGasTest is GasTestBaseStored {
   function testLogPrice(int _logPrice) internal virtual {
     logPrice = _logPrice;
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) = getStored();
+
     impl(mgv, taker, _olKey, offerId, _logPrice);
   }
 
@@ -44,6 +46,8 @@ abstract contract TickBoundariesGasTest is GasTestBaseStored {
   }
 
   function test_ExistingLeafHigherTick() public {
+    console.log("MIDDLE", MIDDLE_LOG_PRICE);
+    console.log("LEAF HIGHER", LEAF_HIGHER_LOG_PRICE);
     testLogPrice(LEAF_HIGHER_LOG_PRICE);
     description = string.concat(description, " - Case: Existing leaf higher tick");
     printDescription();

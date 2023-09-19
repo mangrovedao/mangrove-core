@@ -12,7 +12,9 @@ import {
   LEVEL1_LOWER_LOG_PRICE,
   LEVEL1_HIGHER_LOG_PRICE,
   LEVEL2_LOWER_LOG_PRICE,
-  LEVEL2_HIGHER_LOG_PRICE
+  LEVEL2_HIGHER_LOG_PRICE,
+  LEVEL3_LOWER_LOG_PRICE,
+  LEVEL3_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
 
 import {IMangrove, TestTaker, OLKey} from "mgv_test/lib/MangroveTest.sol";
@@ -80,6 +82,18 @@ abstract contract TickBoundariesGasTest is GasTestBaseStored {
   function test_NewLevel2LowerTick() public {
     testLogPrice(LEVEL2_LOWER_LOG_PRICE);
     description = string.concat(description, " - Case: New level 2 lower tick");
+    printDescription();
+  }
+
+  function test_NewLevel3HigherTick() public {
+    testLogPrice(LEVEL3_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: New level 3 higher tick");
+    printDescription();
+  }
+
+  function test_NewLevel3LowerTick() public {
+    testLogPrice(LEVEL3_LOWER_LOG_PRICE);
+    description = string.concat(description, " - Case: New level 3 lower tick");
     printDescription();
   }
 }

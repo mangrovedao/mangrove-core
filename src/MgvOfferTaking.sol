@@ -777,7 +777,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.feePaid = concreteFee;
       }
       if (mor.totalGot > 0) {
-        /* It should be statically provable that this transfer cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target, if governance does not call withdrawERC20 during order execution, unless the caller a set a gas limit which precisely makes `transferToken` go OOG but retains enough gas to revert here. */
+        /* It should be statically provable that this transfer cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target, if governance does not call withdrawERC20 during order execution, unless the caller set a gas limit which precisely makes `transferToken` go OOG but retains enough gas to revert here. */
         require(transferToken(sor.olKey.outbound, mor.taker, mor.totalGot), "mgv/MgvFailToPayTaker");
       }
     }

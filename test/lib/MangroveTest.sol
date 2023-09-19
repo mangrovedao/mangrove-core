@@ -62,7 +62,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint gasprice;
     uint gasbase;
     uint gasmax;
-    uint density;
+    uint density96X32;
   }
 
   IMangrove internal mgv;
@@ -81,7 +81,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     gasprice: 40,
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
-    density: 2 ** 32,
+    density96X32: 2 ** 32,
     gasmax: 2_000_000
   });
 
@@ -130,7 +130,7 @@ contract MangroveTest is Test2, HasMgvEvents {
    *
    *  `logOrderBook` will be easy to read in traces
    *
-   *  `printOrderBook` will be easy to read in the console.logs section
+   *  `printOfferList` will be easy to read in the console.logs section
    */
 
   /* Log OB with events */
@@ -160,8 +160,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     // emit OBState(olKey.outbound, olKey.inbound, offerIds, wants, gives, makerAddr, gasreqs);
   }
 
-  /* Log OB with console */
-  function printOrderBook(OLKey memory _ol) internal view {
+  /* Log offer list to console */
+  function printOfferList(OLKey memory _ol) internal view {
     uint offerId = mgv.best(_ol);
     TestToken req_tk = TestToken(_ol.inbound);
     TestToken ofr_tk = TestToken(_ol.outbound);
@@ -173,12 +173,12 @@ contract MangroveTest is Test2, HasMgvEvents {
       console.log(
         string.concat(
           unicode"│ ",
-          string.concat(offerId < 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
+          string.concat(offerId <= 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
           unicode" ┆ ",
           string.concat(toFixed(ofr.wants(), req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
           string.concat(toFixed(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
-          " ",
+          string.concat(" (", vm.toString(ofr.logPrice), ") "),
           vm.toString(detail.maker)
         )
       );
@@ -252,8 +252,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   function setupMarket(IMangrove _mgv, OLKey memory _ol) internal {
     assertNot0x(olKey.outbound);
     assertNot0x(olKey.inbound);
-    _mgv.activate(_ol, options.defaultFee, options.density, options.gasbase);
-    _mgv.activate(lo, options.defaultFee, options.density, options.gasbase);
+    _mgv.activate(_ol, options.defaultFee, options.density96X32, options.gasbase);
+    _mgv.activate(lo, options.defaultFee, options.density96X32, options.gasbase);
     // logging
     vm.label(olKey.outbound, IERC20(olKey.outbound).symbol());
     vm.label(olKey.inbound, IERC20(olKey.inbound).symbol());

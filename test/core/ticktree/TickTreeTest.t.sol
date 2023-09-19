@@ -93,7 +93,7 @@ abstract contract TickTreeTest is MangroveTest {
 
     // Density is irrelevant when testing the tick tree data structure,
     // so we set it to 0 to avoid having to deal with it
-    mgv.setDensity(olKey, 0);
+    mgv.setDensity96X32(olKey, 0);
     mgv.setGasmax(10_000_000);
 
     mkr = setupMaker(olKey, "maker");

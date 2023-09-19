@@ -279,7 +279,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     if (printToConsole) {
       console.log("before update");
       console.log("  MGV OB");
-      printOrderBook(olKey);
+      printOfferList(olKey);
       console.log("  tick tree");
       tickTree.logTickTree();
     }
@@ -296,7 +296,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       console.log("after update");
       // NB: Fails with "field is 0" when MGV tick tree is inconsistent
       console.log("  MGV OB");
-      printOrderBook(olKey);
+      printOfferList(olKey);
       console.log("  tick tree");
       tickTree.logTickTree();
     }

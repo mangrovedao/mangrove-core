@@ -46,25 +46,23 @@ contract MonitorTest is MangroveTest {
   function test_set_oracle_density_with_useOracle_works() public {
     mgv.setMonitor(monitor);
     mgv.setUseOracle(true);
-    mgv.setDensityFixed(olKey, 898 << DensityLib.FIXED_FRACTIONAL_BITS);
-    expectToMockCall(
-      monitor, monitor_read_cd, abi.encode(0, DensityLib.fromFixed(1 << DensityLib.FIXED_FRACTIONAL_BITS))
-    );
+    mgv.setDensity96X32(olKey, 898 << 32);
+    expectToMockCall(monitor, monitor_read_cd, abi.encode(0, DensityLib.from96X32(1 << 32)));
     (, MgvStructs.LocalPacked config) = mgv.config(olKey);
-    assertEq(config.density().toFixed(), 1 << DensityLib.FIXED_FRACTIONAL_BITS, "density should be set oracle");
+    assertEq(config.density().to96X32(), 1 << 32, "density should be set oracle");
   }
 
   function test_set_oracle_density_without_useOracle_fails() public {
     mgv.setMonitor(monitor);
-    uint density = 898 << DensityLib.FIXED_FRACTIONAL_BITS;
-    mgv.setDensityFixed(olKey, density);
+    uint density96X32 = 898 << 32;
+    mgv.setDensity96X32(olKey, density96X32);
     (, MgvStructs.LocalPacked config) = mgv.config(olKey);
-    assertEq(config.density().toFixed(), DensityLib.fromFixed(density).toFixed(), "density should be set by mgv");
+    assertEq(config.density().to96X32(), DensityLib.from96X32(density96X32).to96X32(), "density should be set by mgv");
   }
 
   function test_set_oracle_gasprice_with_useOracle_works() public {
     mgv.setMonitor(monitor);
-    mgv.setDensityFixed(olKey, 898 << DensityLib.FIXED_FRACTIONAL_BITS);
+    mgv.setDensity96X32(olKey, 898 << 32);
     mgv.setUseOracle(true);
     mgv.setGasprice(900);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(1, 0));

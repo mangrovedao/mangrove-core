@@ -91,7 +91,7 @@ contract TakerOperationsTest is MangroveTest {
   // taking an offer i.e. you can't have the taker pay 0 if the maker sends > 0 to the taker.
   // The test sets this up with a price slightly below 1/2, gives=10, and then taker asks for 1. So it should give < 1/2. If maker balance does not increase, it was drained.
   function test_taker_cannot_drain_maker() public {
-    mgv.setDensityFixed(olKey, 0);
+    mgv.setDensity96X32(olKey, 0);
     quote.approve($(mgv), 1 ether);
     int tick = -7000; // price slightly < 1/2
     mkr.newOfferByLogPrice(tick, 10, 100_000, 0);

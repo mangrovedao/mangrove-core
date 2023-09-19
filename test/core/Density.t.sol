@@ -46,7 +46,7 @@ contract DensityTest is Test2 {
   }
 
   function assertD(uint expectedFixp, string memory err) internal {
-    uint fixp = DensityLib.fromFixed(d).toFixed();
+    uint fixp = DensityLib.from96X32(d).to96X32();
     assertEq(fixp, expectedFixp, string.concat(err, ": fixed -> floating -> fixed"));
     if (expectedFixp != 0 && expectedFixp < type(uint).max / 100) {
       // check approx/original ratio
@@ -58,14 +58,14 @@ contract DensityTest is Test2 {
 
   function test_density_convert_auto(uint128 fixp) public {
     vm.assume(fixp != 0);
-    Density density = DensityLib.fromFixed(fixp);
+    Density density = DensityLib.from96X32(fixp);
     assertLe(density.mantissa(), 4, "mantissa too large");
     assertLe(density.exponent(), 127, "exponent too large");
-    assertLe(density.toFixed(), fixp, "error too large (above)");
+    assertLe(density.to96X32(), fixp, "error too large (above)");
     // maximum error is 20%,
     // for instance the fixp 1001....1, which gets approximated to 100....0
     //                   or  01001...1, which gets approximated to 0100...0
-    assertGe(density.toFixed() * 100 / fixp, 80, "error too large (below)");
+    assertGe(density.to96X32() * 100 / fixp, 80, "error too large (below)");
   }
 
   function test_multiply_manual() public {
@@ -114,22 +114,22 @@ contract DensityTest is Test2 {
     }
   }
 
-  function test_fixedFromParams() public {
-    uint res = DensityLib.fixedFromParams({
+  function test_paramsTo96X32() public {
+    uint res = DensityLib.paramsTo96X32({
       outbound_decimals: 6,
       gasprice_in_gwei: 250,
       eth_in_usdx100: 1 * 100,
       outbound_display_in_usdx100: 1000 * 100,
       cover_factor: 1000
     });
-    assertEq(toString(DensityLib.fromFixed(res)), "1 * 2^-2");
-    res = DensityLib.fixedFromParams({
+    assertEq(toString(DensityLib.from96X32(res)), "1 * 2^-2");
+    res = DensityLib.paramsTo96X32({
       outbound_decimals: 18,
       gasprice_in_gwei: 2500,
       eth_in_usdx100: 10000 * 100,
       outbound_display_in_usdx100: 1 * 100,
       cover_factor: 1000
     });
-    assertEq(toString(DensityLib.fromFixed(res)), "1.25 * 2^64");
+    assertEq(toString(DensityLib.from96X32(res)), "1.25 * 2^64");
   }
 }

@@ -76,7 +76,7 @@ contract ActivateSemibook is Test2, Deployer {
        - so density is in (base token units token)/gas
     */
     uint outbound_decimals = IERC20(olKey.outbound).decimals();
-    uint density = DensityLib.fixedFromParams({
+    uint density96X32 = DensityLib.paramsTo96X32({
       outbound_decimals: outbound_decimals,
       gasprice_in_gwei: gaspriceOverride,
       outbound_display_in_gwei: outbound_in_gwei,
@@ -84,14 +84,14 @@ contract ActivateSemibook is Test2, Deployer {
     });
 
     // min density of at least 1 wei of outbound token
-    density = density == 0 ? 1 : density;
+    density96X32 = density96X32 == 0 ? 1 << 32 : density96X32;
     console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
     console.log(
-      "Derived density %s %s per gas unit", toFixed(density, outbound_decimals), IERC20(olKey.outbound).symbol()
+      "Derived density %s %s per gas unit", toFixed(density96X32, outbound_decimals), IERC20(olKey.outbound).symbol()
     );
 
     broadcast();
-    mgv.activate({olKey: olKey, fee: fee, densityFixed: density, offer_gasbase: gasbase});
+    mgv.activate({olKey: olKey, fee: fee, density96X32: density96X32, offer_gasbase: gasbase});
   }
 
   function measureTransferGas(address tkn) public returns (uint) {

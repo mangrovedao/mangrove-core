@@ -169,19 +169,15 @@ contract MgvHasOffers is MgvCommon {
               field = local.level3().flipBitAtLevel3(offerTick);
               local = local.level3(field);
 
-              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
-              // Why am I setting tick to 0 before I return?
               if (field.isEmpty()) {
                 return (local, shouldUpdateBranch);
               }
-              // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
               if (shouldUpdateBranch) {
                 index = field.firstLevel2Index();
                 field = offerList.level2[index].clean();
                 local = local.level2(field);
               }
             }
-            // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
             if (shouldUpdateBranch) {
               index = field.firstLevel1Index(index);
               field = offerList.level1[index].clean();

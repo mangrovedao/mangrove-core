@@ -1,12 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-// those tests should be run with -vv so correct gas estimates are shown
-
 pragma solidity ^0.8.10;
 
-// import "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Test2.sol";
-// import "abdk-libraries-solidity/ABDKMathQuad.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 
@@ -201,14 +197,12 @@ contract TickTest is Test {
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
     assertEq(int(Tick.wrap(tick).posInLevel0()), tn / LEAF_SIZE % LEVEL0_SIZE);
   }
-  // TODO test_posInLevel1_manual
 
   function test_posInLevel1_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
     assertEq(int(Tick.wrap(tick).posInLevel1()), tn / (LEAF_SIZE * LEVEL0_SIZE) % LEVEL1_SIZE);
   }
-  // TODO test_posInLevel2_manual
 
   function test_posInLevel2_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
@@ -248,8 +242,23 @@ contract TickTest is Test {
       expected_exp: 132
     });
 
-    //FIXME
-    // Do -1,0,1,max
+    inner_test_priceFromLogPrice({
+      tick: -1,
+      expected_sig: 5708419928830956428590284849313049240594808832,
+      expected_exp: 152
+    });
+
+    inner_test_priceFromLogPrice({
+      tick: 0,
+      expected_sig: 2854495385411919762116571938898990272765493248,
+      expected_exp: 151
+    });
+
+    inner_test_priceFromLogPrice({
+      tick: 1,
+      expected_sig: 2854780834950460954092783596092880171791548416,
+      expected_exp: 151
+    });
   }
 
   function inner_test_priceFromLogPrice(int tick, uint expected_sig, uint expected_exp) internal {
@@ -391,16 +400,6 @@ contract FieldTest is Test {
     assertEq(Field.wrap(field).firstOnePosition(), pos);
   }
 
-  //FIXME move constants-related tests to a separate contract and test them all
-  function test_constants_min_max_price() public {
-    (uint man, uint exp) = LogPriceConversionLib.priceFromLogPrice(MIN_LOG_PRICE);
-    assertEq(man, MIN_PRICE_MANTISSA);
-    assertEq(int(exp), MIN_PRICE_EXP);
-    (man, exp) = LogPriceConversionLib.priceFromLogPrice(MAX_LOG_PRICE);
-    assertEq(man, MAX_PRICE_MANTISSA);
-    assertEq(int(exp), MAX_PRICE_EXP);
-  }
-
   function price_priceFromVolumes_not_zero_div() public {
     // should not revert
     (uint man,) = LogPriceConversionLib.priceFromVolumes(1, type(uint).max);
@@ -413,19 +412,6 @@ contract FieldTest is Test {
     // should not revert
     (uint man,) = LogPriceConversionLib.priceFromVolumes(inbound, outbound);
     assertTrue(man != 0, "mantissa cannot be 0");
-  }
-
-  // Make sure no field is so big that the empty marker (top bit) would corrupt data
-  // Must be updated manually if new field sizes appear
-  function test_field_sizes() public {
-    assertLt(LEVEL0_SIZE, 256, "level0 too big");
-    assertLt(LEVEL1_SIZE, 256, "level1 too big");
-    assertLt(LEVEL2_SIZE, 256, "level2 too big");
-  }
-
-  // Since "Only direct number constants and references to such constants are supported by inline assembly", NOT_TOPBIT is not defined in terms of TOPBIT. Here we check that its definition is correct.
-  function test_not_topbit_is_negation_of_topbit() public {
-    assertEq(TOPBIT, ~NOT_TOPBIT, "TOPBIT != ~NOT_TOPBIT");
   }
 
   /* Field dirty/clean */
@@ -495,23 +481,6 @@ contract FieldTest is Test {
 
   function field_isDirty(DirtyField field) public {
     assertEq(field.isDirty(), DirtyField.unwrap(field) & TOPBIT == TOPBIT);
-  }
-
-  // Some BitLib.ctz64 relies on specific level sizes
-  function test_level_sizes() public {
-    assertLe(LEVEL3_SIZE, int(MAX_LEVEL_SIZE), "bad level3 size");
-    assertGt(LEVEL3_SIZE, 0);
-    assertLe(LEVEL2_SIZE, int(MAX_LEVEL_SIZE), "bad level2 size");
-    assertGt(LEVEL2_SIZE, 0);
-    assertLe(LEVEL1_SIZE, int(MAX_LEVEL_SIZE), "bad level1 size");
-    assertGt(LEVEL1_SIZE, 0);
-    assertLe(LEVEL0_SIZE, int(MAX_LEVEL_SIZE), "bad level0 size");
-    assertGt(LEVEL0_SIZE, 0);
-  }
-
-  // checks that there is no overflow
-  function test_maxSafeVolumeIsSafeLowLevel() public {
-    assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
   }
 
   // non-optimized divExpUp

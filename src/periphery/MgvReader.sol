@@ -225,15 +225,11 @@ contract MgvReader {
   }
 
   /* Next/Prev offers */
-  // FIXME subticks for gas?
-  // utility fn
-  // VERY similar to MgvOfferTaking's getNextBest
   /// @notice Get the offer after a given offer, given its id
   function nextOfferIdById(OLKey memory olKey, uint offerId) public view returns (uint) {
     return nextOfferId(olKey, MGV.offers(olKey, offerId));
   }
 
-  //FIXME replace these functions with "call mangrove for next offer, revert, return offer id"?
   /// @notice Get the offer after a given offer
   function nextOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) public view returns (uint) {
     // WARNING
@@ -259,14 +255,9 @@ contract MgvReader {
             index = offerTick.level2Index();
             field = MGV.level2(olKey, index);
             field = field.eraseToTick2(offerTick);
-            // // FIXME: should I let log2 not revert, but just return 0 if x is 0?
-            // if (field.isEmpty()) {
-            //   return 0;
-            // }
             if (field.isEmpty()) {
               field = MGV.level3(olKey);
               field = field.eraseToTick3(offerTick);
-              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
               if (field.isEmpty()) {
                 return 0;
               }
@@ -319,7 +310,6 @@ contract MgvReader {
             if (field.isEmpty()) {
               field = MGV.level3(olKey);
               field = field.eraseFromTick3(offerTick);
-              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
               if (field.isEmpty()) {
                 return 0;
               }
@@ -362,11 +352,12 @@ contract MgvReader {
     }
   }
 
-  // FIXME: once out/in/scale are packed, we can re-add an overload function like this:
-  // function getProvisionWithDefaultGasPrice(address outbound_tkn, address inbound_tkn, ..., uint gasreq) public view returns (uint) {
-  //   (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(olKey);
-  //   return ((gasreq + _local.offer_gasbase()) * uint(_global.gasprice()) * 10 ** 9);
-  // }
+  /* Sugar for getProvision(olkey, ofr_gasreq, 0) */
+  function getProvisionWithDefaultGasPrice(OLKey memory olKey, uint ofr_gasreq) public view returns (uint) {
+    unchecked {
+      return getProvision(olKey, ofr_gasreq, 0);
+    }
+  }
 
   /* Returns the fee that would be extracted from the given volume of outbound_tkn tokens on Mangrove's outbound_tkn/inbound_tkn offer list. */
   function getFee(OLKey memory olKey, uint outVolume) external view returns (uint) {
@@ -597,7 +588,7 @@ contract MgvReader {
     config.config10 = localUnpacked(toOLKey(flipped(market)));
   }
 
-  /// @notice Permisionless update of _openMarkets array.
+  /// @notice Permissionless update of _openMarkets array.
   /// @notice Will consider a market open iff either the offer lists tkn0/tkn1 or tkn1/tkn0 are open on Mangrove.
   function updateMarket(Market memory market) external {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
@@ -614,7 +605,6 @@ contract MgvReader {
         Market memory lastMarket = _openMarkets[numMarkets - 1];
 
         _openMarkets[position - 1] = lastMarket;
-        //FIXME add tests that check the last component (lastMarket.tickScale) is correct
         marketPositions[lastMarket.tkn0][lastMarket.tkn1][lastMarket.tickScale] = position;
       }
       _openMarkets.pop();

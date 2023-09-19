@@ -591,9 +591,7 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGasmax(10_000_000);
     uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
     MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
-    // FIXME increasing tick by 2 because tick->price->tick does not round up currently
-    // when that is fixed, should replace with tick+1
-    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(olKey.tickScale)) + 2);
+    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(olKey.tickScale)) + 1);
     uint gives = LogPriceLib.outboundFromInbound(LogPriceLib.fromTick(nextTick, olKey.tickScale), 5 ether);
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
@@ -625,14 +623,6 @@ contract GatekeepingTest is MangroveTest {
     mgv.retractOffer(olKey, ofr1, true);
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level0 nodes");
     assertEq(mgv.level0(olKey, index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
-  }
-
-  // FIXME Not Gatekeeping!
-  function test_leaf_update_both_first_and_last() public {
-    uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
-    Tick tick0 = mgv.offers(olKey, ofr0).tick(olKey.tickScale);
-    mgv.retractOffer(olKey, ofr0, true);
-    assertEq(mgv.leafs(olKey, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 
   /* Clean failure */

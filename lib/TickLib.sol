@@ -228,15 +228,6 @@ library TickLib {
     }
   }
 
-  // returns log_(1.0001)(wants/gives)
-  // with wants/gives on 96 bits, tick will be < 24bits
-  // never overstimates tick (but takes the highest tick that avoids doing so)
-  // wants will be adjusted down from the original
-  // FIXME use unchecked math but specify precise bounds on what inputs do not overflow
-  // function tickFromVolumes(uint inboundAmt, uint outboundAmt, uint tickScale) internal pure returns (Tick) {
-  //   return Tick.wrap(logPriceFromVolumes(inboundAmt,outboundAmt) * int(tickScale));
-  // }
-
   // I could revert to indices being uints if I do (+ BIG_NUMBER) systematically,
   // then / something. More gas costly (a little) but
   // a) clearer
@@ -481,20 +472,16 @@ library FieldLib {
     }
   }
 
-  // Will throw if field is empty
+  // Will return 64 if field is empty
   function firstOnePosition(Field field) internal pure returns (uint) {
-    // FIXME stop checking for 0 or integrate it into ctz function in assembly
     unchecked {
-      require(!field.isEmpty(),"field is 0");
       return BitLib.ctz64(Field.unwrap(field));
     }
   }
 
-  // Will throw if field is empty
+  // Will return 64 if field is empty
   function lastOnePosition(Field field) internal pure returns (uint) {
     unchecked {
-      // FIXME stop checking for 0 or integrate it into ctz function in assembly
-      require(!field.isEmpty(), "field is 0");
       return BitLib.fls(Field.unwrap(field));
     }
   }

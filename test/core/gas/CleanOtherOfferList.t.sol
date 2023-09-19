@@ -14,7 +14,9 @@ import {
   LEVEL1_LOWER_LOG_PRICE,
   LEVEL1_HIGHER_LOG_PRICE,
   LEVEL2_LOWER_LOG_PRICE,
-  LEVEL2_HIGHER_LOG_PRICE
+  LEVEL2_HIGHER_LOG_PRICE,
+  LEVEL3_LOWER_LOG_PRICE,
+  LEVEL3_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
@@ -146,6 +148,26 @@ contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_LO
   }
 }
 
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_LOWER_LOG_PRICE is
+  ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpLogPrice(LEVEL3_LOWER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_LOG_PRICE");
+  }
+}
+
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_LOG_PRICE is
+  ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpLogPrice(LEVEL3_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_LOG_PRICE");
+  }
+}
+
 abstract contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
@@ -248,6 +270,26 @@ contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTes
     super.setUp();
     setUpLogPrice(LEVEL2_HIGHER_LOG_PRICE);
     description = string.concat(description, " - Case: LEVEL2_HIGHER_LOG_PRICE");
+  }
+}
+
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL3_LOWER_LOG_PRICE is
+  ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpLogPrice(LEVEL3_LOWER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_LOG_PRICE");
+  }
+}
+
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL3_HIGHER_LOG_PRICE is
+  ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpLogPrice(LEVEL3_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_LOG_PRICE");
   }
 }
 

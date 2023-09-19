@@ -13,12 +13,14 @@ import {
   LEVEL1_LOWER_LOG_PRICE,
   LEVEL1_HIGHER_LOG_PRICE,
   LEVEL2_LOWER_LOG_PRICE,
-  LEVEL2_HIGHER_LOG_PRICE
+  LEVEL2_HIGHER_LOG_PRICE,
+  LEVEL3_LOWER_LOG_PRICE,
+  LEVEL3_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
-import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
+import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE, LEVEL3_SIZE} from "mgv_lib/TickLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -171,6 +173,16 @@ contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_L
     super.setUp();
     setUpLogPrice(LEVEL2_HIGHER_LOG_PRICE);
     description = string.concat(description, " - Case: LEVEL2_HIGHER_LOG_PRICE");
+  }
+}
+
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_LOG_PRICE is
+  ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpLogPrice(LEVEL3_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_LOG_PRICE");
   }
 }
 

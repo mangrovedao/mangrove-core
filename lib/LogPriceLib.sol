@@ -10,7 +10,6 @@ library LogPriceLib {
   function inRange(int logPrice) internal pure returns (bool) {
     return logPrice >= MIN_LOG_PRICE && logPrice <= MAX_LOG_PRICE;
   }
-  // 
   function fromTick(Tick tick, uint tickScale) internal pure returns (int) {
     return Tick.unwrap(tick) * int(tickScale);
   }

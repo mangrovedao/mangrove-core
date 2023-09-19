@@ -130,7 +130,7 @@ contract MangroveTest is Test2, HasMgvEvents {
    *
    *  `logOrderBook` will be easy to read in traces
    *
-   *  `printOrderBook` will be easy to read in the console.logs section
+   *  `printOfferList` will be easy to read in the console.logs section
    */
 
   /* Log OB with events */
@@ -160,8 +160,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     // emit OBState(olKey.outbound, olKey.inbound, offerIds, wants, gives, makerAddr, gasreqs);
   }
 
-  /* Log OB with console */
-  function printOrderBook(OLKey memory _ol) internal view {
+  /* Log offer list to console */
+  function printOfferList(OLKey memory _ol) internal view {
     uint offerId = mgv.best(_ol);
     TestToken req_tk = TestToken(_ol.inbound);
     TestToken ofr_tk = TestToken(_ol.outbound);
@@ -173,12 +173,12 @@ contract MangroveTest is Test2, HasMgvEvents {
       console.log(
         string.concat(
           unicode"│ ",
-          string.concat(offerId < 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
+          string.concat(offerId <= 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
           unicode" ┆ ",
           string.concat(toFixed(ofr.wants(), req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
           string.concat(toFixed(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
-          " ",
+          string.concat(" (", vm.toString(ofr.logPrice), ") "),
           vm.toString(detail.maker)
         )
       );

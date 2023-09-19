@@ -111,7 +111,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     reader = new MgvReader($(mgv));
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
-    // TODO this should be done somewhere else
     //provision mangrove so that testRunner can post offers
     mgv.fund{value: 10 ether}();
     // approve mangrove so that testRunner can take offers on Mangrove

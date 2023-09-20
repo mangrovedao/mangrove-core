@@ -47,7 +47,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {console2 as console, StdStorage, stdStorage} from "forge-std/Test.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import "mgv_lib/TickLib.sol";
+import "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/LogPriceLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
@@ -88,7 +88,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function marketOrderFor(uint value, address who) internal returns (uint, uint, uint, uint) {
-    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
+    int logPrice = LogPriceConversionLib.logPriceFromRatio(1, 0);
     return mgv.marketOrderForByLogPrice(olKey, logPrice, value, true, who);
   }
 

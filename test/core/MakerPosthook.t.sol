@@ -251,11 +251,11 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     assertTrue(!called, "PostHook was called");
   }
 
-  function test_posthook_of_skipped_offer_wrong_price_should_not_be_called() public {
+  function test_posthook_of_skipped_offer_wrong_ratio_should_not_be_called() public {
     _posthook = failer_posthook;
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
-    int newLogPrice = logPrice - 1; // Snipe at a lower price
+    int newLogPrice = logPrice - 1; // Snipe at a lower ratio
     assertFalse(tkr.cleanByLogPrice(ofr, newLogPrice, 1 ether, gasreq), "clean should fail");
     assertTrue(!called, "PostHook was called");
   }
@@ -300,9 +300,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit Credit($(this), 10697680000000000);
+    emit Credit($(this), 10698560000000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8502320000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8501440000000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(!success, "market order should fail");
     assertTrue(called, "PostHook not called");
@@ -389,9 +389,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit Credit($(this), 10697680000000000);
+    emit Credit($(this), 10698560000000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8502320000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8501440000000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
 
@@ -439,14 +439,14 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_failing_offer_does_not_get_corrupted_sor_wants_values_of_previous_offers_posthook_with_fillWants_true()
     public
   {
-    // This maker makes a succeeding offer, with a bad price
+    // This maker makes a succeeding offer, with a bad ratio
     TestMaker mkr = setupMaker(olKey, "maker");
     mkr.approveMgv(base, 10 ether);
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 5 ether);
     mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000);
 
-    // The test contract makes a failing offer, with a good price
+    // The test contract makes a failing offer, with a good ratio
     _posthook = checkSorWantsPosthook;
     makerRevert = true;
     mgv.newOfferByVolume(olKey, 1 ether, 1.1 ether, 100_000, 0);
@@ -461,14 +461,14 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_failing_offer_does_not_get_corrupted_sor_gives_values_of_previous_offers_posthook_with_fillWants_false()
     public
   {
-    // This maker makes a succeeding offer, with a bad price
+    // This maker makes a succeeding offer, with a bad ratio
     TestMaker mkr = setupMaker(olKey, "maker");
     mkr.approveMgv(base, 10 ether);
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 5 ether);
     mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000);
 
-    // The test contract makes a failing offer, with a good price
+    // The test contract makes a failing offer, with a good ratio
     _posthook = checkSorWantsPosthook;
     makerRevert = true;
     mgv.newOfferByVolume(olKey, 1 ether, 1.1 ether, 100_000, 0);

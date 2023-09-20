@@ -19,7 +19,7 @@ import {
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
-import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
+import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 
 contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBase {
   function setUp() public virtual override {
@@ -31,7 +31,7 @@ contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestB
 
   function setUpLogPrice(int _logPrice) public virtual {
     _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 0.00001 ether, 100_000, 0);
-    description = "Retracting an offer when another offer exists at various tick-distances to the offer's price";
+    description = "Retracting an offer when another offer exists at various tick-distances to the offer's ratio";
   }
 
   function test_retract_offer_deprovision() public {
@@ -164,23 +164,23 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_LO
 }
 
 ///
-abstract contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest is
+abstract contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    this.newOfferOnAllTestPrices();
+    this.newOfferOnAllTestRatios();
   }
 
   function setUpLogPrice(int _logPrice) public virtual override {
     _logPrice; // silence irrelevant warning for override
     description =
-      "Retracting an offer when another offer exists at various tick-distances to the offer price but also on the same tick";
+      "Retracting an offer when another offer exists at various tick-distances to the offer ratio but also on the same tick";
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_MIDDLE_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_MIDDLE_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -189,8 +189,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEAF_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEAF_LOWER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -199,8 +199,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEAF_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEAF_HIGHER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -209,8 +209,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL0_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEVEL0_LOWER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -219,8 +219,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL0_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEVEL0_HIGHER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -229,8 +229,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL1_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEVEL1_LOWER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -239,8 +239,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL1_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEVEL1_HIGHER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -249,8 +249,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL2_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEVEL2_LOWER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -259,8 +259,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL2_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_LEVEL2_HIGHER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -269,8 +269,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_ROOT_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_ROOT_LOWER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -279,8 +279,8 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_ROOT_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_ROOT_HIGHER_LOG_PRICE is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -290,7 +290,7 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
 }
 
 contract ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffersGasTest is
-  TickBoundariesGasTest,
+  TickTreeBoundariesGasTest,
   GasTestBase
 {
   uint internal offerId2;
@@ -299,7 +299,7 @@ contract ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffer
     super.setUp();
     _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
-    this.newOfferOnAllTestPrices();
+    this.newOfferOnAllTestRatios();
     offerId2 = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description = "Retracting a second offer at various tick-distances after retracting an offer at MIDDLE_LOG_PRICE";
   }

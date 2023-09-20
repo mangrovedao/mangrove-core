@@ -38,15 +38,15 @@ contract MgvCommon is HasMgvEvents {
     MgvStructs.OfferPacked offer;
     MgvStructs.OfferDetailPacked detail;
   }
-  /* `OfferList` contains the information specific to an oriented `outbound_tkn,inbound_tkn`, `tickScale` offerList:
+  /* `OfferList` contains the information specific to an oriented `outbound_tkn,inbound_tkn`, `tickSpacing` offerList:
 
-    * `local` is the Mangrove configuration specific to the `outbound,inbound,tickScale` offerList. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.
+    * `local` is the Mangrove configuration specific to the `outbound,inbound,tickSpacing` offerList. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.
     * `offerData` maps from offer ids to offer data.
   */
 
   /* Note that offers are structured into a tree with linked lists at its leves.
      The root is level2, has 256 level1 node children, each has 256 level0 node children, each has 256 leaves, each has 4 ticks (it holds the first and last offer of each tick's linked list).
-     level2, level1 and level0 nodes are bitfield, a bit is set iff there is a tick set below them.
+     level2, level1 and level0 nodes are bitfield, a bit is set iff there is a tickTreeIndex set below them.
   */
   struct OfferList {
     MgvStructs.LocalPacked local;

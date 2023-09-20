@@ -381,10 +381,10 @@ contract MgvReaderTest is MangroveTest {
     checkMarkets();
   }
 
-  function test_multi_add_triangle(address tkn0, address tkn1, address tkn2, uint tickScale) public {
-    Market memory mktA = Market(tkn0, tkn1, tickScale);
-    Market memory mktB = Market(tkn1, tkn2, tickScale);
-    Market memory mktC = Market(tkn2, tkn0, tickScale);
+  function test_multi_add_triangle(address tkn0, address tkn1, address tkn2, uint tickSpacing) public {
+    Market memory mktA = Market(tkn0, tkn1, tickSpacing);
+    Market memory mktB = Market(tkn1, tkn2, tickSpacing);
+    Market memory mktC = Market(tkn2, tkn0, tickSpacing);
     activateMarket(mktA);
     activateMarket(mktB);
     activateMarket(mktC);
@@ -536,10 +536,10 @@ contract MgvReaderTest is MangroveTest {
     checkMarkets();
   }
 
-  function test_openMarkets_overloads(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
+  function test_openMarkets_overloads(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing) public {
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     activateMarket(mktB);
     reader.updateMarket(mktB);
     activateMarket(mktA);
@@ -581,11 +581,11 @@ contract MgvReaderTest is MangroveTest {
     assertEq(config.config10.active, true, "10-config10 wrong");
   }
 
-  function test_no_double_remove_long_swap(address tknA, address tknB, address tkn0, address tkn1, uint tickScale)
+  function test_no_double_remove_long_swap(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing)
     public
   {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
     activateMarket(mktA);
     reader.updateMarket(mktA);
@@ -608,9 +608,9 @@ contract MgvReaderTest is MangroveTest {
     checkMarkets();
   }
 
-  function test_market_slice_zero(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+  function test_market_slice_zero(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing) public {
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     activateMarket(mktA);
     activateMarket(mktB);
     reader.updateMarket(mktA);
@@ -619,9 +619,9 @@ contract MgvReaderTest is MangroveTest {
     assertEq(slice.length, 0);
   }
 
-  function test_market_slice_multi(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+  function test_market_slice_multi(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing) public {
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     activateMarket(mktA);
     activateMarket(mktB);
     reader.updateMarket(mktA);
@@ -655,9 +655,9 @@ contract MgvReaderTest is MangroveTest {
     assertEq(slice[1].tkn1, tkn1, "overflow 2: wrong tkn1");
   }
 
-  function test_market_slice_revert(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+  function test_market_slice_revert(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing) public {
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     activateMarket(mktA);
     activateMarket(mktB);
     reader.updateMarket(mktA);
@@ -666,10 +666,10 @@ contract MgvReaderTest is MangroveTest {
     reader.openMarkets(3, 0);
   }
 
-  function test_remove_2nd_to_last(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
+  function test_remove_2nd_to_last(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing) public {
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     activateOfferList(toOLKey(mktA));
     activateOfferList(toOLKey(mktB));
     // remove 2nd-to-last
@@ -690,9 +690,9 @@ contract MgvReaderTest is MangroveTest {
     checkMarkets();
   }
 
-  function test_remove_last_not_only(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+  function test_remove_last_not_only(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing) public {
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     activateOfferList(toOLKey(mktA));
     activateOfferList(toOLKey(mktB));
     // remove 2nd-to-last
@@ -704,9 +704,9 @@ contract MgvReaderTest is MangroveTest {
     checkMarkets();
   }
 
-  function test_update_already_absent(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+  function test_update_already_absent(address tknA, address tknB, address tkn0, address tkn1, uint tickSpacing) public {
+    Market memory mktA = Market(tknA, tknB, tickSpacing);
+    Market memory mktB = Market(tkn0, tkn1, tickSpacing);
     activateOfferList(toOLKey(mktA));
     reader.updateMarket(mktA);
     reader.updateMarket(mktB);

@@ -26,13 +26,13 @@ For each Mangrove operation that modifies the tick tree, there is a separate con
 
 Mangrove's tick tree is quite complex due to the different levels each being stored separately as well as some things being stored in `local`. There are there many scenarios to test, e.g, updating an offer to another tick within the same `Leaf` is different than updating it to a tick below a different `level1` position.
 
-## Tick scenarios
+## TickTreeIndex scenarios
 
-### Tick of interest, higher tick, and lower tick
+### TickTreeIndex of interest, higher tick, and lower tick
 
-For all the tests, there's a notion of "tick of interest", a higher tick, and a lower tick. This allows us to capture the different scenarios where ticks are in the same/different leaf, level0, level1, and level2. `TickTreeTest` contains functions for generating all relevant higher and lower ticks for a given tick of interest. Combinations of three such ticks (including the absence of higher/lower) is captured by the `TickScenario` struct.
+For all the tests, there's a notion of "tick of interest", a higher tick, and a lower tick. This allows us to capture the different scenarios where ticks are in the same/different leaf, level0, level1, and level2. `TickTreeTest` contains functions for generating all relevant higher and lower ticks for a given tick of interest. Combinations of three such ticks (including the absence of higher/lower) is captured by the `TickTreeIndexScenario` struct.
 
-For each test contract, these we define a `*Scenario` struct (eg `UpdateOfferScenario`) that defines what a scenario looks like and we describe how the `TickScenario` should be interpreted in these scenarios.
+For each test contract, these we define a `*Scenario` struct (eg `UpdateOfferScenario`) that defines what a scenario looks like and we describe how the `TickTreeIndexScenario` should be interpreted in these scenarios.
 
 ## Structure of test contracts
 

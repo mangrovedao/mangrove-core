@@ -18,7 +18,7 @@ struct LocalUnpacked {
   bool active;
   uint fee;
   Density density;
-  uint tickPosInLeaf;
+  uint tickTreeIndexPosInLeaf;
   Field level0;
   Field level1;
   Field level2;
@@ -34,14 +34,14 @@ using Library for LocalPacked global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
 
-import {Tick,TickLib,Field} from "mgv_lib/TickLib.sol";
+import {TickTreeIndex,TickTreeIndexLib,Field} from "mgv_lib/TickTreeIndexLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 
 using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | root_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickTreeIndexPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | root_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
   function densityFrom96X32(LocalPacked local, uint density96X32) internal pure returns (LocalPacked) { unchecked {
@@ -53,8 +53,8 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
-  function bestTick(LocalPacked local) internal pure returns (Tick) {
-    return TickLib.bestTickFromLocal(local);
+  function bestTickTreeIndex(LocalPacked local) internal pure returns (TickTreeIndex) {
+    return TickTreeIndexLib.bestTickTreeIndexFromLocal(local);
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -75,105 +75,105 @@ library LocalUnpackedExtra {
   function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
     local.kilo_offer_gasbase = val/1e3;
   }}
-  function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
-    return TickLib.bestTickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2,local.root);
+  function bestTickTreeIndex(LocalUnpacked memory local) internal pure returns (TickTreeIndex) {
+    return TickTreeIndexLib.bestTickTreeIndexFromBranch(local.tickTreeIndexPosInLeaf,local.level0,local.level1,local.level2,local.root);
   }
 }
 
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 
 // number of bits in each field
-uint constant active_bits             = 1;
-uint constant fee_bits                = 8;
-uint constant density_bits            = 9;
-uint constant tickPosInLeaf_bits      = 2;
-uint constant level0_bits             = 64;
-uint constant level1_bits             = 64;
-uint constant level2_bits             = 64;
-uint constant root_bits               = 2;
-uint constant kilo_offer_gasbase_bits = 9;
-uint constant lock_bits               = 1;
-uint constant last_bits               = 32;
+uint constant active_bits                 = 1;
+uint constant fee_bits                    = 8;
+uint constant density_bits                = 9;
+uint constant tickTreeIndexPosInLeaf_bits = 2;
+uint constant level0_bits                 = 64;
+uint constant level1_bits                 = 64;
+uint constant level2_bits                 = 64;
+uint constant root_bits                   = 2;
+uint constant kilo_offer_gasbase_bits     = 9;
+uint constant lock_bits                   = 1;
+uint constant last_bits                   = 32;
 
 // number of bits before each field
-uint constant active_before             = 0                         + 0;
-uint constant fee_before                = active_before             + active_bits;
-uint constant density_before            = fee_before                + fee_bits;
-uint constant tickPosInLeaf_before      = density_before            + density_bits;
-uint constant level0_before             = tickPosInLeaf_before      + tickPosInLeaf_bits;
-uint constant level1_before             = level0_before             + level0_bits;
-uint constant level2_before             = level1_before             + level1_bits;
-uint constant root_before               = level2_before             + level2_bits;
-uint constant kilo_offer_gasbase_before = root_before               + root_bits;
-uint constant lock_before               = kilo_offer_gasbase_before + kilo_offer_gasbase_bits;
-uint constant last_before               = lock_before               + lock_bits;
+uint constant active_before                 = 0                             + 0;
+uint constant fee_before                    = active_before                 + active_bits;
+uint constant density_before                = fee_before                    + fee_bits;
+uint constant tickTreeIndexPosInLeaf_before = density_before                + density_bits;
+uint constant level0_before                 = tickTreeIndexPosInLeaf_before + tickTreeIndexPosInLeaf_bits;
+uint constant level1_before                 = level0_before                 + level0_bits;
+uint constant level2_before                 = level1_before                 + level1_bits;
+uint constant root_before                   = level2_before                 + level2_bits;
+uint constant kilo_offer_gasbase_before     = root_before                   + root_bits;
+uint constant lock_before                   = kilo_offer_gasbase_before     + kilo_offer_gasbase_bits;
+uint constant last_before                   = lock_before                   + lock_bits;
 
 // focus-mask: 1s at field location, 0s elsewhere
-uint constant active_mask_inv             = (ONES << 256 - active_bits) >> active_before;
-uint constant fee_mask_inv                = (ONES << 256 - fee_bits) >> fee_before;
-uint constant density_mask_inv            = (ONES << 256 - density_bits) >> density_before;
-uint constant tickPosInLeaf_mask_inv      = (ONES << 256 - tickPosInLeaf_bits) >> tickPosInLeaf_before;
-uint constant level0_mask_inv             = (ONES << 256 - level0_bits) >> level0_before;
-uint constant level1_mask_inv             = (ONES << 256 - level1_bits) >> level1_before;
-uint constant level2_mask_inv             = (ONES << 256 - level2_bits) >> level2_before;
-uint constant root_mask_inv               = (ONES << 256 - root_bits) >> root_before;
-uint constant kilo_offer_gasbase_mask_inv = (ONES << 256 - kilo_offer_gasbase_bits) >> kilo_offer_gasbase_before;
-uint constant lock_mask_inv               = (ONES << 256 - lock_bits) >> lock_before;
-uint constant last_mask_inv               = (ONES << 256 - last_bits) >> last_before;
+uint constant active_mask_inv                 = (ONES << 256 - active_bits) >> active_before;
+uint constant fee_mask_inv                    = (ONES << 256 - fee_bits) >> fee_before;
+uint constant density_mask_inv                = (ONES << 256 - density_bits) >> density_before;
+uint constant tickTreeIndexPosInLeaf_mask_inv = (ONES << 256 - tickTreeIndexPosInLeaf_bits) >> tickTreeIndexPosInLeaf_before;
+uint constant level0_mask_inv                 = (ONES << 256 - level0_bits) >> level0_before;
+uint constant level1_mask_inv                 = (ONES << 256 - level1_bits) >> level1_before;
+uint constant level2_mask_inv                 = (ONES << 256 - level2_bits) >> level2_before;
+uint constant root_mask_inv                   = (ONES << 256 - root_bits) >> root_before;
+uint constant kilo_offer_gasbase_mask_inv     = (ONES << 256 - kilo_offer_gasbase_bits) >> kilo_offer_gasbase_before;
+uint constant lock_mask_inv                   = (ONES << 256 - lock_bits) >> lock_before;
+uint constant last_mask_inv                   = (ONES << 256 - last_bits) >> last_before;
 
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant active_mask             = ~active_mask_inv;
-uint constant fee_mask                = ~fee_mask_inv;
-uint constant density_mask            = ~density_mask_inv;
-uint constant tickPosInLeaf_mask      = ~tickPosInLeaf_mask_inv;
-uint constant level0_mask             = ~level0_mask_inv;
-uint constant level1_mask             = ~level1_mask_inv;
-uint constant level2_mask             = ~level2_mask_inv;
-uint constant root_mask               = ~root_mask_inv;
-uint constant kilo_offer_gasbase_mask = ~kilo_offer_gasbase_mask_inv;
-uint constant lock_mask               = ~lock_mask_inv;
-uint constant last_mask               = ~last_mask_inv;
+uint constant active_mask                 = ~active_mask_inv;
+uint constant fee_mask                    = ~fee_mask_inv;
+uint constant density_mask                = ~density_mask_inv;
+uint constant tickTreeIndexPosInLeaf_mask = ~tickTreeIndexPosInLeaf_mask_inv;
+uint constant level0_mask                 = ~level0_mask_inv;
+uint constant level1_mask                 = ~level1_mask_inv;
+uint constant level2_mask                 = ~level2_mask_inv;
+uint constant root_mask                   = ~root_mask_inv;
+uint constant kilo_offer_gasbase_mask     = ~kilo_offer_gasbase_mask_inv;
+uint constant lock_mask                   = ~lock_mask_inv;
+uint constant last_mask                   = ~last_mask_inv;
 
 // cast-mask: 0s followed by |field| trailing 1s
-uint constant active_cast_mask             = ~(ONES << active_bits);
-uint constant fee_cast_mask                = ~(ONES << fee_bits);
-uint constant density_cast_mask            = ~(ONES << density_bits);
-uint constant tickPosInLeaf_cast_mask      = ~(ONES << tickPosInLeaf_bits);
-uint constant level0_cast_mask             = ~(ONES << level0_bits);
-uint constant level1_cast_mask             = ~(ONES << level1_bits);
-uint constant level2_cast_mask             = ~(ONES << level2_bits);
-uint constant root_cast_mask               = ~(ONES << root_bits);
-uint constant kilo_offer_gasbase_cast_mask = ~(ONES << kilo_offer_gasbase_bits);
-uint constant lock_cast_mask               = ~(ONES << lock_bits);
-uint constant last_cast_mask               = ~(ONES << last_bits);
+uint constant active_cast_mask                 = ~(ONES << active_bits);
+uint constant fee_cast_mask                    = ~(ONES << fee_bits);
+uint constant density_cast_mask                = ~(ONES << density_bits);
+uint constant tickTreeIndexPosInLeaf_cast_mask = ~(ONES << tickTreeIndexPosInLeaf_bits);
+uint constant level0_cast_mask                 = ~(ONES << level0_bits);
+uint constant level1_cast_mask                 = ~(ONES << level1_bits);
+uint constant level2_cast_mask                 = ~(ONES << level2_bits);
+uint constant root_cast_mask                   = ~(ONES << root_bits);
+uint constant kilo_offer_gasbase_cast_mask     = ~(ONES << kilo_offer_gasbase_bits);
+uint constant lock_cast_mask                   = ~(ONES << lock_bits);
+uint constant last_cast_mask                   = ~(ONES << last_bits);
 
 // size-related error message
-string constant active_size_error             = "mgv/config/active/1bits";
-string constant fee_size_error                = "mgv/config/fee/8bits";
-string constant density_size_error            = "mgv/config/density/9bits";
-string constant tickPosInLeaf_size_error      = "mgv/config/tickPosInLeaf/2bits";
-string constant level0_size_error             = "mgv/config/level0/64bits";
-string constant level1_size_error             = "mgv/config/level1/64bits";
-string constant level2_size_error             = "mgv/config/level2/64bits";
-string constant root_size_error               = "mgv/config/root/2bits";
-string constant kilo_offer_gasbase_size_error = "mgv/config/kilo_offer_gasbase/9bits";
-string constant lock_size_error               = "mgv/config/lock/1bits";
-string constant last_size_error               = "mgv/config/last/32bits";
+string constant active_size_error                 = "mgv/config/active/1bits";
+string constant fee_size_error                    = "mgv/config/fee/8bits";
+string constant density_size_error                = "mgv/config/density/9bits";
+string constant tickTreeIndexPosInLeaf_size_error = "mgv/config/tickTreeIndexPosInLeaf/2bits";
+string constant level0_size_error                 = "mgv/config/level0/64bits";
+string constant level1_size_error                 = "mgv/config/level1/64bits";
+string constant level2_size_error                 = "mgv/config/level2/64bits";
+string constant root_size_error                   = "mgv/config/root/2bits";
+string constant kilo_offer_gasbase_size_error     = "mgv/config/kilo_offer_gasbase/9bits";
+string constant lock_size_error                   = "mgv/config/lock/1bits";
+string constant last_size_error                   = "mgv/config/last/32bits";
 
 library Library {
   // from packed to in-memory struct
   function to_struct(LocalPacked __packed) internal pure returns (LocalUnpacked memory __s) { unchecked {
-    __s.active             = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
-    __s.fee                = uint(LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
-    __s.density            = Density.wrap(uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits));
-    __s.tickPosInLeaf      = uint(LocalPacked.unwrap(__packed) << tickPosInLeaf_before) >> (256 - tickPosInLeaf_bits);
-    __s.level0             = Field.wrap(uint(LocalPacked.unwrap(__packed) << level0_before) >> (256 - level0_bits));
-    __s.level1             = Field.wrap(uint(LocalPacked.unwrap(__packed) << level1_before) >> (256 - level1_bits));
-    __s.level2             = Field.wrap(uint(LocalPacked.unwrap(__packed) << level2_before) >> (256 - level2_bits));
-    __s.root               = Field.wrap(uint(LocalPacked.unwrap(__packed) << root_before) >> (256 - root_bits));
-    __s.kilo_offer_gasbase = uint(LocalPacked.unwrap(__packed) << kilo_offer_gasbase_before) >> (256 - kilo_offer_gasbase_bits);
-    __s.lock               = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
-    __s.last               = uint(LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
+    __s.active                 = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
+    __s.fee                    = uint(LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
+    __s.density                = Density.wrap(uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits));
+    __s.tickTreeIndexPosInLeaf = uint(LocalPacked.unwrap(__packed) << tickTreeIndexPosInLeaf_before) >> (256 - tickTreeIndexPosInLeaf_bits);
+    __s.level0                 = Field.wrap(uint(LocalPacked.unwrap(__packed) << level0_before) >> (256 - level0_bits));
+    __s.level1                 = Field.wrap(uint(LocalPacked.unwrap(__packed) << level1_before) >> (256 - level1_bits));
+    __s.level2                 = Field.wrap(uint(LocalPacked.unwrap(__packed) << level2_before) >> (256 - level2_bits));
+    __s.root                   = Field.wrap(uint(LocalPacked.unwrap(__packed) << root_before) >> (256 - root_bits));
+    __s.kilo_offer_gasbase     = uint(LocalPacked.unwrap(__packed) << kilo_offer_gasbase_before) >> (256 - kilo_offer_gasbase_bits);
+    __s.lock                   = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
+    __s.last                   = uint(LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
   }}
 
   // equality checking
@@ -182,18 +182,18 @@ library Library {
   }}
 
   // from packed to a tuple
-  function unpack(LocalPacked __packed) internal pure returns (bool __active, uint __fee, Density __density, uint __tickPosInLeaf, Field __level0, Field __level1, Field __level2, Field __root, uint __kilo_offer_gasbase, bool __lock, uint __last) { unchecked {
-    __active             = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
-    __fee                = uint(LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
-    __density            = Density.wrap(uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits));
-    __tickPosInLeaf      = uint(LocalPacked.unwrap(__packed) << tickPosInLeaf_before) >> (256 - tickPosInLeaf_bits);
-    __level0             = Field.wrap(uint(LocalPacked.unwrap(__packed) << level0_before) >> (256 - level0_bits));
-    __level1             = Field.wrap(uint(LocalPacked.unwrap(__packed) << level1_before) >> (256 - level1_bits));
-    __level2             = Field.wrap(uint(LocalPacked.unwrap(__packed) << level2_before) >> (256 - level2_bits));
-    __root               = Field.wrap(uint(LocalPacked.unwrap(__packed) << root_before) >> (256 - root_bits));
-    __kilo_offer_gasbase = uint(LocalPacked.unwrap(__packed) << kilo_offer_gasbase_before) >> (256 - kilo_offer_gasbase_bits);
-    __lock               = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
-    __last               = uint(LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
+  function unpack(LocalPacked __packed) internal pure returns (bool __active, uint __fee, Density __density, uint __tickTreeIndexPosInLeaf, Field __level0, Field __level1, Field __level2, Field __root, uint __kilo_offer_gasbase, bool __lock, uint __last) { unchecked {
+    __active                 = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
+    __fee                    = uint(LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
+    __density                = Density.wrap(uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits));
+    __tickTreeIndexPosInLeaf = uint(LocalPacked.unwrap(__packed) << tickTreeIndexPosInLeaf_before) >> (256 - tickTreeIndexPosInLeaf_bits);
+    __level0                 = Field.wrap(uint(LocalPacked.unwrap(__packed) << level0_before) >> (256 - level0_bits));
+    __level1                 = Field.wrap(uint(LocalPacked.unwrap(__packed) << level1_before) >> (256 - level1_bits));
+    __level2                 = Field.wrap(uint(LocalPacked.unwrap(__packed) << level2_before) >> (256 - level2_bits));
+    __root                   = Field.wrap(uint(LocalPacked.unwrap(__packed) << root_before) >> (256 - root_bits));
+    __kilo_offer_gasbase     = uint(LocalPacked.unwrap(__packed) << kilo_offer_gasbase_before) >> (256 - kilo_offer_gasbase_bits);
+    __lock                   = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
+    __last                   = uint(LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
   }}
 
   // getters
@@ -224,13 +224,13 @@ library Library {
     return LocalPacked.wrap((LocalPacked.unwrap(__packed) & density_mask) | (Density.unwrap(val) << (256 - density_bits)) >> density_before);
   }}
   
-  function tickPosInLeaf(LocalPacked __packed) internal pure returns(uint) { unchecked {
-    return uint(LocalPacked.unwrap(__packed) << tickPosInLeaf_before) >> (256 - tickPosInLeaf_bits);
+  function tickTreeIndexPosInLeaf(LocalPacked __packed) internal pure returns(uint) { unchecked {
+    return uint(LocalPacked.unwrap(__packed) << tickTreeIndexPosInLeaf_before) >> (256 - tickTreeIndexPosInLeaf_bits);
   }}
 
   // setters
-  function tickPosInLeaf(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
-    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & tickPosInLeaf_mask) | (val << (256 - tickPosInLeaf_bits)) >> tickPosInLeaf_before);
+  function tickTreeIndexPosInLeaf(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & tickTreeIndexPosInLeaf_mask) | (val << (256 - tickTreeIndexPosInLeaf_bits)) >> tickTreeIndexPosInLeaf_before);
   }}
   
   function level0(LocalPacked __packed) internal pure returns(Field) { unchecked {
@@ -300,16 +300,16 @@ library Library {
 
 // from in-memory struct to packed
 function t_of_struct(LocalUnpacked memory __s) pure returns (LocalPacked) { unchecked {
-  return pack(__s.active, __s.fee, __s.density, __s.tickPosInLeaf, __s.level0, __s.level1, __s.level2, __s.root, __s.kilo_offer_gasbase, __s.lock, __s.last);
+  return pack(__s.active, __s.fee, __s.density, __s.tickTreeIndexPosInLeaf, __s.level0, __s.level1, __s.level2, __s.root, __s.kilo_offer_gasbase, __s.lock, __s.last);
 }}
 
 // from arguments to packed
-function pack(bool __active, uint __fee, Density __density, uint __tickPosInLeaf, Field __level0, Field __level1, Field __level2, Field __root, uint __kilo_offer_gasbase, bool __lock, uint __last) pure returns (LocalPacked) { unchecked {
+function pack(bool __active, uint __fee, Density __density, uint __tickTreeIndexPosInLeaf, Field __level0, Field __level1, Field __level2, Field __root, uint __kilo_offer_gasbase, bool __lock, uint __last) pure returns (LocalPacked) { unchecked {
   uint __packed;
   __packed |= (uint_of_bool(__active) << (256 - active_bits)) >> active_before;
   __packed |= (__fee << (256 - fee_bits)) >> fee_before;
   __packed |= (Density.unwrap(__density) << (256 - density_bits)) >> density_before;
-  __packed |= (__tickPosInLeaf << (256 - tickPosInLeaf_bits)) >> tickPosInLeaf_before;
+  __packed |= (__tickTreeIndexPosInLeaf << (256 - tickTreeIndexPosInLeaf_bits)) >> tickTreeIndexPosInLeaf_before;
   __packed |= (Field.unwrap(__level0) << (256 - level0_bits)) >> level0_before;
   __packed |= (Field.unwrap(__level1) << (256 - level1_bits)) >> level1_before;
   __packed |= (Field.unwrap(__level2) << (256 - level2_bits)) >> level2_before;
@@ -330,8 +330,8 @@ function fee_check(uint __fee) pure returns (bool) { unchecked {
 function density_check(Density __density) pure returns (bool) { unchecked {
   return (Density.unwrap(__density) & density_cast_mask) == Density.unwrap(__density);
 }}
-function tickPosInLeaf_check(uint __tickPosInLeaf) pure returns (bool) { unchecked {
-  return (__tickPosInLeaf & tickPosInLeaf_cast_mask) == __tickPosInLeaf;
+function tickTreeIndexPosInLeaf_check(uint __tickTreeIndexPosInLeaf) pure returns (bool) { unchecked {
+  return (__tickTreeIndexPosInLeaf & tickTreeIndexPosInLeaf_cast_mask) == __tickTreeIndexPosInLeaf;
 }}
 function level0_check(Field __level0) pure returns (bool) { unchecked {
   return (Field.unwrap(__level0) & level0_cast_mask) == Field.unwrap(__level0);

@@ -8,13 +8,13 @@ import "mgv_lib/LogPriceConversionLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract ConstantsTest is Test2 {
-  function test_constants_min_max_price() public {
-    (uint man, uint exp) = LogPriceConversionLib.priceFromLogPrice(MIN_LOG_PRICE);
-    assertEq(man, MIN_PRICE_MANTISSA);
-    assertEq(int(exp), MIN_PRICE_EXP);
-    (man, exp) = LogPriceConversionLib.priceFromLogPrice(MAX_LOG_PRICE);
-    assertEq(man, MAX_PRICE_MANTISSA);
-    assertEq(int(exp), MAX_PRICE_EXP);
+  function test_constants_min_max_ratio() public {
+    (uint man, uint exp) = LogPriceConversionLib.ratioFromLogPrice(MIN_LOG_PRICE);
+    assertEq(man, MIN_RATIO_MANTISSA);
+    assertEq(int(exp), MIN_RATIO_EXP);
+    (man, exp) = LogPriceConversionLib.ratioFromLogPrice(MAX_LOG_PRICE);
+    assertEq(man, MAX_RATIO_MANTISSA);
+    assertEq(int(exp), MAX_RATIO_EXP);
   }
 
   // Since "Only direct number constants and references to such constants are supported by inline assembly", NOT_TOPBIT is not defined in terms of TOPBIT. Here we check that its definition is correct.

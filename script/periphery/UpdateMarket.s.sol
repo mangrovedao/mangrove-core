@@ -9,7 +9,7 @@ import "mgv_lib/Debug.sol";
 /* Update market information on MgvReader.
    
   Calls the permisionless function updateMarket of MgvReader. Ensures that
-  MgvReader knows the correct market state of the tkn0,tkn1,tickScale offer list on Mangrove.
+  MgvReader knows the correct market state of the tkn0,tkn1,tickSpacing offer list on Mangrove.
 
   The token pair is not directed! You do not need to call it once with
   (tkn0,tkn1) then (tkn1,tkn0). Doing it once is fine.*/
@@ -17,7 +17,7 @@ contract UpdateMarket is Deployer {
   function run() public {
     innerRun({
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), vm.envUint("TICK_SCALE"))
+      market: Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), vm.envUint("TICK_SPACING"))
     });
     outputDeployment();
   }
@@ -27,7 +27,7 @@ contract UpdateMarket is Deployer {
       "Updating Market on MgvReader.  tkn0: %s, tkn1: %s",
       vm.toString(market.tkn0),
       vm.toString(market.tkn1),
-      vm.toString(market.tickScale)
+      vm.toString(market.tickSpacing)
     );
     logReaderState("[before script]", reader, market);
 

@@ -5,9 +5,9 @@ pragma solidity ^0.8.18;
 import {IMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
-import {TickLib, Tick, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/TickLib.sol";
+import {TickTreeIndexLib, TickTreeIndex, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/TickTreeIndexLib.sol";
 
-// A log price with room for bits above and below at all tick levels, except at root which has only 2 bits.
+// A log price with room for bits above and below at all tickTreeIndex levels, except at root which has only 2 bits.
 // forgefmt: disable-start
 int constant MIDDLE_LOG_PRICE = 
   /* mid leaf */ LEAF_SIZE / 2 + 
@@ -38,13 +38,13 @@ abstract contract GasTestBaseStored {
     console.log("Description: %s", description);
   }
 
-  function newOfferOnAllTestPrices() public virtual {
-    this.newOfferOnAllLowerThanMiddleTestPrices();
+  function newOfferOnAllTestRatios() public virtual {
+    this.newOfferOnAllLowerThanMiddleTestRatios();
     // MIDDLE_LOG_PRICE is often controlled in tests so leaving it out. mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
-    this.newOfferOnAllHigherThanMiddleTestPrices();
+    this.newOfferOnAllHigherThanMiddleTestRatios();
   }
 
-  function newOfferOnAllLowerThanMiddleTestPrices() public virtual {
+  function newOfferOnAllLowerThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     logPriceOfferIds[LEAF_LOWER_LOG_PRICE] =
       mgv.newOfferByLogPrice(_olKey, LEAF_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
@@ -58,7 +58,7 @@ abstract contract GasTestBaseStored {
       mgv.newOfferByLogPrice(_olKey, ROOT_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
   }
 
-  function newOfferOnAllHigherThanMiddleTestPrices() public virtual {
+  function newOfferOnAllHigherThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     logPriceOfferIds[LEAF_HIGHER_LOG_PRICE] =
       mgv.newOfferByLogPrice(_olKey, LEAF_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
@@ -81,8 +81,8 @@ contract GasTestBase is MangroveTest, IMaker, GasTestBaseStored {
   function setUp() public virtual override {
     super.setUp();
     require(
-      olKey.tickScale == 1,
-      "This contract is only ready for tickScale!=1 - depending on tickScale the logPrices should be changed to test the same boundary conditions"
+      olKey.tickSpacing == 1,
+      "This contract is only ready for tickSpacing!=1 - depending on tickSpacing the logPrices should be changed to test the same boundary conditions"
     );
 
     _taker = setupTaker(olKey, "Taker");

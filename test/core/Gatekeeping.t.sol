@@ -3,7 +3,9 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, MAX_TICK, MIN_TICK, LogPriceLib, LogPriceConversionLib} from "mgv_src/MgvLib.sol";
+import {
+  MgvStructs, MAX_TICK_TREE_INDEX, MIN_TICK_TREE_INDEX, LogPriceLib, LogPriceConversionLib
+} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/Constants.sol";
 
@@ -186,12 +188,12 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerWants_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("priceFromVolumes/inbound/tooBig");
+    vm.expectRevert("ratioFromVolumes/inbound/tooBig");
     mkr.newOfferByVolume(MAX_SAFE_VOLUME + 1, 1 ether, 10_000, 0);
   }
 
   function test_makerGives_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("priceFromVolumes/outbound/tooBig");
+    vm.expectRevert("ratioFromVolumes/outbound/tooBig");
     mkr.newOfferByVolume(1 ether, MAX_SAFE_VOLUME + 1, 10_000, 0);
   }
 
@@ -555,7 +557,7 @@ contract GatekeepingTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.5 ether, 0.3 ether);
     // assertGt(takerGot,0,"mo should work");
-    // should execute 0 offers due to price mismatch
+    // should execute 0 offers due to ratio mismatch
     assertEq(takerGot, 0, "mo should fail");
     assertTrue(mgv.offers(olKey, ofr).gives() > 0, "offer should still be live");
     assertFalse(mkr.makerExecuteWasCalled(ofr), "ofr must not be executed or test is void");
@@ -591,12 +593,13 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGasmax(10_000_000);
     uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
     MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
-    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(olKey.tickScale)) + 1);
-    uint gives = LogPriceLib.outboundFromInbound(LogPriceLib.fromTick(nextTick, olKey.tickScale), 5 ether);
+    TickTreeIndex nextTickTreeIndex = TickTreeIndex.wrap(TickTreeIndex.unwrap(ofr.tickTreeIndex(olKey.tickSpacing)) + 1);
+    uint gives =
+      LogPriceLib.outboundFromInbound(LogPriceLib.fromTickTreeIndex(nextTickTreeIndex, olKey.tickSpacing), 5 ether);
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(mgv.leafs(olKey, ofr.tick(olKey.tickScale).leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(olKey, ofr.tickTreeIndex(olKey.tickSpacing).leafIndex()).getNextOfferId(), id2);
     // high-level check
     assertTrue(mgv.best(olKey) == id2, "2nd market order must have emptied mgv");
   }
@@ -608,13 +611,13 @@ contract GatekeepingTest is MangroveTest {
     uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
     // store some information in another level0 (a worse one)
     uint ofr1 = mgv.newOfferByVolume(olKey, 0.02 ether, 0.05 ether, 1000000, 0);
-    Tick tick1 = mgv.offers(olKey, ofr1).tick(olKey.tickScale);
+    TickTreeIndex tick1 = mgv.offers(olKey, ofr1).tickTreeIndex(olKey.tickSpacing);
     int index1 = tick1.level0Index();
     // make ofr1 the best offer (ofr1.level0 is now cached, but it also lives in its slot)
     mgv.retractOffer(olKey, ofr0, true);
     // make an offer worse than ofr1
     uint ofr2 = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 1000000, 0);
-    Tick tick2 = mgv.offers(olKey, ofr2).tick(olKey.tickScale);
+    TickTreeIndex tick2 = mgv.offers(olKey, ofr2).tickTreeIndex(olKey.tickSpacing);
     int index2 = tick2.level0Index();
 
     // ofr2 is now best again. ofr1.level0 is not cached anymore.
@@ -666,7 +669,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
     mkr.approveMgv(quote, 1 ether);
 
-    int logPrice2 = LogPriceConversionLib.logPriceFromPrice(2, 0);
+    int logPrice2 = LogPriceConversionLib.logPriceFromRatio(2, 0);
     uint other_ofr = other_mkr.newOfferByLogPrice(logPrice2, 1 ether, 200_000);
 
     mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr, logPrice2)));
@@ -826,7 +829,7 @@ contract GatekeepingTest is MangroveTest {
 
   function test_activation_emits_events_in_order() public {
     expectFrom($(mgv));
-    emit SetActive(lo.hash(), lo.outbound, lo.inbound, lo.tickScale, true);
+    emit SetActive(lo.hash(), lo.outbound, lo.inbound, lo.tickSpacing, true);
     expectFrom($(mgv));
     emit SetFee(lo.hash(), 7);
     expectFrom($(mgv));
@@ -837,7 +840,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_activation_updates_olKeys(OLKey memory _olKey) public {
-    vm.assume(_olKey.tickScale != 0);
+    vm.assume(_olKey.tickSpacing != 0);
     bytes32 hash = _olKey.hash();
     vm.assume(hash != olKey.hash());
     vm.assume(hash != lo.hash());
@@ -845,17 +848,17 @@ contract GatekeepingTest is MangroveTest {
     OLKey memory _olKey2 = mgv.olKeys(hash);
     assertEq(_olKey2.outbound, address(0), "outbound should be address 0");
     assertEq(_olKey2.inbound, address(0), "inbound should be address 0");
-    assertEq(_olKey2.tickScale, 0, "tickScale should be 0");
+    assertEq(_olKey2.tickSpacing, 0, "tickSpacing should be 0");
     mgv.activate(_olKey, 7, 0, 3);
     // gets updated
     _olKey2 = mgv.olKeys(hash);
     assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
     assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
-    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+    assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing");
   }
 
   function test_deactivation_maintains_olKeys(OLKey memory _olKey) public {
-    vm.assume(_olKey.tickScale != 0);
+    vm.assume(_olKey.tickSpacing != 0);
     bytes32 hash = _olKey.hash();
     vm.assume(hash != olKey.hash());
     vm.assume(hash != lo.hash());
@@ -864,17 +867,17 @@ contract GatekeepingTest is MangroveTest {
     OLKey memory _olKey2 = mgv.olKeys(hash);
     assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
     assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
-    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+    assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing");
     mgv.deactivate(_olKey);
     // still there
     _olKey2 = mgv.olKeys(hash);
     assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after deactivate");
     assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after deactivate");
-    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale after deactivate");
+    assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing after deactivate");
   }
 
   function test_reactivation_maintains_olKeys(OLKey memory _olKey) public {
-    vm.assume(_olKey.tickScale != 0);
+    vm.assume(_olKey.tickSpacing != 0);
     bytes32 hash = _olKey.hash();
     vm.assume(hash != olKey.hash());
     vm.assume(hash != lo.hash());
@@ -883,19 +886,19 @@ contract GatekeepingTest is MangroveTest {
     OLKey memory _olKey2 = mgv.olKeys(hash);
     assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
     assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
-    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+    assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing");
     mgv.activate(_olKey, 4, 0, 2);
     // still there
     _olKey2 = mgv.olKeys(hash);
     assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after reactivate");
     assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after reactivate");
-    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale after reactivate");
+    assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing after reactivate");
   }
 
   function test_updateOffer_on_inactive_fails() public {
     uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     expectFrom($(mgv));
-    emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickScale, false);
+    emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickSpacing, false);
     mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
     mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);

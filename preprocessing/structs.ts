@@ -95,7 +95,7 @@ const id_field = (name: string) => {
 
 /* ## `Offer` */
 //+clear+
-/* `Offer`s hold the doubly-linked list pointers as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
+/* `Offer`s hold the doubly-linked list pointers as well as ratio and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
 //+clear+
 const struct_defs = {
   offer: {
@@ -111,7 +111,7 @@ const struct_defs = {
       10 billions. */
       fields.gives,
     ],
-    additionalDefinitions: `import "mgv_lib/TickLib.sol";
+    additionalDefinitions: `import "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/LogPriceLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 
@@ -133,9 +133,9 @@ library OfferPackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
+  function tickTreeIndex(OfferPacked offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
     // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickLib.fromTickAlignedLogPrice(offer.logPrice(), tickScale);
+    return TickTreeIndexLib.fromTickTreeIndexAlignedLogPrice(offer.logPrice(), tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -158,9 +158,9 @@ library OfferUnpackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tick(OfferUnpacked memory offer, uint tickScale) internal pure returns (Tick) {
+  function tickTreeIndex(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
     // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickLib.fromTickAlignedLogPrice(offer.logPrice, tickScale);
+    return TickTreeIndexLib.fromTickTreeIndexAlignedLogPrice(offer.logPrice, tickSpacing);
   }
 
 }
@@ -190,7 +190,7 @@ They have the following fields: */
 
     If an offer fails, `gasprice` wei is taken from the
     provision per unit of gas used. `gasprice` should approximate the average gas
-    price at offer creation time.
+    ratio at offer creation time.
 
     `kilo_offer_gasbase` is the actual field name, and is _9 bits wide_ and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
 
@@ -215,7 +215,7 @@ They have the following fields: */
 
       */
       fields.kilo_offer_gasbase,
-      /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gsprice`. */
+      /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
       fields.gasprice,
     ],
     additionalDefinitions: (struct) => `
@@ -281,7 +281,7 @@ library OfferDetailUnpackedExtra {
       
       */
       { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
-      { name: "tickPosInLeaf", bits: 2, type: "uint" },
+      { name: "tickTreeIndexPosInLeaf", bits: 2, type: "uint" },
       { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
@@ -304,14 +304,14 @@ library OfferDetailUnpackedExtra {
       id_field("last"),
     ],
     additionalDefinitions: (struct) => `
-import {Tick,TickLib,Field} from "mgv_lib/TickLib.sol";
+import {TickTreeIndex,TickTreeIndexLib,Field} from "mgv_lib/TickTreeIndexLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 
 using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | root_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickTreeIndexPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | root_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
   function densityFrom96X32(LocalPacked local, uint density96X32) internal pure returns (LocalPacked) { unchecked {
@@ -323,8 +323,8 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
-  function bestTick(LocalPacked local) internal pure returns (Tick) {
-    return TickLib.bestTickFromLocal(local);
+  function bestTickTreeIndex(LocalPacked local) internal pure returns (TickTreeIndex) {
+    return TickTreeIndexLib.bestTickTreeIndexFromLocal(local);
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -345,8 +345,8 @@ library LocalUnpackedExtra {
   function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
     local.kilo_offer_gasbase = val/1e3;
   }}
-  function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
-    return TickLib.bestTickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2,local.root);
+  function bestTickTreeIndex(LocalUnpacked memory local) internal pure returns (TickTreeIndex) {
+    return TickTreeIndexLib.bestTickTreeIndexFromBranch(local.tickTreeIndexPosInLeaf,local.level0,local.level1,local.level2,local.root);
   }
 }
 `,

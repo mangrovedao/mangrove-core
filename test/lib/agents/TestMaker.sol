@@ -57,11 +57,11 @@ contract SimpleTestMaker is TrivialTestMaker {
   receive() external payable {}
 
   event Execute(
-    address mgv, address base, address quote, uint tickScale, uint offerId, uint takerWants, uint takerGives
+    address mgv, address base, address quote, uint tickSpacing, uint offerId, uint takerWants, uint takerGives
   );
 
   function logExecute(address _mgv, OLKey calldata _ol, uint offerId, uint takerWants, uint takerGives) external {
-    emit Execute(_mgv, _ol.outbound, _ol.inbound, _ol.tickScale, offerId, takerWants, takerGives);
+    emit Execute(_mgv, _ol.outbound, _ol.inbound, _ol.tickSpacing, offerId, takerWants, takerGives);
   }
 
   function makerExecuteWasCalled(uint offerId) external view returns (bool) {
@@ -164,7 +164,7 @@ contract SimpleTestMaker is TrivialTestMaker {
       msg.sender,
       order.olKey.outbound,
       order.olKey.inbound,
-      order.olKey.tickScale,
+      order.olKey.tickSpacing,
       order.offerId,
       order.takerWants,
       order.takerGives

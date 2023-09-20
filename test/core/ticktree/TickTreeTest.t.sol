@@ -25,25 +25,25 @@ import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Base class for test of Mangrove's tick tree data structure
+// Base class for test of Mangrove's tickTreeIndex tree data structure
 //
-// Provides a simple tick tree data structure and operations on it that can be used to simulate Mangrove's tick tree
-// and then be compared to the actual tick tree.
+// Provides a simple tickTreeIndex tree data structure and operations on it that can be used to simulate Mangrove's tickTreeIndex tree
+// and then be compared to the actual tickTreeIndex tree.
 //
-// The test tick tree operations uses simpler (and less efficient) code to manipulate the tick tree, which should make
-// it clearer what is going on and easier to convince yourself that the tick tree is manipulated correctly.
+// The test tickTreeIndex tree operations uses simpler (and less efficient) code to manipulate the tickTreeIndex tree, which should make
+// it clearer what is going on and easier to convince yourself that the tickTreeIndex tree is manipulated correctly.
 //
-// In contrast, Mangrove's tick tree operations are optimized and interleaved with other code, which makes it harder to
+// In contrast, Mangrove's tickTreeIndex tree operations are optimized and interleaved with other code, which makes it harder to
 // reason about.
 //
-// tl;dr: We use a simple tick tree operations to verify Mangrove's complex tick tree operations.
+// tl;dr: We use a simple tickTreeIndex tree operations to verify Mangrove's complex tickTreeIndex tree operations.
 //
 // Basic test flow:
 // 1. Set up Mangrove's initial state, ie post offers at relevant ticks
-// 2. Take a snapshot of Mangrove's tick tree using `snapshotTickTree` which returns a `TickTree` struct
+// 2. Take a snapshot of Mangrove's tickTreeIndex tree using `snapshotTickTree` which returns a `TickTree` struct
 // 3. Perform some operation on Mangrove (eg add or remove an offer)
-// 4. Perform equivalent operation on the snapshot tick tree
-// 5. Compare Mangrove's tick tree to the snapshot tick tree using `assertEqToMgvTickTree`
+// 4. Perform equivalent operation on the snapshot tickTreeIndex tree
+// 5. Compare Mangrove's tickTreeIndex tree to the snapshot tickTreeIndex tree using `assertEqToMgvTickTree`
 //
 // See README.md in this folder for more details.
 abstract contract TickTreeTest is MangroveTest {
@@ -51,41 +51,41 @@ abstract contract TickTreeTest is MangroveTest {
 
   receive() external payable {}
 
-  // # Ticks of interest
-  // Levels&leaf are assumed independent, so we can test multiple equivalence clases with one tick.
+  // # TickTreeIndexs of interest
+  // Levels&leaf are assumed independent, so we can test multiple equivalence clases with one tickTreeIndex.
   //
   // Equivalence classes to test:
   // - leaf: min, max, mid
   // - levelX: min, max, mid
   //
-  // In addition, we test the min and max ticks allowed by (log)Price math.
+  // In addition, we test the min and max ticks allowed by (log)Ratio math.
 
   // min ROOT, max L2-0, max leaf
-  // We use this tick to test the case where the tick is at the max position in all levels except root:
-  // Max in all positions isn't supported by (log)price math.
-  Tick immutable TICK_MIN_ROOT_MAX_OTHERS =
-    TickTreeUtil.tickFromPositions(MIN_ROOT_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEAF_POS);
+  // We use this tickTreeIndex to test the case where the tickTreeIndex is at the max position in all levels except root:
+  // Max in all positions isn't supported by (log)ratio math.
+  TickTreeIndex immutable TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS =
+    TickTreeUtil.tickTreeIndexFromPositions(MIN_ROOT_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEAF_POS);
 
   // max ROOT, min L2-0, min leaf
-  // We use this tick to test the case where the tick is at the min position in all levels except root:
-  // Min in all positions isn't supported by (log)price math.
-  Tick immutable TICK_MAX_ROOT_MIN_OTHERS =
-    TickTreeUtil.tickFromPositions(MAX_ROOT_POS, MIN_LEVEL_POS, MIN_LEVEL_POS, MIN_LEVEL_POS, MIN_LEAF_POS);
+  // We use this tickTreeIndex to test the case where the tickTreeIndex is at the min position in all levels except root:
+  // Min in all positions isn't supported by (log)ratio math.
+  TickTreeIndex immutable TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS =
+    TickTreeUtil.tickTreeIndexFromPositions(MAX_ROOT_POS, MIN_LEVEL_POS, MIN_LEVEL_POS, MIN_LEVEL_POS, MIN_LEAF_POS);
 
   // middle ROOT-0, middle leaf
-  Tick immutable TICK_MIDDLE =
-    TickTreeUtil.tickFromPositions(MID_ROOT_POS, MID_LEVEL_POS, MID_LEVEL_POS, MID_LEVEL_POS, MID_LEAF_POS);
+  TickTreeIndex immutable TICK_TREE_INDEX_MIDDLE =
+    TickTreeUtil.tickTreeIndexFromPositions(MID_ROOT_POS, MID_LEVEL_POS, MID_LEVEL_POS, MID_LEVEL_POS, MID_LEAF_POS);
 
-  // min tick allowed by (log)price math
-  Tick immutable TICK_MIN_ALLOWED = Tick.wrap(MIN_TICK_ALLOWED);
+  // min tickTreeIndex allowed by (log)ratio math
+  TickTreeIndex immutable TICK_TREE_INDEX_MIN_ALLOWED = TickTreeIndex.wrap(MIN_TICK_TREE_INDEX_ALLOWED);
 
-  // max tick allowed by (log)price math
-  Tick immutable TICK_MAX_ALLOWED = Tick.wrap(MAX_TICK_ALLOWED);
+  // max tickTreeIndex allowed by (log)ratio math
+  TickTreeIndex immutable TICK_TREE_INDEX_MAX_ALLOWED = TickTreeIndex.wrap(MAX_TICK_TREE_INDEX_ALLOWED);
 
   function setUp() public virtual override {
     super.setUp();
 
-    // Density is irrelevant when testing the tick tree data structure,
+    // Density is irrelevant when testing the tickTreeIndex tree data structure,
     // so we set it to 0 to avoid having to deal with it
     mgv.setDensity96X32(olKey, 0);
     mgv.setGasmax(10_000_000);
@@ -98,9 +98,9 @@ abstract contract TickTreeTest is MangroveTest {
     deal($(quote), $(this), type(uint).max);
   }
 
-  // # Test tick tree utility functions
+  // # Test tickTreeIndex tree utility functions
 
-  // Creates a snapshot of the Mangrove tick tree
+  // Creates a snapshot of the Mangrove tickTreeIndex tree
   function snapshotTickTree() internal returns (TestTickTree) {
     TestTickTree tickTree = new TestTickTree(mgv, reader, olKey);
     tickTree.snapshotMgvTickTree();
@@ -109,215 +109,264 @@ abstract contract TickTreeTest is MangroveTest {
 
   // # Offer utility functions
 
-  // Calculates gives that Mangrove will accept and can handle (eg in price math) for a tick & gasreq
-  function getAcceptableGivesForTick(Tick tick, uint gasreq) internal pure returns (uint gives) {
-    tick; //shh
+  // Calculates gives that Mangrove will accept and can handle (eg in ratio math) for a tickTreeIndex & gasreq
+  function getAcceptableGivesForTickTreeIndex(TickTreeIndex tickTreeIndex, uint gasreq)
+    internal
+    pure
+    returns (uint gives)
+  {
+    tickTreeIndex; //shh
     gasreq; //shh
-    // With density=0, Mangrove currently accepts and can handle gives=1 for both high and low prices
+    // With density=0, Mangrove currently accepts and can handle gives=1 for both high and low ratios
     return 1;
   }
 
-  // # Tick scenario utility structs and functions
+  // # TickTreeIndex scenario utility structs and functions
 
-  struct TickScenario {
-    Tick tick;
-    bool hasHigherTick;
-    Tick higherTick;
-    uint higherTickListSize;
-    bool hasLowerTick;
-    Tick lowerTick;
-    uint lowerTickListSize;
+  struct TickTreeIndexScenario {
+    TickTreeIndex tickTreeIndex;
+    bool hasHigherTickTreeIndex;
+    TickTreeIndex higherTickTreeIndex;
+    uint higherTickTreeIndexListSize;
+    bool hasLowerTickTreeIndex;
+    TickTreeIndex lowerTickTreeIndex;
+    uint lowerTickTreeIndexListSize;
   }
 
-  function generateHigherTickScenarios(Tick tick) internal view returns (Tick[] memory) {
+  function generateHigherTickTreeIndexScenarios(TickTreeIndex tickTreeIndex)
+    internal
+    view
+    returns (TickTreeIndex[] memory)
+  {
     uint next = 0;
-    Tick[] memory ticks = new Tick[](10);
-    if (tick.posInLeaf() < MAX_LEAF_POS) {
+    TickTreeIndex[] memory ticks = new TickTreeIndex[](10);
+    if (tickTreeIndex.posInLeaf() < MAX_LEAF_POS) {
       // higher leaf position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() + 1
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2(),
+        tickTreeIndex.posInLevel1(),
+        tickTreeIndex.posInLevel0(),
+        tickTreeIndex.posInLeaf() + 1
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel0() < MAX_LEVEL_POS) {
+    if (tickTreeIndex.posInLevel0() < MAX_LEVEL_POS) {
       // higher level0 position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() + 1, tick.posInLeaf()
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2(),
+        tickTreeIndex.posInLevel1(),
+        tickTreeIndex.posInLevel0() + 1,
+        tickTreeIndex.posInLeaf()
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel1() < MAX_LEVEL_POS) {
+    if (tickTreeIndex.posInLevel1() < MAX_LEVEL_POS) {
       // higher level1 position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1() + 1, tick.posInLevel0(), tick.posInLeaf()
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2(),
+        tickTreeIndex.posInLevel1() + 1,
+        tickTreeIndex.posInLevel0(),
+        tickTreeIndex.posInLeaf()
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel2() < MAX_LEVEL_POS) {
+    if (tickTreeIndex.posInLevel2() < MAX_LEVEL_POS) {
       // higher level2 position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2() + 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2() + 1,
+        tickTreeIndex.posInLevel1(),
+        tickTreeIndex.posInLevel0(),
+        tickTreeIndex.posInLeaf()
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInRoot() < MAX_ROOT_POS) {
+    if (tickTreeIndex.posInRoot() < MAX_ROOT_POS) {
       // higher root position
       // Choosing MIN POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
       // The important thing is to have a higher position in root.
-      ticks[next++] = TickTreeUtil.tickFromPositions(tick.posInRoot() + 1, 0, 0, 0, 0);
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(tickTreeIndex.posInRoot() + 1, 0, 0, 0, 0);
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
 
-    Tick[] memory res = new Tick[](next);
+    TickTreeIndex[] memory res = new TickTreeIndex[](next);
     for (uint i = 0; i < next; ++i) {
       res[i] = ticks[i];
     }
     return res;
   }
 
-  function generateLowerTickScenarios(Tick tick) internal view returns (Tick[] memory) {
+  function generateLowerTickTreeIndexScenarios(TickTreeIndex tickTreeIndex)
+    internal
+    view
+    returns (TickTreeIndex[] memory)
+  {
     uint next = 0;
-    Tick[] memory ticks = new Tick[](10);
-    if (tick.posInLeaf() > 0) {
+    TickTreeIndex[] memory ticks = new TickTreeIndex[](10);
+    if (tickTreeIndex.posInLeaf() > 0) {
       // lower leaf position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() - 1
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2(),
+        tickTreeIndex.posInLevel1(),
+        tickTreeIndex.posInLevel0(),
+        tickTreeIndex.posInLeaf() - 1
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel0() > 0) {
+    if (tickTreeIndex.posInLevel0() > 0) {
       // lower level0 position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() - 1, tick.posInLeaf()
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2(),
+        tickTreeIndex.posInLevel1(),
+        tickTreeIndex.posInLevel0() - 1,
+        tickTreeIndex.posInLeaf()
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel1() > 0) {
+    if (tickTreeIndex.posInLevel1() > 0) {
       // lower level1 position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1() - 1, tick.posInLevel0(), tick.posInLeaf()
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2(),
+        tickTreeIndex.posInLevel1() - 1,
+        tickTreeIndex.posInLevel0(),
+        tickTreeIndex.posInLeaf()
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel2() > 0) {
+    if (tickTreeIndex.posInLevel2() > 0) {
       // lower level2 position
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInRoot(), tick.posInLevel2() - 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot(),
+        tickTreeIndex.posInLevel2() - 1,
+        tickTreeIndex.posInLevel1(),
+        tickTreeIndex.posInLevel0(),
+        tickTreeIndex.posInLeaf()
       );
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInRoot() > 0) {
+    if (tickTreeIndex.posInRoot() > 0) {
       // lower root position
       // Choosing MAX POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
       // The important thing is to have a lower position in root.
-      ticks[next++] =
-        TickTreeUtil.tickFromPositions(tick.posInRoot() - 1, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEAF_POS);
-      if (!isAllowedByPriceMath(ticks[next - 1])) {
+      ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
+        tickTreeIndex.posInRoot() - 1, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEAF_POS
+      );
+      if (!isAllowedByRatioMath(ticks[next - 1])) {
         next--;
       }
     }
 
-    Tick[] memory res = new Tick[](next);
+    TickTreeIndex[] memory res = new TickTreeIndex[](next);
     for (uint i = 0; i < next; ++i) {
       res[i] = ticks[i];
     }
     return res;
   }
 
-  function isAllowedByPriceMath(Tick tick) internal view returns (bool) {
-    return Tick.unwrap(TICK_MIN_ALLOWED) <= Tick.unwrap(tick) && Tick.unwrap(tick) <= Tick.unwrap(TICK_MAX_ALLOWED);
+  function isAllowedByRatioMath(TickTreeIndex tickTreeIndex) internal view returns (bool) {
+    return TickTreeIndex.unwrap(TICK_TREE_INDEX_MIN_ALLOWED) <= TickTreeIndex.unwrap(tickTreeIndex)
+      && TickTreeIndex.unwrap(tickTreeIndex) <= TickTreeIndex.unwrap(TICK_TREE_INDEX_MAX_ALLOWED);
   }
 
-  // Implement this in subclasses and then call `runTickScenarios` to generate and run all scenarios
-  function runTickScenario(TickScenario memory scenario) internal virtual {}
+  // Implement this in subclasses and then call `runTickTreeIndexScenarios` to generate and run all scenarios
+  function runTickTreeIndexScenario(TickTreeIndexScenario memory scenario) internal virtual {}
 
-  // Generates all tick scenarios and calls `runTickScenario` for each one
-  function runTickScenarios(
-    Tick tick,
-    uint[] storage higherTickListSizeScenarios,
-    uint[] storage lowerTickListSizeScenarios
+  // Generates all tickTreeIndex scenarios and calls `runTickTreeIndexScenario` for each one
+  function runTickTreeIndexScenarios(
+    TickTreeIndex tickTreeIndex,
+    uint[] storage higherTickTreeIndexListSizeScenarios,
+    uint[] storage lowerTickTreeIndexListSizeScenarios
   ) internal {
-    Tick[] memory higherTicks = generateHigherTickScenarios(tick);
-    Tick[] memory lowerTicks = generateLowerTickScenarios(tick);
-    TickScenario memory scenario;
+    TickTreeIndex[] memory higherTickTreeIndexs = generateHigherTickTreeIndexScenarios(tickTreeIndex);
+    TickTreeIndex[] memory lowerTickTreeIndexs = generateLowerTickTreeIndexScenarios(tickTreeIndex);
+    TickTreeIndexScenario memory scenario;
 
-    scenario.tick = tick;
-    scenario.hasHigherTick = false;
-    scenario.higherTick = Tick.wrap(0);
-    scenario.higherTickListSize = 0;
-    scenario.hasLowerTick = false;
-    scenario.lowerTick = Tick.wrap(0);
-    scenario.lowerTickListSize = 0;
+    scenario.tickTreeIndex = tickTreeIndex;
+    scenario.hasHigherTickTreeIndex = false;
+    scenario.higherTickTreeIndex = TickTreeIndex.wrap(0);
+    scenario.higherTickTreeIndexListSize = 0;
+    scenario.hasLowerTickTreeIndex = false;
+    scenario.lowerTickTreeIndex = TickTreeIndex.wrap(0);
+    scenario.lowerTickTreeIndexListSize = 0;
 
-    runTickScenario(scenario);
+    runTickTreeIndexScenario(scenario);
 
-    scenario.hasHigherTick = true;
-    for (uint h = 0; h < higherTicks.length; ++h) {
-      scenario.higherTick = higherTicks[h];
-      for (uint hs = 0; hs < higherTickListSizeScenarios.length; ++hs) {
-        scenario.higherTickListSize = higherTickListSizeScenarios[hs];
-        runTickScenario(scenario);
+    scenario.hasHigherTickTreeIndex = true;
+    for (uint h = 0; h < higherTickTreeIndexs.length; ++h) {
+      scenario.higherTickTreeIndex = higherTickTreeIndexs[h];
+      for (uint hs = 0; hs < higherTickTreeIndexListSizeScenarios.length; ++hs) {
+        scenario.higherTickTreeIndexListSize = higherTickTreeIndexListSizeScenarios[hs];
+        runTickTreeIndexScenario(scenario);
       }
     }
 
-    scenario.hasHigherTick = false;
-    scenario.higherTick = Tick.wrap(0);
-    scenario.higherTickListSize = 0;
-    scenario.hasLowerTick = true;
-    for (uint l = 0; l < lowerTicks.length; ++l) {
-      scenario.lowerTick = lowerTicks[l];
-      for (uint ls = 0; ls < lowerTickListSizeScenarios.length; ++ls) {
-        scenario.lowerTickListSize = lowerTickListSizeScenarios[ls];
-        runTickScenario(scenario);
+    scenario.hasHigherTickTreeIndex = false;
+    scenario.higherTickTreeIndex = TickTreeIndex.wrap(0);
+    scenario.higherTickTreeIndexListSize = 0;
+    scenario.hasLowerTickTreeIndex = true;
+    for (uint l = 0; l < lowerTickTreeIndexs.length; ++l) {
+      scenario.lowerTickTreeIndex = lowerTickTreeIndexs[l];
+      for (uint ls = 0; ls < lowerTickTreeIndexListSizeScenarios.length; ++ls) {
+        scenario.lowerTickTreeIndexListSize = lowerTickTreeIndexListSizeScenarios[ls];
+        runTickTreeIndexScenario(scenario);
       }
     }
 
-    scenario.hasHigherTick = true;
-    scenario.hasLowerTick = true;
-    for (uint h = 0; h < higherTicks.length; ++h) {
-      scenario.higherTick = higherTicks[h];
-      for (uint l = 0; l < lowerTicks.length; ++l) {
-        scenario.lowerTick = lowerTicks[l];
-        for (uint hs = 0; hs < higherTickListSizeScenarios.length; ++hs) {
-          scenario.higherTickListSize = higherTickListSizeScenarios[hs];
-          for (uint ls = 0; ls < lowerTickListSizeScenarios.length; ++ls) {
-            scenario.lowerTickListSize = lowerTickListSizeScenarios[ls];
-            runTickScenario(scenario);
+    scenario.hasHigherTickTreeIndex = true;
+    scenario.hasLowerTickTreeIndex = true;
+    for (uint h = 0; h < higherTickTreeIndexs.length; ++h) {
+      scenario.higherTickTreeIndex = higherTickTreeIndexs[h];
+      for (uint l = 0; l < lowerTickTreeIndexs.length; ++l) {
+        scenario.lowerTickTreeIndex = lowerTickTreeIndexs[l];
+        for (uint hs = 0; hs < higherTickTreeIndexListSizeScenarios.length; ++hs) {
+          scenario.higherTickTreeIndexListSize = higherTickTreeIndexListSizeScenarios[hs];
+          for (uint ls = 0; ls < lowerTickTreeIndexListSizeScenarios.length; ++ls) {
+            scenario.lowerTickTreeIndexListSize = lowerTickTreeIndexListSizeScenarios[ls];
+            runTickTreeIndexScenario(scenario);
           }
         }
       }
     }
   }
 
-  function add_n_offers_to_tick(Tick tick, uint n) internal returns (uint[] memory offerIds, uint gives) {
-    return add_n_offers_to_tick(tick, n, false);
-  }
-
-  function add_n_offers_to_tick(Tick tick, uint n, bool offersFail)
+  function add_n_offers_to_tick(TickTreeIndex tickTreeIndex, uint n)
     internal
     returns (uint[] memory offerIds, uint gives)
   {
-    int logPrice = LogPriceLib.fromTick(tick, olKey.tickScale);
+    return add_n_offers_to_tick(tickTreeIndex, n, false);
+  }
+
+  function add_n_offers_to_tick(TickTreeIndex tickTreeIndex, uint n, bool offersFail)
+    internal
+    returns (uint[] memory offerIds, uint gives)
+  {
+    int logPrice = LogPriceLib.fromTickTreeIndex(tickTreeIndex, olKey.tickSpacing);
     uint gasreq = 10_000_000;
-    gives = getAcceptableGivesForTick(tick, gasreq);
+    gives = getAcceptableGivesForTickTreeIndex(tickTreeIndex, gasreq);
     offerIds = new uint[](n);
     for (uint i = 0; i < n; ++i) {
       if (offersFail) {
@@ -328,59 +377,65 @@ abstract contract TickTreeTest is MangroveTest {
     }
   }
 
-  // # Tick utility functions
+  // # TickTreeIndex utility functions
 
-  function assertTickAssumptions(
-    Tick tick,
+  function assertTickTreeIndexAssumptions(
+    TickTreeIndex tickTreeIndex,
     uint posInLeaf,
     uint posInLevel0,
     uint posInLevel1,
     uint posInLevel2,
     uint posInRoot
   ) internal {
-    string memory tickString = toString(tick);
+    string memory tickString = toString(tickTreeIndex);
     assertEq(
-      tick.posInLeaf(),
+      tickTreeIndex.posInLeaf(),
       posInLeaf,
       string.concat(
-        "tick's posInLeaf does not match expected value | posInLeaf: ", vm.toString(posInLeaf), ", tick: ", tickString
+        "tick's posInLeaf does not match expected value | posInLeaf: ",
+        vm.toString(posInLeaf),
+        ", tickTreeIndex: ",
+        tickString
       )
     );
     assertEq(
-      tick.posInLevel0(),
+      tickTreeIndex.posInLevel0(),
       posInLevel0,
       string.concat(
         "tick's posInLevel0 does not match expected value | posInLevel0: ",
         vm.toString(posInLevel0),
-        ", tick: ",
+        ", tickTreeIndex: ",
         tickString
       )
     );
     assertEq(
-      tick.posInLevel1(),
+      tickTreeIndex.posInLevel1(),
       posInLevel1,
       string.concat(
         "tick's posInLevel1 does not match expected value | posInLevel1: ",
         vm.toString(posInLevel1),
-        ", tick: ",
+        ", tickTreeIndex: ",
         tickString
       )
     );
     assertEq(
-      tick.posInLevel2(),
+      tickTreeIndex.posInLevel2(),
       posInLevel2,
       string.concat(
         "tick's posInLevel2 does not match expected value | posInLevel2: ",
         vm.toString(posInLevel2),
-        ", tick: ",
+        ", tickTreeIndex: ",
         tickString
       )
     );
     assertEq(
-      tick.posInRoot(),
+      tickTreeIndex.posInRoot(),
       posInRoot,
       string.concat(
-        "tick's posInRoot does not match expected value | posInRoot: ", vm.toString(posInRoot), ", tick: ", tickString
+        "tick's posInRoot does not match expected value | posInRoot: ",
+        vm.toString(posInRoot),
+        ", tickTreeIndex: ",
+        tickString
       )
     );
   }

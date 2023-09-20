@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, Tick, LogPriceLib, OLKey} from "./MgvLib.sol";
+import {HasMgvEvents, TickTreeIndex, LogPriceLib, OLKey} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
-import {TickLib} from "mgv_lib/TickLib.sol";
+import {TickTreeIndexLib} from "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 import {MgvStructs} from "./MgvLib.sol";
 import "mgv_lib/Debug.sol";

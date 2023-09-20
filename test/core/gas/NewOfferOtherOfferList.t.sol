@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
+import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -36,7 +36,7 @@ contract ExternalNewOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGasTes
   }
 }
 
-contract ExternalNewOfferOtherOfferList_WithOtherOfferGasTest is TickBoundariesGasTest, GasTestBase {
+contract ExternalNewOfferOtherOfferList_WithOtherOfferGasTest is TickTreeBoundariesGasTest, GasTestBase {
   function setUp() public virtual override {
     super.setUp();
     _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
@@ -50,12 +50,12 @@ contract ExternalNewOfferOtherOfferList_WithOtherOfferGasTest is TickBoundariesG
   }
 }
 
-contract ExternalNewOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest is
+contract ExternalNewOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
   ExternalNewOfferOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    this.newOfferOnAllTestPrices();
+    this.newOfferOnAllTestRatios();
     description =
       "Posting a new offer when another offer exists at various tick-distances to the new offer but also on the same tick";
   }

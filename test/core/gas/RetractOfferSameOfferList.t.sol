@@ -4,22 +4,22 @@ pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
+import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
-import {LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/TickLib.sol";
+import {LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/Debug.sol";
 
 int constant LOW_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * 2 * (LEVEL_SIZE ** 3) / 3;
 
-contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickBoundariesGasTest, GasTestBase {
+contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickTreeBoundariesGasTest, GasTestBase {
   uint internal offerId2;
 
   function setUp() public virtual override {
     super.setUp();
-    this.newOfferOnAllTestPrices();
+    this.newOfferOnAllTestRatios();
     _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1000 ether, 1_000_000, 0);
     logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
-    // Offer to take at very low price
+    // Offer to take at very low ratio
     mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
     offerId2 = mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
     description =

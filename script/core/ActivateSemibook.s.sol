@@ -28,7 +28,7 @@ contract ActivateSemibook is Test2, Deployer {
       olKey: OLKey({
         outbound: envAddressOrName("OUTBOUND_TKN"),
         inbound: envAddressOrName("INBOUND_TKN"),
-        tickScale: vm.envUint("TICK_SCALE")
+        tickSpacing: vm.envUint("TICK_SPACING")
       }),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")

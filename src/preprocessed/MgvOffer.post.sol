@@ -26,7 +26,7 @@ type OfferPacked is uint;
 using Library for OfferPacked global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-import "mgv_lib/TickLib.sol";
+import "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/LogPriceLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 
@@ -48,9 +48,9 @@ library OfferPackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
+  function tickTreeIndex(OfferPacked offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
     // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickLib.fromTickAlignedLogPrice(offer.logPrice(), tickScale);
+    return TickTreeIndexLib.fromTickTreeIndexAlignedLogPrice(offer.logPrice(), tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -73,9 +73,9 @@ library OfferUnpackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tick(OfferUnpacked memory offer, uint tickScale) internal pure returns (Tick) {
+  function tickTreeIndex(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
     // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickLib.fromTickAlignedLogPrice(offer.logPrice, tickScale);
+    return TickTreeIndexLib.fromTickTreeIndexAlignedLogPrice(offer.logPrice, tickSpacing);
   }
 
 }

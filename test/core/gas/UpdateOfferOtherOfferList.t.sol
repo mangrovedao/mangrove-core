@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
+import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract ExternalUpdateOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGasTestBase {
@@ -25,13 +25,13 @@ contract ExternalUpdateOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGas
   }
 }
 
-contract ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest is TickBoundariesGasTest, GasTestBase {
+contract ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest is TickTreeBoundariesGasTest, GasTestBase {
   function setUp() public virtual override {
     super.setUp();
     _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description =
-      "Updating an offer when another offer exists at various tick-distances to the offer's new price (initial same price)";
+      "Updating an offer when another offer exists at various tick-distances to the offer's new ratio (initial same ratio)";
   }
 
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId, int _logPrice) internal override {
@@ -41,14 +41,14 @@ contract ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest is TickBoundari
   }
 }
 
-contract ExternalUpdateOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest is
+contract ExternalUpdateOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
   ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    this.newOfferOnAllTestPrices();
+    this.newOfferOnAllTestRatios();
     description =
-      "Updating an offer when another offer exists at various tick-distances to the new offer price but also on the same tick";
+      "Updating an offer when another offer exists at various tick-distances to the new offer ratio but also on the same tick";
   }
 }
 

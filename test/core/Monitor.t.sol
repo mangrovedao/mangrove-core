@@ -103,7 +103,7 @@ contract MonitorTest is MangroveTest {
       offerId: ofrId,
       offer: offer,
       takerWants: 0.04 ether,
-      takerGives: 0.04 ether, // price is 1
+      takerGives: 0.04 ether, // ratio is 1
       offerDetail: mgv.offerDetails(olKey, ofrId),
       global: _global,
       local: _local
@@ -134,7 +134,7 @@ contract MonitorTest is MangroveTest {
       offerId: ofrId,
       offer: offer,
       takerWants: 0.04 ether,
-      takerGives: 0.04 ether, // price is 1
+      takerGives: 0.04 ether, // ratio is 1
       offerDetail: offerDetail, // gasprice logged will still be as before failure
       global: _global,
       local: _local

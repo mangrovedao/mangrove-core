@@ -59,19 +59,19 @@ contract LeafTest is Test2 {
 
   function test_firstOfferPosition() public {
     Leaf leaf = LeafLib.EMPTY;
-    leaf = leaf.setTickFirst(Tick.wrap(1), 31);
-    leaf = leaf.setTickFirst(Tick.wrap(2), 14);
-    leaf = leaf.setTickFirst(Tick.wrap(3), 122);
+    leaf = leaf.setTickTreeIndexFirst(TickTreeIndex.wrap(1), 31);
+    leaf = leaf.setTickTreeIndexFirst(TickTreeIndex.wrap(2), 14);
+    leaf = leaf.setTickTreeIndexFirst(TickTreeIndex.wrap(3), 122);
     assertEq(leaf.firstOfferPosition(), 1, "should be 1");
-    leaf = leaf.setTickFirst(Tick.wrap(0), 89);
+    leaf = leaf.setTickTreeIndexFirst(TickTreeIndex.wrap(0), 89);
     assertEq(leaf.firstOfferPosition(), 0, "should be 0");
     leaf = LeafLib.EMPTY;
-    leaf = leaf.setTickFirst(Tick.wrap(3), 91);
+    leaf = leaf.setTickTreeIndexFirst(TickTreeIndex.wrap(3), 91);
     assertEq(leaf.firstOfferPosition(), 3, "should be 3");
   }
 
   int constant BP = 1.0001 * 1e18;
-  // current max tick with solady fixedpoint lib 1353127
+  // current max tickTreeIndex with solady fixedpoint lib 1353127
 
   function test_x_of_pos(uint pos, uint32 firstId, uint32 lastId) public {
     Leaf leaf = LeafLib.EMPTY;
@@ -186,31 +186,35 @@ contract LeafTest is Test2 {
 }
 
 contract TickTest is Test {
-  function test_posInLeaf_auto(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
-    int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLeaf()), tn % LEAF_SIZE);
+  function test_posInLeaf_auto(int tickTreeIndex) public {
+    tickTreeIndex = bound(tickTreeIndex, MIN_TICK_TREE_INDEX, MAX_TICK_TREE_INDEX);
+    int tn = NUM_TICK_TREE_INDICES / 2 + tickTreeIndex; // normalize to positive
+    assertEq(int(TickTreeIndex.wrap(tickTreeIndex).posInLeaf()), tn % LEAF_SIZE);
   }
 
-  function test_posInLevel0_auto(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
-    int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel0()), tn / LEAF_SIZE % LEVEL_SIZE);
+  function test_posInLevel0_auto(int tickTreeIndex) public {
+    tickTreeIndex = bound(tickTreeIndex, MIN_TICK_TREE_INDEX, MAX_TICK_TREE_INDEX);
+    int tn = NUM_TICK_TREE_INDICES / 2 + tickTreeIndex; // normalize to positive
+    assertEq(int(TickTreeIndex.wrap(tickTreeIndex).posInLevel0()), tn / LEAF_SIZE % LEVEL_SIZE);
   }
 
-  function test_posInLevel1_auto(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
-    int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel1()), tn / (LEAF_SIZE * LEVEL_SIZE) % LEVEL_SIZE);
+  function test_posInLevel1_auto(int tickTreeIndex) public {
+    tickTreeIndex = bound(tickTreeIndex, MIN_TICK_TREE_INDEX, MAX_TICK_TREE_INDEX);
+    int tn = NUM_TICK_TREE_INDICES / 2 + tickTreeIndex; // normalize to positive
+    assertEq(int(TickTreeIndex.wrap(tickTreeIndex).posInLevel1()), tn / (LEAF_SIZE * LEVEL_SIZE) % LEVEL_SIZE);
   }
 
-  function test_posInLevel2_auto(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
-    int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel2()), tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) % LEVEL_SIZE, "wrong posInLevel2");
+  function test_posInLevel2_auto(int tickTreeIndex) public {
+    tickTreeIndex = bound(tickTreeIndex, MIN_TICK_TREE_INDEX, MAX_TICK_TREE_INDEX);
+    int tn = NUM_TICK_TREE_INDICES / 2 + tickTreeIndex; // normalize to positive
+    assertEq(
+      int(TickTreeIndex.wrap(tickTreeIndex).posInLevel2()),
+      tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) % LEVEL_SIZE,
+      "wrong posInLevel2"
+    );
   }
 
-  // note that tick(p) is max {t | price(t) <= p}
+  // note that tick(p) is max {t | ratio(t) <= p}
   function test_logPriceFromVolumes() public {
     assertEq(LogPriceConversionLib.logPriceFromVolumes(1, 1), 0);
     assertEq(LogPriceConversionLib.logPriceFromVolumes(2, 1), 6931);
@@ -225,40 +229,40 @@ contract TickTest is Test {
     assertEq(LogPriceConversionLib.logPriceFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
   }
 
-  function test_priceFromLogPrice() public {
-    inner_test_priceFromLogPrice({
-      tick: 2 ** 20 - 1,
+  function test_ratioFromLogPrice() public {
+    inner_test_ratioFromLogPrice({
+      tickTreeIndex: 2 ** 20 - 1,
       expected_sig: 3441571814221581909035848501253497354125574144,
       expected_exp: 0
     });
 
-    inner_test_priceFromLogPrice({
-      tick: 138162,
+    inner_test_ratioFromLogPrice({
+      tickTreeIndex: 138162,
       expected_sig: 5444510673556857440102348422228887810808479744,
       expected_exp: 132
     });
 
-    inner_test_priceFromLogPrice({
-      tick: -1,
+    inner_test_ratioFromLogPrice({
+      tickTreeIndex: -1,
       expected_sig: 5708419928830956428590284849313049240594808832,
       expected_exp: 152
     });
 
-    inner_test_priceFromLogPrice({
-      tick: 0,
+    inner_test_ratioFromLogPrice({
+      tickTreeIndex: 0,
       expected_sig: 2854495385411919762116571938898990272765493248,
       expected_exp: 151
     });
 
-    inner_test_priceFromLogPrice({
-      tick: 1,
+    inner_test_ratioFromLogPrice({
+      tickTreeIndex: 1,
       expected_sig: 2854780834950460954092783596092880171791548416,
       expected_exp: 151
     });
   }
 
-  function inner_test_priceFromLogPrice(int tick, uint expected_sig, uint expected_exp) internal {
-    (uint sig, uint exp) = LogPriceConversionLib.priceFromLogPrice(tick);
+  function inner_test_ratioFromLogPrice(int tickTreeIndex, uint expected_sig, uint expected_exp) internal {
+    (uint sig, uint exp) = LogPriceConversionLib.ratioFromLogPrice(tickTreeIndex);
     assertEq(expected_sig, sig, "wrong sig");
     assertEq(expected_exp, exp, "wrong exp");
   }
@@ -284,57 +288,57 @@ contract TickTest is Test {
     showLogPriceApprox(1 ether, 1 ether);
   }
 
-  // int constant min_tick_abs = int(2**(TICK_BITS-1));
-  function test_leafIndex_auto(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
-    int tn = NUM_TICKS / 2 + tick; // normalize to positive
+  // int constant min_tick_abs = int(2**(TICK_TREE_INDEX_BITS-1));
+  function test_leafIndex_auto(int tickTreeIndex) public {
+    tickTreeIndex = bound(tickTreeIndex, MIN_TICK_TREE_INDEX, MAX_TICK_TREE_INDEX);
+    int tn = NUM_TICK_TREE_INDICES / 2 + tickTreeIndex; // normalize to positive
     int index = tn / LEAF_SIZE - NUM_LEAFS / 2;
-    assertEq(Tick.wrap(tick).leafIndex(), index);
+    assertEq(TickTreeIndex.wrap(tickTreeIndex).leafIndex(), index);
   }
 
-  function test_level0Index_auto(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
-    int tn = NUM_TICKS / 2 + tick; // normalize to positive
+  function test_level0Index_auto(int tickTreeIndex) public {
+    tickTreeIndex = bound(tickTreeIndex, MIN_TICK_TREE_INDEX, MAX_TICK_TREE_INDEX);
+    int tn = NUM_TICK_TREE_INDICES / 2 + tickTreeIndex; // normalize to positive
     int index = tn / (LEAF_SIZE * LEVEL_SIZE) - NUM_LEVEL0 / 2;
-    assertEq(Tick.wrap(tick).level0Index(), index);
+    assertEq(TickTreeIndex.wrap(tickTreeIndex).level0Index(), index);
   }
 
-  function test_level1Index_auto(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
-    int tn = NUM_TICKS / 2 + tick; // normalize to positive
+  function test_level1Index_auto(int tickTreeIndex) public {
+    tickTreeIndex = bound(tickTreeIndex, MIN_TICK_TREE_INDEX, MAX_TICK_TREE_INDEX);
+    int tn = NUM_TICK_TREE_INDICES / 2 + tickTreeIndex; // normalize to positive
     int index = tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) - NUM_LEVEL1 / 2;
-    assertEq(Tick.wrap(tick).level1Index(), index);
+    assertEq(TickTreeIndex.wrap(tickTreeIndex).level1Index(), index);
   }
 
-  function test_bestTickFromBranch_matches_positions_accessor(
-    uint tickPosInLeaf,
+  function test_bestTickTreeIndexFromBranch_matches_positions_accessor(
+    uint tickTreeIndexPosInLeaf,
     uint _level0,
     uint _level1,
     uint _level2,
     uint _root
   ) public {
-    tickPosInLeaf = bound(tickPosInLeaf, 0, 3);
+    tickTreeIndexPosInLeaf = bound(tickTreeIndexPosInLeaf, 0, 3);
     Field level0 = Field.wrap(bound(_level0, 1, uint(LEVEL_SIZE) - 1));
     Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL_SIZE) - 1));
     Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL_SIZE) - 1));
     Field root = Field.wrap(bound(_root, 1, uint(ROOT_SIZE) - 1));
     MgvStructs.LocalPacked local;
-    local = local.tickPosInLeaf(tickPosInLeaf);
+    local = local.tickTreeIndexPosInLeaf(tickTreeIndexPosInLeaf);
     local = local.level0(level0);
     local = local.level1(level1);
     local = local.level2(level2);
     local = local.root(root);
-    Tick tick = TickLib.bestTickFromLocal(local);
-    assertEq(tick.posInLeaf(), tickPosInLeaf, "wrong pos in leaf");
-    assertEq(tick.posInLevel0(), BitLib.ctz64(Field.unwrap(level0)), "wrong pos in level0");
-    assertEq(tick.posInLevel1(), BitLib.ctz64(Field.unwrap(level1)), "wrong pos in level1");
-    assertEq(tick.posInLevel2(), BitLib.ctz64(Field.unwrap(level2)), "wrong pos in level2");
-    assertEq(tick.posInRoot(), BitLib.ctz64(Field.unwrap(root)), "wrong pos in root");
+    TickTreeIndex tickTreeIndex = TickTreeIndexLib.bestTickTreeIndexFromLocal(local);
+    assertEq(tickTreeIndex.posInLeaf(), tickTreeIndexPosInLeaf, "wrong pos in leaf");
+    assertEq(tickTreeIndex.posInLevel0(), BitLib.ctz64(Field.unwrap(level0)), "wrong pos in level0");
+    assertEq(tickTreeIndex.posInLevel1(), BitLib.ctz64(Field.unwrap(level1)), "wrong pos in level1");
+    assertEq(tickTreeIndex.posInLevel2(), BitLib.ctz64(Field.unwrap(level2)), "wrong pos in level2");
+    assertEq(tickTreeIndex.posInRoot(), BitLib.ctz64(Field.unwrap(root)), "wrong pos in root");
   }
 
   // HELPER FUNCTIONS
-  function assertEq(Tick tick, int ticknum) internal {
-    assertEq(Tick.unwrap(tick), ticknum);
+  function assertEq(TickTreeIndex tickTreeIndex, int ticknum) internal {
+    assertEq(TickTreeIndex.unwrap(tickTreeIndex), ticknum);
   }
 }
 
@@ -343,8 +347,8 @@ contract FieldTest is Test {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * int(uint(posInLevel)));
-    Field flipped = base.flipBitAtLevel0(tick);
+    TickTreeIndex tickTreeIndex = TickTreeIndex.wrap(LEAF_SIZE * int(uint(posInLevel)));
+    Field flipped = base.flipBitAtLevel0(tickTreeIndex);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
@@ -352,8 +356,8 @@ contract FieldTest is Test {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
-    Field flipped = base.flipBitAtLevel1(tick);
+    TickTreeIndex tickTreeIndex = TickTreeIndex.wrap(LEAF_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
+    Field flipped = base.flipBitAtLevel1(tickTreeIndex);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
@@ -361,8 +365,8 @@ contract FieldTest is Test {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
-    Field flipped = base.flipBitAtLevel2(tick);
+    TickTreeIndex tickTreeIndex = TickTreeIndex.wrap(LEAF_SIZE * LEVEL_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
+    Field flipped = base.flipBitAtLevel2(tickTreeIndex);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
@@ -371,8 +375,8 @@ contract FieldTest is Test {
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
     int adjustedPos = int(uint(posInLevel)) - ROOT_SIZE / 2;
-    Tick tick = Tick.wrap(LEAF_SIZE * (LEVEL_SIZE ** 3) * adjustedPos);
-    Field flipped = base.flipBitAtRoot(tick);
+    TickTreeIndex tickTreeIndex = TickTreeIndex.wrap(LEAF_SIZE * (LEVEL_SIZE ** 3) * adjustedPos);
+    Field flipped = base.flipBitAtRoot(tickTreeIndex);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
@@ -396,17 +400,17 @@ contract FieldTest is Test {
     assertEq(Field.wrap(field).firstOnePosition(), pos);
   }
 
-  function price_priceFromVolumes_not_zero_div() public {
+  function ratio_ratioFromVolumes_not_zero_div() public {
     // should not revert
-    (uint man,) = LogPriceConversionLib.priceFromVolumes(1, type(uint).max);
+    (uint man,) = LogPriceConversionLib.ratioFromVolumes(1, type(uint).max);
     assertTrue(man != 0, "mantissa cannot be 0");
   }
 
-  function price_priceFromVolumes_not_zero_div_fuzz(uint inbound, uint outbound) public {
+  function ratio_ratioFromVolumes_not_zero_div_fuzz(uint inbound, uint outbound) public {
     vm.assume(inbound != 0);
     vm.assume(outbound != 0);
     // should not revert
-    (uint man,) = LogPriceConversionLib.priceFromVolumes(inbound, outbound);
+    (uint man,) = LogPriceConversionLib.ratioFromVolumes(inbound, outbound);
     assertTrue(man != 0, "mantissa cannot be 0");
   }
 
@@ -496,11 +500,11 @@ contract FieldTest is Test {
     uint exp;
 
     //inboundFromOutboundUp
-    (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(logPrice);
+    (sig, exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(logPrice);
     assertEq(LogPriceLib.inboundFromOutboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
 
     //outboundFromInboundUp
-    (sig, exp) = LogPriceConversionLib.nonNormalizedPriceFromLogPrice(-logPrice);
+    (sig, exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(-logPrice);
     assertEq(LogPriceLib.outboundFromInboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
   }
 

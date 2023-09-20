@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE, LEVEL1_HIGHER_LOG_PRICE} from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
+import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract ExternalUpdateOfferOtherOfferList_DeadDeprovisioned is SingleGasTestBase {

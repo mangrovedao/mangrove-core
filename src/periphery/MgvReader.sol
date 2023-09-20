@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs, Tick, Leaf, Field, LogPriceLib, OLKey} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, TickTreeIndex, Leaf, Field, LogPriceLib, OLKey} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
 
@@ -14,7 +14,7 @@ struct VolumeData {
 struct Market {
   address tkn0;
   address tkn1;
-  uint tickScale;
+  uint tickSpacing;
 }
 
 /// @notice Config of a market. Assumes a context where `tkn0` and `tkn1` are defined. `config01` is the local config of the `tkn0/tkn1` offer list. `config10` is the config of the `tkn1/tkn0` offer list.
@@ -39,13 +39,13 @@ function order(Market memory market) pure {
 // flip tkn0/tkn1 of a market. Useful before conversion to OLKey
 // creates a copy
 function flipped(Market memory market) pure returns (Market memory) {
-  return Market(market.tkn1, market.tkn0, market.tickScale);
+  return Market(market.tkn1, market.tkn0, market.tickSpacing);
 }
 
 // convert Market to OLKey
 // creates a copy
 function toOLKey(Market memory market) pure returns (OLKey memory) {
-  return OLKey(market.tkn0, market.tkn1, market.tickScale);
+  return OLKey(market.tkn0, market.tkn1, market.tickSpacing);
 }
 
 contract MgvReader {
@@ -72,14 +72,14 @@ contract MgvReader {
 
   /**
    * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`.
-   * @notice The array of structs `_openMarkets` is the array of all currently open markets (up to a delay in calling `updateMarkets`). A market is a triplet of tokens `(tkn0,tkn1,tickScale)`. The which token is 0 which token is 1 is non-meaningful but canonical (see `order`).
+   * @notice The array of structs `_openMarkets` is the array of all currently open markets (up to a delay in calling `updateMarkets`). A market is a triplet of tokens `(tkn0,tkn1,tickSpacing)`. The which token is 0 which token is 1 is non-meaningful but canonical (see `order`).
    * @notice In this contract, 'markets' are defined by non-oriented offerLists. Usually markets come with a base/quote orientation. Please keep that in mind.
    * @notice A market {tkn0,tkn1} is open if either the tkn0/tkn1 offer list is active or the tkn1/tkn0 offer list is active.
    */
 
   Market[] internal _openMarkets;
 
-  /// @notice Markets can be added or removed from `_openMarkets` array. To remove a market, we must remember its position in the array. The `marketPositions` mapping does that. The mapping goes outbound => inbound => tickScale => positions.
+  /// @notice Markets can be added or removed from `_openMarkets` array. To remove a market, we must remember its position in the array. The `marketPositions` mapping does that. The mapping goes outbound => inbound => tickSpacing => positions.
   mapping(address => mapping(address => mapping(uint => uint))) internal marketPositions;
 
   IMangrove public immutable MGV;
@@ -170,7 +170,7 @@ contract MgvReader {
     uint fromId;
     uint maxOffers;
   }
-  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
+  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickSpacing offer list in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
 
   function packedOfferList(OLKey memory olKey, uint fromId, uint maxOffers)
     public
@@ -198,7 +198,7 @@ contract MgvReader {
     }
   }
 
-  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
+  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickSpacing offer list in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
   function offerList(OLKey memory olKey, uint fromId, uint maxOffers)
     public
     view
@@ -237,27 +237,27 @@ contract MgvReader {
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    Tick offerTick = offer.tick(olKey.tickScale);
+    TickTreeIndex offerTickTreeIndex = offer.tickTreeIndex(olKey.tickSpacing);
     uint nextId = offer.next();
     if (nextId == 0) {
-      int index = offerTick.leafIndex();
+      int index = offerTickTreeIndex.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseToTick(offerTick);
+      leaf = leaf.eraseToTickTreeIndex(offerTickTreeIndex);
       if (leaf.isEmpty()) {
-        index = offerTick.level0Index();
+        index = offerTickTreeIndex.level0Index();
         Field field = MGV.level0(olKey, index);
-        field = field.eraseToTick0(offerTick);
+        field = field.eraseToTickTreeIndex0(offerTickTreeIndex);
         if (field.isEmpty()) {
-          index = offerTick.level1Index();
+          index = offerTickTreeIndex.level1Index();
           field = MGV.level1(olKey, index);
-          field = field.eraseToTick1(offerTick);
+          field = field.eraseToTickTreeIndex1(offerTickTreeIndex);
           if (field.isEmpty()) {
-            index = offerTick.level2Index();
+            index = offerTickTreeIndex.level2Index();
             field = MGV.level2(olKey, index);
-            field = field.eraseToTick2(offerTick);
+            field = field.eraseToTickTreeIndex2(offerTickTreeIndex);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseToTick3(offerTick);
+              field = field.eraseToTickTreeIndex3(offerTickTreeIndex);
               if (field.isEmpty()) {
                 return 0;
               }
@@ -289,27 +289,27 @@ contract MgvReader {
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    Tick offerTick = offer.tick(olKey.tickScale);
+    TickTreeIndex offerTickTreeIndex = offer.tickTreeIndex(olKey.tickSpacing);
     uint prevId = offer.prev();
     if (prevId == 0) {
-      int index = offerTick.leafIndex();
+      int index = offerTickTreeIndex.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseFromTick(offerTick);
+      leaf = leaf.eraseFromTickTreeIndex(offerTickTreeIndex);
       if (leaf.isEmpty()) {
-        index = offerTick.level0Index();
+        index = offerTickTreeIndex.level0Index();
         Field field = MGV.level0(olKey, index);
-        field = field.eraseFromTick0(offerTick);
+        field = field.eraseFromTickTreeIndex0(offerTickTreeIndex);
         if (field.isEmpty()) {
-          index = offerTick.level1Index();
+          index = offerTickTreeIndex.level1Index();
           field = MGV.level1(olKey, index);
-          field = field.eraseFromTick1(offerTick);
+          field = field.eraseFromTickTreeIndex1(offerTickTreeIndex);
           if (field.isEmpty()) {
-            index = offerTick.level2Index();
+            index = offerTickTreeIndex.level2Index();
             field = MGV.level2(olKey, index);
-            field = field.eraseFromTick2(offerTick);
+            field = field.eraseFromTickTreeIndex2(offerTickTreeIndex);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseFromTick3(offerTick);
+              field = field.eraseFromTickTreeIndex3(offerTickTreeIndex);
               if (field.isEmpty()) {
                 return 0;
               }
@@ -559,9 +559,9 @@ contract MgvReader {
       for (uint i = 0; i < maxLen; ++i) {
         address tkn0 = _openMarkets[from + i].tkn0;
         address tkn1 = _openMarkets[from + i].tkn1;
-        uint tickScale = _openMarkets[from + i].tickScale;
+        uint tickSpacing = _openMarkets[from + i].tickSpacing;
         // copy
-        markets[i] = Market({tkn0: tkn0, tkn1: tkn1, tickScale: tickScale});
+        markets[i] = Market({tkn0: tkn0, tkn1: tkn1, tickSpacing: tickSpacing});
 
         if (withConfig) {
           configs[i].config01 = localUnpacked(toOLKey(markets[i]));
@@ -576,7 +576,7 @@ contract MgvReader {
   /// @dev May not reflect the true state of the market on Mangrove if `updateMarket` was not called recently enough.
   function isMarketOpen(Market memory market) external view returns (bool) {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
-    return marketPositions[market.tkn0][market.tkn1][market.tickScale] > 0;
+    return marketPositions[market.tkn0][market.tkn1][market.tickSpacing] > 0;
   }
 
   /// @notice return the configuration for the given market
@@ -593,11 +593,11 @@ contract MgvReader {
   function updateMarket(Market memory market) external {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
     bool openOnMangrove = MGV.local(toOLKey(market)).active() || MGV.local(toOLKey(flipped(market))).active();
-    uint position = marketPositions[market.tkn0][market.tkn1][market.tickScale];
+    uint position = marketPositions[market.tkn0][market.tkn1][market.tickSpacing];
 
     if (openOnMangrove && position == 0) {
       _openMarkets.push(market);
-      marketPositions[market.tkn0][market.tkn1][market.tickScale] = _openMarkets.length;
+      marketPositions[market.tkn0][market.tkn1][market.tickSpacing] = _openMarkets.length;
     } else if (!openOnMangrove && position > 0) {
       uint numMarkets = _openMarkets.length;
       if (numMarkets > 1) {
@@ -605,10 +605,10 @@ contract MgvReader {
         Market memory lastMarket = _openMarkets[numMarkets - 1];
 
         _openMarkets[position - 1] = lastMarket;
-        marketPositions[lastMarket.tkn0][lastMarket.tkn1][lastMarket.tickScale] = position;
+        marketPositions[lastMarket.tkn0][lastMarket.tkn1][lastMarket.tickSpacing] = position;
       }
       _openMarkets.pop();
-      marketPositions[market.tkn0][market.tkn1][market.tickScale] = 0;
+      marketPositions[market.tkn0][market.tkn1][market.tickSpacing] = 0;
     }
   }
 }

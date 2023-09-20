@@ -48,7 +48,7 @@ Additionally, the state of the offer lists affect execution:
 
 The non-empty ones are referred to as "various tick-distances".
 
-Also, the offer can be better or worse than current best offer (affecting whether to update `local`). This is captured in the helper `TickBoundariesGasTest`.
+Also, the offer can be better or worse than current best offer (affecting whether to update `local`). This is captured in the helper `TickTreeBoundariesGasTest`.
 
 From `makerPosthook` on the same offer list, then the gas cost is also affected by how warm the affected branch is which depends on where the taken offer is relative to the operation's offer (again: same tick, leaf, level0, level1, level2, root).
 
@@ -60,7 +60,7 @@ For each of the main functions this leads to the scenarios listed in the next se
   - on offer success
     - now empty offer list (out of liquidity): `PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest`
     - offer exists on offer list with new offer at various tick-distances: `PosthookSuccessNewOfferSameList_WithOtherOfferGasTest`
-    - offer also exists on same tick as new offer price (only higher ticks tested): `PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameTickGasTest`
+    - offer also exists on same tick as new offer price (only higher ticks tested): `PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest`
     - two offers posted, one at same tick as taken offer, gas measured of second at various tick-distances: `PosthookSuccessNewOfferSameList_WithPriorNewOfferAndNoOtherOffersGasTest`
   - on offer failure
     - same as offer success: Named `PosthookFailureNewOfferSameList_*` instead of `PosthookSuccessNewOfferSameList_*`. (has exact same gas costs)
@@ -106,7 +106,7 @@ Retracting offers is different from new and updated offers in that the retractio
 - `external`
   - retract last offer from offer list - with and without deprovision: `ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest`
   - retracting an offer when another offer exists at various tick-distances to the offer's price: `ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_*`
-  - retracting an offer when another offer exists at various tick-distances to the offer price but also on the same tick: `ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_*`
+  - retracting an offer when another offer exists at various tick-distances to the offer price but also on the same tick: `ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest_*`
   - retracting a second offer at various tick-distances after retracting an offer at MIDDLE_LOG_PRICE: `ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffersGasTest`
 
 ### `marketOrder`
@@ -116,8 +116,8 @@ We do not consider usage from maker contracts since it is unbounded, so only ext
 - `external`
   - Taking the last offer so offer list becomes empty in various cases: `ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest`
   - Taking an offer, moving the price further and further through ticks to next available offer: `ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest`
-  - Taking multiple offers with increasing number of offers on same tick: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick`
-  - Taking some offers, moving the price further and further through ticks: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks`
+  - Taking multiple offers with increasing number of offers on same tick: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex`
+  - Taking some offers, moving the price further and further through ticks: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTickTreeIndexs`
 
 ### `offer_gasbase`
 

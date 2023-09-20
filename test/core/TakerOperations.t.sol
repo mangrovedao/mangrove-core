@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Constants.sol";
-import "mgv_lib/TickLib.sol";
+import "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/LogPriceLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 
@@ -89,12 +89,12 @@ contract TakerOperationsTest is MangroveTest {
 
   // The purpose of this test is to make sure inbound volumes are rounded up when partially
   // taking an offer i.e. you can't have the taker pay 0 if the maker sends > 0 to the taker.
-  // The test sets this up with a price slightly below 1/2, gives=10, and then taker asks for 1. So it should give < 1/2. If maker balance does not increase, it was drained.
+  // The test sets this up with a ratio slightly below 1/2, gives=10, and then taker asks for 1. So it should give < 1/2. If maker balance does not increase, it was drained.
   function test_taker_cannot_drain_maker() public {
     mgv.setDensity96X32(olKey, 0);
     quote.approve($(mgv), 1 ether);
-    int tick = -7000; // price slightly < 1/2
-    mkr.newOfferByLogPrice(tick, 10, 100_000, 0);
+    int tickTreeIndex = -7000; // ratio slightly < 1/2
+    mkr.newOfferByLogPrice(tickTreeIndex, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
     mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, 1, true);
     uint newBal = quote.balanceOf($(this));
@@ -121,7 +121,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = true means we should not receive more than `wants`.
        Here we are asking for 0.1 eth to an offer that gives 1eth for ~nothing.
        We should still only receive 0.1 eth */
-    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
+    int logPrice = LogPriceConversionLib.logPriceFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0.1 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 0.1 ether, relError(10), "Wrong got value");
@@ -138,7 +138,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = false means we should spend as little as possible to receive
        as much as possible.
        Here despite asking for .1eth the offer gives 1eth for ~0 so we should receive 1eth. */
-    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
+    int logPrice = LogPriceConversionLib.logPriceFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0.1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 1 ether, relError(10), "Wrong got value");
@@ -151,7 +151,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
-    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
+    int logPrice = LogPriceConversionLib.logPriceFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(got, 1 ether, "Taker did not get correct amount");
@@ -597,7 +597,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   // ! unreliable test, depends on gas use
-  function test_market_order_stops_for_high_price() public {
+  function test_market_order_stops_for_high_ratio() public {
     quote.approve($(mgv), 1 ether);
     uint offerCount = 10;
     uint offersExpectedTaken = 2;
@@ -606,7 +606,7 @@ contract TakerOperationsTest is MangroveTest {
       ofrs[i - 1] = mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 100_000, i - 1);
     }
     mkr.expect("mgv/tradeSuccess");
-    // first two offers are at right price
+    // first two offers are at right ratio
     uint takerWants = 0.1 ether + 0.1 ether;
     uint takerGives = 2 * takerWants;
     mgv.marketOrderByVolume{gas: 700_000}(olKey, takerWants, takerGives, true);
@@ -628,7 +628,7 @@ contract TakerOperationsTest is MangroveTest {
       ofrs[i - 1] = mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 100_000, i);
     }
     mkr.expect("mgv/tradeSuccess");
-    // first two offers are at right price
+    // first two offers are at right ratio
     uint takerWants = 0.1 ether + 0.05 ether;
     uint takerGives = 2 * takerWants;
     mgv.marketOrderByVolume{gas: 700_000}(olKey, takerWants, takerGives, true);
@@ -649,7 +649,7 @@ contract TakerOperationsTest is MangroveTest {
       ofrs[i - 1] = mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 100_000, i);
     }
     mkr.expect("mgv/tradeSuccess");
-    // first two offers are at right price
+    // first two offers are at right ratio
     uint takerWants = 0.1 ether;
     uint takerGives = 2 * takerWants;
     mgv.marketOrderByVolume{gas: 450_000}(olKey, takerWants, takerGives, true);
@@ -662,13 +662,13 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_marketOrderByVolume_takerGives_extrema() public {
-    vm.expectRevert("priceFromVolumes/inbound/tooBig");
+    vm.expectRevert("ratioFromVolumes/inbound/tooBig");
     mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, true);
-    vm.expectRevert("priceFromVolumes/outbound/tooBig");
+    vm.expectRevert("ratioFromVolumes/outbound/tooBig");
     mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, true);
-    vm.expectRevert("priceFromVolumes/inbound/tooBig");
+    vm.expectRevert("ratioFromVolumes/inbound/tooBig");
     mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, false);
-    vm.expectRevert("priceFromVolumes/outbound/tooBig");
+    vm.expectRevert("ratioFromVolumes/outbound/tooBig");
     mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, false);
   }
 
@@ -1048,32 +1048,32 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_unconsumed_tick_leaves_correct_leaf_start_at_tick_leave_one_only(
-    int24 _tick,
-    bool crossTick,
+    int24 _tickTreeIndex,
+    bool crossTickTreeIndex,
     bool leaveOneOnly
   ) public {
     quote.approve($(mgv), 10_000 ether);
-    _tick = int24(bound(_tick, -100, 100));
-    int24 _firstPostedTick = crossTick ? _tick - 1 : _tick;
-    mkr.newOfferByLogPrice(_firstPostedTick, 1 ether, 100_000);
-    mkr.newOfferByLogPrice(_tick, 1 ether, 100_000);
-    uint ofr3 = mkr.newOfferByLogPrice(_tick, 1 ether, 100_000);
-    uint ofr4 = mkr.newOfferByLogPrice(_tick, 1 ether, 100_000);
+    _tickTreeIndex = int24(bound(_tickTreeIndex, -100, 100));
+    int24 _firstPostedTickTreeIndex = crossTickTreeIndex ? _tickTreeIndex - 1 : _tickTreeIndex;
+    mkr.newOfferByLogPrice(_firstPostedTickTreeIndex, 1 ether, 100_000);
+    mkr.newOfferByLogPrice(_tickTreeIndex, 1 ether, 100_000);
+    uint ofr3 = mkr.newOfferByLogPrice(_tickTreeIndex, 1 ether, 100_000);
+    uint ofr4 = mkr.newOfferByLogPrice(_tickTreeIndex, 1 ether, 100_000);
     uint volume = leaveOneOnly ? 3 ether : 2 ether;
-    mgv.marketOrderByLogPrice(olKey, _tick, volume, true);
+    mgv.marketOrderByLogPrice(olKey, _tickTreeIndex, volume, true);
 
-    Tick tick = Tick.wrap(_tick);
+    TickTreeIndex tickTreeIndex = TickTreeIndex.wrap(_tickTreeIndex);
 
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
     MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);
-    Leaf leaf = mgv.leafs(olKey, best.tick(olKey.tickScale).leafIndex());
-    assertEq(leaf.firstOfPos(tick.posInLeaf()), bestId, "wrong first of tick");
-    assertEq(leaf.lastOfPos(tick.posInLeaf()), ofr4, "wrong last of tick");
+    Leaf leaf = mgv.leafs(olKey, best.tickTreeIndex(olKey.tickSpacing).leafIndex());
+    assertEq(leaf.firstOfPos(tickTreeIndex.posInLeaf()), bestId, "wrong first of tick");
+    assertEq(leaf.lastOfPos(tickTreeIndex.posInLeaf()), ofr4, "wrong last of tick");
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
-    assertEq(local.tickPosInLeaf(), tick.posInLeaf(), "wrong local.tickPosInleaf");
+    assertEq(local.tickTreeIndexPosInLeaf(), tickTreeIndex.posInLeaf(), "wrong local.tickTreeIndexPosInLeaf");
     assertEq(best.prev(), 0, "best.prev should be 0");
-    Leaf emptyLeaf = leaf.setTickFirst(tick, 0).setTickLast(tick, 0);
-    assertTrue(emptyLeaf.isEmpty(), "leaf should not have other tick used");
+    Leaf emptyLeaf = leaf.setTickTreeIndexFirst(tickTreeIndex, 0).setTickTreeIndexLast(tickTreeIndex, 0);
+    assertTrue(emptyLeaf.isEmpty(), "leaf should not have other tickTreeIndex used");
   }
 
   /* 

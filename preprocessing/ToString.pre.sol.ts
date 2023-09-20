@@ -14,7 +14,7 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
-import "mgv_lib/TickLib.sol";
+import "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/LogPriceLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
@@ -43,25 +43,25 @@ function toString(${s.Unpacked} memory __unpacked) pure returns (string memory) 
 }`;
 })}
 
-function tickBranchToString(Tick tick) pure returns (string memory) {
+function tickTreeIndexBranchToString(TickTreeIndex tick) pure returns (string memory) {
   return string.concat(vm.toString(tick.posInRoot()), "->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
 }
 
-function toString(Tick tick) pure returns (string memory ret) {
+function toString(TickTreeIndex tick) pure returns (string memory ret) {
   string memory suffix;
-  if (MIN_TICK > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK) {
+  if (MIN_TICK_TREE_INDEX > TickTreeIndex.unwrap(tick) || TickTreeIndex.unwrap(tick) > MAX_TICK_TREE_INDEX) {
     suffix = "out of range";
-  } else if (MIN_TICK_ALLOWED > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK_ALLOWED) {
+  } else if (MIN_TICK_TREE_INDEX_ALLOWED > TickTreeIndex.unwrap(tick) || TickTreeIndex.unwrap(tick) > MAX_TICK_TREE_INDEX_ALLOWED) {
     suffix = "out of logPrice range";
   } else {
-    suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
+    suffix = logPriceToString(LogPriceLib.fromTickTreeIndex(tick,1));
   }
 
-  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickBranchToString(tick), "}", unicode"」");
+  ret = string.concat(unicode"「", vm.toString(TickTreeIndex.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickTreeIndexBranchToString(tick), "}", unicode"」");
 }
 
 function logPriceToString(int logPrice) pure returns (string memory ret) {
-  (uint man, uint exp)  = LogPriceConversionLib.priceFromLogPrice(logPrice);
+  (uint man, uint exp)  = LogPriceConversionLib.ratioFromLogPrice(logPrice);
   string memory str = toFixed(man,exp);
 
   ret = string.concat(unicode"⦗ ",vm.toString(logPrice),"|", str,unicode":1 ⦘");
@@ -94,7 +94,7 @@ function toString(DirtyField field) pure returns (string memory ret) {
 }
 
 function toString(OLKey memory olKey) pure returns (string memory res) {
-  res = string.concat("OLKey{out: ",vm.toString(olKey.outbound),", in: ",vm.toString(olKey.inbound)," sc: ",vm.toString(olKey.tickScale),"}");
+  res = string.concat("OLKey{out: ",vm.toString(olKey.outbound),", in: ",vm.toString(olKey.inbound)," sc: ",vm.toString(olKey.tickSpacing),"}");
 }
 
 /* *** Unit conversion *** */

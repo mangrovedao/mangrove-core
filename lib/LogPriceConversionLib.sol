@@ -5,21 +5,21 @@ import "mgv_lib/Constants.sol";
 import "mgv_lib/BitLib.sol";
 
 library LogPriceConversionLib {
-  // returns a normalized price within the max/min price range
-  // returns max_price if at least outboundAmt==0
-  // returns min_price if only inboundAmt==0
-  function priceFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
-    require(inboundAmt <= MAX_SAFE_VOLUME, "priceFromVolumes/inbound/tooBig");
-    require(outboundAmt <= MAX_SAFE_VOLUME, "priceFromVolumes/outbound/tooBig");
+  // returns a normalized ratio within the max/min ratio range
+  // returns max_ratio if at least outboundAmt==0
+  // returns min_ratio if only inboundAmt==0
+  function ratioFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
+    require(inboundAmt <= MAX_SAFE_VOLUME, "ratioFromVolumes/inbound/tooBig");
+    require(outboundAmt <= MAX_SAFE_VOLUME, "ratioFromVolumes/outbound/tooBig");
     if (outboundAmt == 0) {
-      return (MAX_PRICE_MANTISSA,uint(MAX_PRICE_EXP));
+      return (MAX_RATIO_MANTISSA,uint(MAX_RATIO_EXP));
     } else if (inboundAmt == 0) {
-      return (MIN_PRICE_MANTISSA,uint(MIN_PRICE_EXP));
+      return (MIN_RATIO_MANTISSA,uint(MIN_RATIO_EXP));
     }
     uint ratio = (inboundAmt << MANTISSA_BITS) / outboundAmt; 
     // ratio cannot be 0 as long as (1<<MANTISSA_BITS)/MAX_SAFE_VOLUME > 0
     uint log2 = BitLib.fls(ratio);
-    require(ratio != 0,"priceFromVolumes/zeroRatio");
+    require(ratio != 0,"ratioFromVolumes/zeroRatio");
     if (log2 > MANTISSA_BITS_MINUS_ONE) {
       uint diff = log2 - MANTISSA_BITS_MINUS_ONE;
       return (ratio >> diff, MANTISSA_BITS - diff);
@@ -30,110 +30,110 @@ library LogPriceConversionLib {
   }
 
   function logPriceFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (int24 logPrice) {
-    (uint man, uint exp) = priceFromVolumes(inboundAmt, outboundAmt);
-    return logPriceFromNormalizedPrice(man,exp);
+    (uint man, uint exp) = ratioFromVolumes(inboundAmt, outboundAmt);
+    return logPriceFromNormalizedRatio(man,exp);
   }
 
-  // expects a normalized price float
-  function logPriceFromPrice(uint mantissa, int exp) internal pure returns (int24) {
+  // expects a normalized ratio float
+  function logPriceFromRatio(uint mantissa, int exp) internal pure returns (int24) {
     uint normalized_exp;
-    (mantissa, normalized_exp) = normalizePrice(mantissa, exp);
-    return logPriceFromNormalizedPrice(mantissa,normalized_exp);
+    (mantissa, normalized_exp) = normalizeRatio(mantissa, exp);
+    return logPriceFromNormalizedRatio(mantissa,normalized_exp);
   }
 
-  // return greatest logPrice t such that price(logPrice) <= input price
-  // does not expect a normalized price float
-  function logPriceFromNormalizedPrice(uint mantissa, uint exp) internal pure returns (int24 logPrice) {
-    if (floatLt(mantissa, int(exp), MIN_PRICE_MANTISSA, MIN_PRICE_EXP)) {
-      revert("mgv/price/tooLow");
+  // return greatest logPrice t such that ratio(logPrice) <= input ratio
+  // does not expect a normalized ratio float
+  function logPriceFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (int24 logPrice) {
+    if (floatLt(mantissa, int(exp), MIN_RATIO_MANTISSA, MIN_RATIO_EXP)) {
+      revert("mgv/ratio/tooLow");
     }
-    if (floatLt(MAX_PRICE_MANTISSA, MAX_PRICE_EXP, mantissa, int(exp))) {
-      revert("mgv/price/tooHigh");
+    if (floatLt(MAX_RATIO_MANTISSA, MAX_RATIO_EXP, mantissa, int(exp))) {
+      revert("mgv/ratio/tooHigh");
     }
-    int log2price = int(MANTISSA_BITS_MINUS_ONE) - int(exp) << 64;
+    int log2ratio = int(MANTISSA_BITS_MINUS_ONE) - int(exp) << 64;
     uint mpow = mantissa >> MANTISSA_BITS_MINUS_ONE - 127; // give 129 bits of room left
 
     assembly ("memory-safe") {
       // 13 bits of precision
       mpow := shr(127, mul(mpow, mpow))
       let highbit := shr(128, mpow)
-      log2price := or(log2price, shl(63, highbit))
+      log2ratio := or(log2ratio, shl(63, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(62, highbit))
+      log2ratio := or(log2ratio, shl(62, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(61, highbit))
+      log2ratio := or(log2ratio, shl(61, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(60, highbit))
+      log2ratio := or(log2ratio, shl(60, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(59, highbit))
+      log2ratio := or(log2ratio, shl(59, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(58, highbit))
+      log2ratio := or(log2ratio, shl(58, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(57, highbit))
+      log2ratio := or(log2ratio, shl(57, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(56, highbit))
+      log2ratio := or(log2ratio, shl(56, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(55, highbit))
+      log2ratio := or(log2ratio, shl(55, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(54, highbit))
+      log2ratio := or(log2ratio, shl(54, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(53, highbit))
+      log2ratio := or(log2ratio, shl(53, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(52, highbit))
+      log2ratio := or(log2ratio, shl(52, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(51, highbit))
+      log2ratio := or(log2ratio, shl(51, highbit))
       mpow := shr(highbit, mpow)
 
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
-      log2price := or(log2price, shl(50, highbit))
+      log2ratio := or(log2ratio, shl(50, highbit))
     }
 
-    int log_bp_price = log2price * 127869479499801913173570;
+    int log_bp_ratio = log2ratio * 127869479499801913173570;
 
-    int24 logPriceLow = int24((log_bp_price - 1701479891078076505009565712080972645) >> 128);
-    int24 logPriceHigh = int24((log_bp_price + 290040965921304576580754310682015830659) >> 128);
+    int24 logPriceLow = int24((log_bp_ratio - 1701479891078076505009565712080972645) >> 128);
+    int24 logPriceHigh = int24((log_bp_ratio + 290040965921304576580754310682015830659) >> 128);
 
-    (uint mantissaHigh, uint expHigh) = priceFromLogPrice(logPriceHigh);
+    (uint mantissaHigh, uint expHigh) = ratioFromLogPrice(logPriceHigh);
 
-    bool priceHighGt = floatLt(mantissa, int(exp), mantissaHigh, int(expHigh));
-    if (logPriceLow == logPriceHigh || priceHighGt) {
+    bool ratioHighGt = floatLt(mantissa, int(exp), mantissaHigh, int(expHigh));
+    if (logPriceLow == logPriceHigh || ratioHighGt) {
       logPrice = logPriceLow;
     } else { 
       logPrice = logPriceHigh;
@@ -145,9 +145,9 @@ library LogPriceConversionLib {
     return (exp_a > exp_b || (exp_a == exp_b && mantissa_a < mantissa_b));
   }
 
-  // return price from logPrice, as a non-normalized float (meaning the leftmost set bit is not always in the  same position)
+  // return ratio from logPrice, as a non-normalized float (meaning the leftmost set bit is not always in the  same position)
   // first return value is the mantissa, second value is the opposite of the exponent
-  function nonNormalizedPriceFromLogPrice(int logPrice) internal pure returns (uint man, uint exp) {
+  function nonNormalizedRatioFromLogPrice(int logPrice) internal pure returns (uint man, uint exp) {
     uint absLogPrice = logPrice < 0 ? uint(-int(logPrice)) : uint(logPrice);
     require(absLogPrice <= uint(MAX_LOG_PRICE), "absLogPrice/outOfBounds");
 
@@ -231,35 +231,35 @@ library LogPriceConversionLib {
     exp = uint(128 + 18 + extra_shift);
   }
 
-  // return price from logPrice, as a normalized float
+  // return ratio from logPrice, as a normalized float
   // first return value is the mantissa, second value is -exp
-  function priceFromLogPrice(int logPrice) internal pure returns (uint man, uint exp) {
-    (man, exp) = nonNormalizedPriceFromLogPrice(logPrice);
+  function ratioFromLogPrice(int logPrice) internal pure returns (uint man, uint exp) {
+    (man, exp) = nonNormalizedRatioFromLogPrice(logPrice);
 
     uint log_bp_2X232 = 47841652135324370225811382070797757678017615758549045118126590952295589692;
-    // log_1.0001(price) * log_2(1.0001)
-    int log2price = (int(logPrice) << 232) / int(log_bp_2X232);
+    // log_1.0001(ratio) * log_2(1.0001)
+    int log2ratio = (int(logPrice) << 232) / int(log_bp_2X232);
     // floor(log) towards negative infinity
     if (logPrice < 0 && int(logPrice) << 232 % log_bp_2X232 != 0) {
-      log2price = log2price - 1;
+      log2ratio = log2ratio - 1;
     }
     // MANTISSA_BITS was chosen so that diff cannot be <0 
-    uint diff = uint(int(MANTISSA_BITS_MINUS_ONE) - int(exp) - log2price);
+    uint diff = uint(int(MANTISSA_BITS_MINUS_ONE) - int(exp) - log2ratio);
     man = man << diff;
     exp = exp + diff;
   }
 
-  // normalize a price float
+  // normalize a ratio float
   // normalizes a representation of mantissa * 2^-exp
   // examples:
-  // 1 ether:1 -> normalizePrice(1 ether, 0)
-  // 1: 1 ether -> normalizePrice(1,?)
-  // 1:1 -> normalizePrice(1,0)
-  // 1:2 -> normalizePrice(1,1)
-  function normalizePrice(uint mantissa, int exp) internal pure returns (uint, uint) {
-    require(mantissa != 0,"normalizePrice/mantissaIs0");
-    uint log2price = BitLib.fls(mantissa);
-    int shift = int(MANTISSA_BITS_MINUS_ONE) - int(log2price);
+  // 1 ether:1 -> normalizeRatio(1 ether, 0)
+  // 1: 1 ether -> normalizeRatio(1,?)
+  // 1:1 -> normalizeRatio(1,0)
+  // 1:2 -> normalizeRatio(1,1)
+  function normalizeRatio(uint mantissa, int exp) internal pure returns (uint, uint) {
+    require(mantissa != 0,"normalizeRatio/mantissaIs0");
+    uint log2ratio = BitLib.fls(mantissa);
+    int shift = int(MANTISSA_BITS_MINUS_ONE) - int(log2ratio);
     if (shift < 0) {
       mantissa = mantissa >> uint(-shift);
     } else {
@@ -267,7 +267,7 @@ library LogPriceConversionLib {
     }
     exp = exp + shift;
     if (exp < 0) {
-      revert("mgv/normalizePrice/lowExp");
+      revert("mgv/normalizeRatio/lowExp");
     }
     return (mantissa,uint(exp));
   }

@@ -6,20 +6,20 @@ import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Tests of Mangrove.updateOffer's interaction with the tick tree.
+// Tests of Mangrove.updateOffer's interaction with the tickTreeIndex tree.
 //
 // The tests use the following pattern:
-// 1. we establish a Mangrove tick tree where there may be offers at:
-//   - the offer to be updated's tick (the offer itself may not be live)
+// 1. we establish a Mangrove tickTreeIndex tree where there may be offers at:
+//   - the offer to be updated's tickTreeIndex (the offer itself may not be live)
 //   - a higher tick
 //   - a lower tick
-// 2. we take a snapshot of Mangrove's tick tree
-// 3. we update the offer in both Mangrove and in the snapshot tick tree
-// 4. we check that Mangrove's tick tree matches the test tick tree.
+// 2. we take a snapshot of Mangrove's tickTreeIndex tree
+// 3. we update the offer in both Mangrove and in the snapshot tickTreeIndex tree
+// 4. we check that Mangrove's tickTreeIndex tree matches the test tickTreeIndex tree.
 //
 // The scenarios we want to test are:
 // - starting offer tick
-//   - tick is a *tick of interest* (ToI) as listed in TickTreeTest
+//   - tickTreeIndex is a *tickTreeIndex of interest* (ToI) as listed in TickTreeTest
 //   - list:
 //     1. offer is not live
 //     2. is singleton
@@ -29,14 +29,14 @@ import "mgv_lib/Debug.sol";
 //     - This is encoded as:
 //       - list length
 //       - offer pos
-// - higher tick list
-//   - tick has higher position in same leaf or level0-3 as ToI
+// - higher tickTreeIndex list
+//   - tickTreeIndex has higher position in same leaf or level0-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
-// - lower tick list
-//   - tick has lower position in same leaf or level0-3 as ToI
+// - lower tickTreeIndex list
+//   - tickTreeIndex has lower position in same leaf or level0-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty
@@ -47,173 +47,209 @@ import "mgv_lib/Debug.sol";
 //   3. the higher tick
 contract TickTreeUpdateOfferTest is TickTreeTest {
   struct UpdateOfferScenario {
-    TickScenario tickScenario;
-    Tick newTick;
-    uint offerTickListSize; // 0 -> offer is not live
+    TickTreeIndexScenario tickScenario;
+    TickTreeIndex newTickTreeIndex;
+    uint offerTickTreeIndexListSize; // 0 -> offer is not live
     uint offerPos;
   }
 
   // (list size, offer pos)
   uint[2][] tickListScenarios = [[0, 0], [1, 0], [2, 0], [2, 1], [3, 1]];
-  // size of {lower,higher}TickList
-  uint[] emptyTickListSizeScenarios = [0];
-  uint[] singletonTickListSizeScenarios = [1];
+  // size of {lower,higher}TickTreeIndexList
+  uint[] emptyTickTreeIndexListSizeScenarios = [0];
+  uint[] singletonTickTreeIndexListSizeScenarios = [1];
 
   // NB: We ran into this memory issue when running through too many scenarios in one test: https://github.com/foundry-rs/foundry/issues/3971
 
-  // Foundry will run this test way more than the needed 4 times for each tick due to bools being passed as uints.
+  // Foundry will run this test way more than the needed 4 times for each tickTreeIndex due to bools being passed as uints.
   // This variant therefore takes too much time to run:
   //
-  // function test_update_offer_for_tick_0(int24 tick, bool higherIsEmpty, bool lowerIsEmpty) public {
-  //   vm.assume(Tick.wrap(tick).inRange());
+  // function test_update_offer_for_tick_0(int24 tickTreeIndex, bool higherIsEmpty, bool lowerIsEmpty) public {
+  //   vm.assume(TickTreeIndex.wrap(tickTreeIndex).inRange());
   //   run_update_offer_scenarios_for_tick(
-  //     tick,
-  //     higherIsEmpty ? emptyTickListSizeScenarios : singletonTickListSizeScenarios,
-  //     lowerIsEmpty ? emptyTickListSizeScenarios : singletonTickListSizeScenarios);
+  //     tickTreeIndex,
+  //     higherIsEmpty ? emptyTickTreeIndexListSizeScenarios : singletonTickTreeIndexListSizeScenarios,
+  //     lowerIsEmpty ? emptyTickTreeIndexListSizeScenarios : singletonTickTreeIndexListSizeScenarios);
   // }
   //
   // Instead we make a test case for each combination of higherIsEmpty and lowerIsEmpty.
   //
-  // NB: Fuzzing these tests for just the tick is super slow and also runs out of memory.
+  // NB: Fuzzing these tests for just the tickTreeIndex is super slow and also runs out of memory.
   //
-  // function test_update_offer_for_tick_where_higher_is_empty_and_lower_is_empty(int24 tick) public {
-  //   vm.assume(Tick.wrap(tick).inRange());
-  //   run_update_offer_scenarios_for_tick(tick, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // function test_update_offer_for_tick_where_higher_is_empty_and_lower_is_empty(int24 tickTreeIndex) public {
+  //   vm.assume(TickTreeIndex.wrap(tickTreeIndex).inRange());
+  //   run_update_offer_scenarios_for_tick(tickTreeIndex, emptyTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios);
   // }
   //
   // We therefore restrict the ticks we test to the ToI
 
-  // TICK_MIN_ROOT_MAX_OTHERS tests
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
+  // TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS tests
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios
+      TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS, emptyTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_not_empty()
+    public
+  {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS, emptyTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_empty()
+    public
+  {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+      TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS, singletonTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty()
+    public
+  {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS,
+      singletonTickTreeIndexListSizeScenarios,
+      singletonTickTreeIndexListSizeScenarios
     );
   }
 
-  // TICK_MAX_ROOT_MIN_OTHERS tests
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
+  // TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS tests
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios
+      TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS, emptyTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_not_empty()
+    public
+  {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS, emptyTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_empty()
+    public
+  {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+      TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS, singletonTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty()
+    public
+  {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS,
+      singletonTickTreeIndexListSizeScenarios,
+      singletonTickTreeIndexListSizeScenarios
     );
   }
 
-  // TICK_MIDDLE tests
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  // TICK_MIN_ALLOWED tests
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+  // TICK_TREE_INDEX_MIDDLE tests
+  function test_update_offer_for_TICK_TREE_INDEX_MIDDLE_where_higher_is_empty_and_lower_is_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_ALLOWED, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_TREE_INDEX_MIDDLE, emptyTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
     );
   }
 
-  // TICK_MAX_ALLOWED tests
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_TREE_INDEX_MIDDLE_where_higher_is_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_ALLOWED, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_TREE_INDEX_MIDDLE, emptyTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MIDDLE_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MIDDLE, singletonTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MIDDLE_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MIDDLE, singletonTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
+    );
+  }
+
+  // TICK_TREE_INDEX_MIN_ALLOWED tests
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MIN_ALLOWED, emptyTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MIN_ALLOWED, emptyTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MIN_ALLOWED, singletonTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MIN_ALLOWED, singletonTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
+    );
+  }
+
+  // TICK_TREE_INDEX_MAX_ALLOWED tests
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MAX_ALLOWED, emptyTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MAX_ALLOWED, emptyTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MAX_ALLOWED, singletonTickTreeIndexListSizeScenarios, emptyTickTreeIndexListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_TREE_INDEX_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_TREE_INDEX_MAX_ALLOWED, singletonTickTreeIndexListSizeScenarios, singletonTickTreeIndexListSizeScenarios
     );
   }
 
   function run_update_offer_scenarios_for_tick(
-    Tick tick,
-    uint[] storage higherTickListSizeScenarios,
-    uint[] storage lowerTickListSizeScenarios
+    TickTreeIndex tickTreeIndex,
+    uint[] storage higherTickTreeIndexListSizeScenarios,
+    uint[] storage lowerTickTreeIndexListSizeScenarios
   ) internal {
     vm.pauseGasMetering();
-    runTickScenarios(tick, higherTickListSizeScenarios, lowerTickListSizeScenarios);
+    runTickTreeIndexScenarios(tickTreeIndex, higherTickTreeIndexListSizeScenarios, lowerTickTreeIndexListSizeScenarios);
     vm.resumeGasMetering();
   }
 
-  function runTickScenario(TickScenario memory tickScenario) internal override {
+  function runTickTreeIndexScenario(TickTreeIndexScenario memory tickScenario) internal override {
     UpdateOfferScenario memory scenario;
     scenario.tickScenario = tickScenario;
     for (uint j = 0; j < tickListScenarios.length; ++j) {
       uint[2] storage tickListScenario = tickListScenarios[j];
-      scenario.offerTickListSize = tickListScenario[0];
+      scenario.offerTickTreeIndexListSize = tickListScenario[0];
       scenario.offerPos = tickListScenario[1];
 
-      scenario.newTick = tickScenario.tick;
+      scenario.newTickTreeIndex = tickScenario.tickTreeIndex;
       run_update_offer_scenario(scenario, false);
-      if (tickScenario.hasHigherTick) {
-        scenario.newTick = tickScenario.higherTick;
+      if (tickScenario.hasHigherTickTreeIndex) {
+        scenario.newTickTreeIndex = tickScenario.higherTickTreeIndex;
         run_update_offer_scenario(scenario, false);
       }
-      if (tickScenario.hasLowerTick) {
-        scenario.newTick = tickScenario.lowerTick;
+      if (tickScenario.hasLowerTickTreeIndex) {
+        scenario.newTickTreeIndex = tickScenario.lowerTickTreeIndex;
         run_update_offer_scenario(scenario, false);
       }
     }
@@ -223,18 +259,18 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   function test_single_update_offer_scenario() public {
     run_update_offer_scenario(
       UpdateOfferScenario({
-        tickScenario: TickScenario({
-          tick: Tick.wrap(0),
-          hasHigherTick: true,
-          higherTick: Tick.wrap(524287),
-          higherTickListSize: 1,
-          hasLowerTick: true,
-          lowerTick: Tick.wrap(-16384),
-          lowerTickListSize: 0
+        tickScenario: TickTreeIndexScenario({
+          tickTreeIndex: TickTreeIndex.wrap(0),
+          hasHigherTickTreeIndex: true,
+          higherTickTreeIndex: TickTreeIndex.wrap(524287),
+          higherTickTreeIndexListSize: 1,
+          hasLowerTickTreeIndex: true,
+          lowerTickTreeIndex: TickTreeIndex.wrap(-16384),
+          lowerTickTreeIndexListSize: 0
         }),
-        offerTickListSize: 1,
+        offerTickTreeIndexListSize: 1,
         offerPos: 0,
-        newTick: Tick.wrap(-16384)
+        newTickTreeIndex: TickTreeIndex.wrap(-16384)
       }),
       true
     );
@@ -246,17 +282,17 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
 
     if (printToConsole) {
       console.log("update offer scenario");
-      console.log("  oldTick: %s", toString(scenario.tickScenario.tick));
-      console.log("  newTick: %s", toString(scenario.newTick));
-      console.log("  offerTickListSize: %s", scenario.offerTickListSize);
+      console.log("  oldTickTreeIndex: %s", toString(scenario.tickScenario.tickTreeIndex));
+      console.log("  newTickTreeIndex: %s", toString(scenario.newTickTreeIndex));
+      console.log("  offerTickTreeIndexListSize: %s", scenario.offerTickTreeIndexListSize);
       console.log("  offerPos: %s", scenario.offerPos);
-      if (scenario.tickScenario.hasHigherTick) {
-        console.log("  higherTick: %s", toString(scenario.tickScenario.higherTick));
-        console.log("  higherTickListSize: %s", vm.toString(scenario.tickScenario.higherTickListSize));
+      if (scenario.tickScenario.hasHigherTickTreeIndex) {
+        console.log("  higherTickTreeIndex: %s", toString(scenario.tickScenario.higherTickTreeIndex));
+        console.log("  higherTickTreeIndexListSize: %s", vm.toString(scenario.tickScenario.higherTickTreeIndexListSize));
       }
-      if (scenario.tickScenario.hasLowerTick) {
-        console.log("  lowerTick: %s", toString(scenario.tickScenario.lowerTick));
-        console.log("  lowerTickListSize: %s", vm.toString(scenario.tickScenario.lowerTickListSize));
+      if (scenario.tickScenario.hasLowerTickTreeIndex) {
+        console.log("  lowerTickTreeIndex: %s", toString(scenario.tickScenario.lowerTickTreeIndex));
+        console.log("  lowerTickTreeIndexListSize: %s", vm.toString(scenario.tickScenario.lowerTickTreeIndexListSize));
       }
     }
 
@@ -264,48 +300,54 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     uint vmSnapshotId = vm.snapshot();
 
     // 2. Create scenario
-    (uint[] memory offerIds,) =
-      add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize == 0 ? 1 : scenario.offerTickListSize);
+    (uint[] memory offerIds,) = add_n_offers_to_tick(
+      scenario.tickScenario.tickTreeIndex,
+      scenario.offerTickTreeIndexListSize == 0 ? 1 : scenario.offerTickTreeIndexListSize
+    );
     uint offerId = offerIds[scenario.offerPos];
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, offerId);
-    if (scenario.offerTickListSize == 0) {
+    if (scenario.offerTickTreeIndexListSize == 0) {
       mkr.retractOffer(offerIds[0]);
     }
-    if (scenario.tickScenario.hasHigherTick) {
-      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
+    if (scenario.tickScenario.hasHigherTickTreeIndex) {
+      add_n_offers_to_tick(scenario.tickScenario.higherTickTreeIndex, scenario.tickScenario.higherTickTreeIndexListSize);
     }
-    if (scenario.tickScenario.hasLowerTick) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
+    if (scenario.tickScenario.hasLowerTickTreeIndex) {
+      add_n_offers_to_tick(scenario.tickScenario.lowerTickTreeIndex, scenario.tickScenario.lowerTickTreeIndexListSize);
     }
 
-    // 3. Snapshot tick tree
+    // 3. Snapshot tickTreeIndex tree
     TestTickTree tickTree = snapshotTickTree();
     if (printToConsole) {
       console.log("before update");
       console.log("  MGV OB");
       printOfferList(olKey);
-      console.log("  tick tree");
+      console.log("  tickTreeIndex tree");
       tickTree.logTickTree();
     }
 
     // 4. Update the offer
-    Tick newTick = scenario.newTick;
-    uint newGives = getAcceptableGivesForTick(newTick, offerDetail.gasreq());
+    TickTreeIndex newTickTreeIndex = scenario.newTickTreeIndex;
+    uint newGives = getAcceptableGivesForTickTreeIndex(newTickTreeIndex, offerDetail.gasreq());
     mkr.updateOfferByLogPrice(
-      LogPriceLib.fromTick(newTick, olKey.tickScale), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
+      LogPriceLib.fromTickTreeIndex(newTickTreeIndex, olKey.tickSpacing),
+      newGives,
+      offerDetail.gasreq(),
+      offerDetail.gasprice(),
+      offerId
     );
-    tickTree.updateOffer(offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
+    tickTree.updateOffer(offerId, newTickTreeIndex, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
     if (printToConsole) {
       console.log("");
       console.log("after update");
-      // NB: Fails with "field is 0" when MGV tick tree is inconsistent
+      // NB: Fails with "field is 0" when MGV tickTreeIndex tree is inconsistent
       console.log("  MGV OB");
       printOfferList(olKey);
-      console.log("  tick tree");
+      console.log("  tickTreeIndex tree");
       tickTree.logTickTree();
     }
 
-    // 5. Assert that Mangrove and tick tree are equal
+    // 5. Assert that Mangrove and tickTreeIndex tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();

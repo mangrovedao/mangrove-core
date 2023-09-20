@@ -13,7 +13,7 @@ contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickBoundar
   function setUp() public virtual override {
     super.setUp();
     // At price MIDDLE_LOG_PRICE so we can post a better or worse offer in same leaf.
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     description =
       "Posting a new offer in posthook for now empty offer list but where new offer has varying closeness to taken offer";
   }
@@ -31,7 +31,7 @@ contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickBoundar
     if (sor.offerId == offerId) {
       int _logPrice = logPrice;
       _gas();
-      mgv.newOfferByLogPrice(_olKey, _logPrice, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, _logPrice, 0.00001 ether, 1_000_000, 0);
       gas_();
     }
   }
@@ -48,8 +48,8 @@ contract PosthookSuccessNewOfferSameList_WithOtherOfferGasTest is
   function setUp() public virtual override {
     super.setUp();
     // We insert two others so PosthookFailure will still have the second offer on the book when executing posthook as the first is taken to do the fill.
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     description =
       "Posting a new offer in posthook for offer list with other offer at same tick as taken but where new offer has varying closeness to taken offer";
   }
@@ -87,7 +87,7 @@ contract PosthookSuccessNewOfferSameList_WithPriorNewOfferAndNoOtherOffersGasTes
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
       // Insert at middle price - the measured one is at various tick-distances.
-      mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
+      mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     }
     super.makerPosthook(sor, result);
   }

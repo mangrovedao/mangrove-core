@@ -256,7 +256,7 @@ contract MgvReader {
             field = MGV.level2(olKey, index);
             field = field.eraseToTick2(offerTick);
             if (field.isEmpty()) {
-              field = MGV.level3(olKey);
+              field = MGV.root(olKey);
               field = field.eraseToTick3(offerTick);
               if (field.isEmpty()) {
                 return 0;
@@ -308,7 +308,7 @@ contract MgvReader {
             field = MGV.level2(olKey, index);
             field = field.eraseFromTick2(offerTick);
             if (field.isEmpty()) {
-              field = MGV.level3(olKey);
+              field = MGV.root(olKey);
               field = field.eraseFromTick3(offerTick);
               if (field.isEmpty()) {
                 return 0;

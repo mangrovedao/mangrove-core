@@ -204,11 +204,11 @@ library TickLib {
   }
 
   // Utility for tests&unpacked structs, less gas-optimal
-  // Must not be called with any of level0, level1, level2 or level3 empty
-  function bestTickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {
+  // Must not be called with any of level0, level1, level2 or root empty
+  function bestTickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field root) internal pure returns (Tick) {
     unchecked {
       LocalPacked local;
-      local = local.tickPosInLeaf(tickPosInLeaf).level0(level0).level1(level1).level2(level2).level3(level3);
+      local = local.tickPosInLeaf(tickPosInLeaf).level0(level0).level1(level1).level2(level2).root(root);
       return bestTickFromLocal(local);
     }
   }
@@ -220,9 +220,9 @@ library TickLib {
           (BitLib.ctz64(Field.unwrap(local.level1())) |
             (BitLib.ctz64(Field.unwrap(local.level2())) |
               uint(
-                (int(BitLib.ctz64(Field.unwrap(local.level3())))-LEVEL3_SIZE/2) << LEVEL2_SIZE_BITS)) 
-              << LEVEL1_SIZE_BITS)
-            << LEVEL0_SIZE_BITS)
+                (int(BitLib.ctz64(Field.unwrap(local.root())))-ROOT_SIZE/2) << LEVEL_SIZE_BITS)) 
+              << LEVEL_SIZE_BITS)
+            << LEVEL_SIZE_BITS)
           << LEAF_SIZE_BITS);
       return Tick.wrap(int(utick));
     }
@@ -255,53 +255,53 @@ library TickLib {
 
   function level0Index(Tick tick) internal pure returns (int) {
     unchecked {
-      return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS);
+      return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL_SIZE_BITS);
     }
   }
 
   // see note posIn*
   function posInLevel0(Tick tick) internal pure returns (uint) {
     unchecked {
-      return uint(tick.leafIndex()) & LEVEL0_SIZE_MASK;
+      return uint(tick.leafIndex()) & LEVEL_SIZE_MASK;
     }
   }
 
   function level1Index(Tick tick) internal pure returns (int) {
     unchecked {
-      return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS);
+      return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + 2* LEVEL_SIZE_BITS);
     }
   }
 
   function level2Index(Tick tick) internal pure returns (int) {
     unchecked {
-      return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS + LEVEL2_SIZE_BITS);
+      return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + 3 * LEVEL_SIZE_BITS);
     }
   }
 
   // see note posIn*
   function posInLevel1(Tick tick) internal pure returns (uint) {
     unchecked {
-      return uint(tick.level0Index()) & LEVEL1_SIZE_MASK;
+      return uint(tick.level0Index()) & LEVEL_SIZE_MASK;
     }
   }
 
   function posInLevel2(Tick tick) internal pure returns (uint) {
     unchecked {
-      return uint(tick.level1Index()) & LEVEL2_SIZE_MASK;
+      return uint(tick.level1Index()) & LEVEL_SIZE_MASK;
     }
   }
 
   // see note posIn*
-  // note with int24 tick we only use 2 bits in level3
+  // note with int24 tick we only use 2 bits in root
   //   level 3 single node
   // <--------------------->
   //  1                  0
   //  ^initial level2
   // so we can immediately add 32 to that
   // and there is no need to take a modulo
-  function posInLevel3(Tick tick) internal pure returns (uint) {
+  function posInRoot(Tick tick) internal pure returns (uint) {
     unchecked {
-      return uint(tick.level2Index() + LEVEL3_SIZE / 2);
+      return uint(tick.level2Index() + ROOT_SIZE / 2);
     }
   }
 
@@ -404,11 +404,11 @@ library FieldLib {
     }
   }
 
-  function flipBitAtLevel3(Field level3, Tick tick) internal pure returns (Field) {
+  function flipBitAtRoot(Field root, Tick tick) internal pure returns (Field) {
     unchecked {
-      uint pos = tick.posInLevel3();
-      level3 = Field.wrap(Field.unwrap(level3) ^ (1 << pos));
-      return level3;
+      uint pos = tick.posInRoot();
+      root = Field.wrap(Field.unwrap(root) ^ (1 << pos));
+      return root;
     }
   }
 
@@ -460,14 +460,14 @@ library FieldLib {
   // utility fn
   function eraseToTick3(Field field, Tick tick) internal pure returns (Field) {
     unchecked {
-      uint mask = ONES << (tick.posInLevel3() + 1);
+      uint mask = ONES << (tick.posInRoot() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
   function eraseFromTick3(Field field, Tick tick) internal pure returns (Field) {
     unchecked {
-      uint mask = ~(ONES << tick.posInLevel3());
+      uint mask = ~(ONES << tick.posInRoot());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
@@ -487,44 +487,44 @@ library FieldLib {
   }
 
   // Get the index of the first level(i) of a level(i+1)
-  function firstLevel2Index(Field level3) internal pure returns (int) {
+  function firstLevel2Index(Field root) internal pure returns (int) {
     unchecked {
-      return int(level3.firstOnePosition()) - LEVEL3_SIZE / 2;
+      return int(root.firstOnePosition()) - ROOT_SIZE / 2;
     }
   }
-  function lastLevel2Index(Field level3) internal pure returns (int) {
+  function lastLevel2Index(Field root) internal pure returns (int) {
     unchecked {
-      return int(level3.lastOnePosition()) - LEVEL3_SIZE / 2;
+      return int(root.lastOnePosition()) - ROOT_SIZE / 2;
     }
   }
   function firstLevel1Index(Field level2, int level2Index) internal pure returns (int) {
     unchecked {
-      return level2Index * LEVEL2_SIZE + int(level2.firstOnePosition());
+      return level2Index * LEVEL_SIZE + int(level2.firstOnePosition());
     }
   }
   function lastLevel1Index(Field level2, int level2Index) internal pure returns (int) {
     unchecked {
-      return level2Index * LEVEL2_SIZE + int(level2.lastOnePosition());
+      return level2Index * LEVEL_SIZE + int(level2.lastOnePosition());
     }
   }
   function firstLevel0Index(Field level1, int level1Index) internal pure returns (int) {
     unchecked {
-      return level1Index * LEVEL1_SIZE + int(level1.firstOnePosition());
+      return level1Index * LEVEL_SIZE + int(level1.firstOnePosition());
     }
   }
   function lastLevel0Index(Field level1, int level1Index) internal pure returns (int) {
     unchecked {
-      return level1Index * LEVEL1_SIZE + int(level1.lastOnePosition());
+      return level1Index * LEVEL_SIZE + int(level1.lastOnePosition());
     }
   }
   function firstLeafIndex(Field level0, int level0Index) internal pure returns (int) {
     unchecked {
-      return level0Index * LEVEL0_SIZE + int(level0.firstOnePosition());
+      return level0Index * LEVEL_SIZE + int(level0.firstOnePosition());
     }
   }
   function lastLeafIndex(Field level0, int level0Index) internal pure returns (int) {
     unchecked {
-      return level0Index * LEVEL0_SIZE + int(level0.lastOnePosition());
+      return level0Index * LEVEL_SIZE + int(level0.lastOnePosition());
     }
   }
 

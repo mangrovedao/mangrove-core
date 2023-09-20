@@ -52,12 +52,12 @@ contract TickTreeCleanOfferTest is TickTreeTest {
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per ToI instead.
 
-  function test_clean_offer_for_TICK_MIN_L3_MAX_OTHERS() public {
-    run_clean_offer_scenarios_for_tick(TICK_MIN_L3_MAX_OTHERS);
+  function test_clean_offer_for_TICK_MIN_ROOT_MAX_OTHERS() public {
+    run_clean_offer_scenarios_for_tick(TICK_MIN_ROOT_MAX_OTHERS);
   }
 
-  function test_clean_offer_for_TICK_MAX_L3_MIN_OTHERS() public {
-    run_clean_offer_scenarios_for_tick(TICK_MAX_L3_MIN_OTHERS);
+  function test_clean_offer_for_TICK_MAX_ROOT_MIN_OTHERS() public {
+    run_clean_offer_scenarios_for_tick(TICK_MAX_ROOT_MIN_OTHERS);
   }
 
   function test_clean_offer_for_TICK_MIDDLE() public {

@@ -5,28 +5,28 @@ pragma solidity ^0.8.18;
 import {IMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
-import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
+import {TickLib, Tick, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/TickLib.sol";
 
-// A log price with room for bits above and below at all tick levels, except at level3 which has only 2 bits.
+// A log price with room for bits above and below at all tick levels, except at root which has only 2 bits.
 // forgefmt: disable-start
 int constant MIDDLE_LOG_PRICE = 
   /* mid leaf */ LEAF_SIZE / 2 + 
-  /* mid level0 */ LEAF_SIZE * (LEVEL0_SIZE / 2) +
-  /* mid level 1 */ LEAF_SIZE * LEVEL0_SIZE * (LEVEL1_SIZE / 2) +
-  /* mid level 2 */ LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * (LEVEL2_SIZE / 3);
+  /* mid level0 */ LEAF_SIZE * (LEVEL_SIZE / 2) +
+  /* mid level 1 */ LEAF_SIZE * (LEVEL_SIZE**2)/2  +
+  /* mid level 2 */ LEAF_SIZE * (LEVEL_SIZE ** 3)/4;
 // forgefmt: disable-end
 
 int constant LEAF_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - 1;
 int constant LEAF_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + 1;
 int constant LEVEL0_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE;
 int constant LEVEL0_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE;
-int constant LEVEL1_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL0_SIZE;
-int constant LEVEL1_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL0_SIZE;
-int constant LEVEL2_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
-int constant LEVEL2_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
-// Not multiplying by full LEVEL2_SIZE or LEVEL3_HIGHER_LOG_PRICE goes out of logPrice range
-int constant LEVEL3_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE / 2;
-int constant LEVEL3_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE / 2;
+int constant LEVEL1_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL_SIZE;
+int constant LEVEL1_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL_SIZE;
+int constant LEVEL2_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * (LEVEL_SIZE ** 2);
+int constant LEVEL2_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * (LEVEL_SIZE ** 2);
+// Not multiplying by full LEVEL_SIZE or ROOT_HIGHER_LOG_PRICE goes out of logPrice range
+int constant ROOT_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
+int constant ROOT_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
 
 abstract contract GasTestBaseStored {
   mapping(int logPrice => uint offerId) internal logPriceOfferIds;
@@ -54,8 +54,8 @@ abstract contract GasTestBaseStored {
       mgv.newOfferByLogPrice(_olKey, LEVEL1_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL2_LOWER_LOG_PRICE] =
       mgv.newOfferByLogPrice(_olKey, LEVEL2_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    logPriceOfferIds[LEVEL3_LOWER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL3_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    logPriceOfferIds[ROOT_LOWER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, ROOT_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
   }
 
   function newOfferOnAllHigherThanMiddleTestPrices() public virtual {
@@ -68,8 +68,8 @@ abstract contract GasTestBaseStored {
       mgv.newOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL2_HIGHER_LOG_PRICE] =
       mgv.newOfferByLogPrice(_olKey, LEVEL2_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    logPriceOfferIds[LEVEL3_HIGHER_LOG_PRICE] =
-      mgv.newOfferByLogPrice(_olKey, LEVEL3_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    logPriceOfferIds[ROOT_HIGHER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, ROOT_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
   }
 }
 

@@ -11,29 +11,29 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
   // Checks that the ticks used in these tests have the expected locations at various levels.
   function test_ticks_are_at_expected_locations() public {
     assertTickAssumptions({
-      tick: TICK_MIN_L3_MAX_OTHERS,
-      posInLevel3: MIN_LEVEL3_POS,
-      posInLevel2: MAX_LEVEL2_POS,
-      posInLevel1: MAX_LEVEL1_POS,
-      posInLevel0: MAX_LEVEL0_POS,
+      tick: TICK_MIN_ROOT_MAX_OTHERS,
+      posInRoot: MIN_ROOT_POS,
+      posInLevel2: MAX_LEVEL_POS,
+      posInLevel1: MAX_LEVEL_POS,
+      posInLevel0: MAX_LEVEL_POS,
       posInLeaf: MAX_LEAF_POS
     });
 
     assertTickAssumptions({
-      tick: TICK_MAX_L3_MIN_OTHERS,
-      posInLevel3: MAX_LEVEL3_POS,
-      posInLevel2: MIN_LEVEL2_POS,
-      posInLevel1: MIN_LEVEL1_POS,
-      posInLevel0: MIN_LEVEL0_POS,
+      tick: TICK_MAX_ROOT_MIN_OTHERS,
+      posInRoot: MAX_ROOT_POS,
+      posInLevel2: MIN_LEVEL_POS,
+      posInLevel1: MIN_LEVEL_POS,
+      posInLevel0: MIN_LEVEL_POS,
       posInLeaf: MIN_LEAF_POS
     });
 
     assertTickAssumptions({
       tick: TICK_MIDDLE,
-      posInLevel3: MID_LEVEL3_POS,
-      posInLevel2: MID_LEVEL2_POS,
-      posInLevel1: MID_LEVEL1_POS,
-      posInLevel0: MID_LEVEL0_POS,
+      posInRoot: MID_ROOT_POS,
+      posInLevel2: MID_LEVEL_POS,
+      posInLevel1: MID_LEVEL_POS,
+      posInLevel0: MID_LEVEL_POS,
       posInLeaf: MID_LEAF_POS
     });
   }

@@ -9,9 +9,7 @@ import {
   Field,
   Leaf,
   Tick,
-  LEVEL2_SIZE,
-  LEVEL1_SIZE,
-  LEVEL0_SIZE,
+  LEVEL_SIZE,
   OLKey,
   DirtyFieldLib
 } from "./MgvLib.sol";
@@ -166,8 +164,8 @@ contract MgvHasOffers is MgvCommon {
               offerList.level2[index] = field.dirty();
             }
             if (field.isEmpty()) {
-              field = local.level3().flipBitAtLevel3(offerTick);
-              local = local.level3(field);
+              field = local.root().flipBitAtRoot(offerTick);
+              local = local.root(field);
 
               if (field.isEmpty()) {
                 return (local, shouldUpdateBranch);

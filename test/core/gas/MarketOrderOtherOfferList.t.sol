@@ -14,13 +14,13 @@ import {
   LEVEL1_HIGHER_LOG_PRICE,
   LEVEL2_LOWER_LOG_PRICE,
   LEVEL2_HIGHER_LOG_PRICE,
-  LEVEL3_LOWER_LOG_PRICE,
-  LEVEL3_HIGHER_LOG_PRICE
+  ROOT_LOWER_LOG_PRICE,
+  ROOT_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
-import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE, LEVEL3_SIZE} from "mgv_lib/TickLib.sol";
+import {TickLib, Tick, LEAF_SIZE, LEVEL_SIZE, ROOT_SIZE} from "mgv_lib/TickLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -176,13 +176,13 @@ contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_L
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_LOG_PRICE is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_LOG_PRICE is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL3_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL3_HIGHER_LOG_PRICE");
+    setUpLogPrice(ROOT_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: ROOT_HIGHER_LOG_PRICE");
   }
 }
 
@@ -247,7 +247,7 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks is Tick
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
     // In some tests the market order takes all offers, in others not. `local.bestTick()` must only be called when the book is non-empty
-    if (!local.level3().isEmpty()) {
+    if (!local.root().isEmpty()) {
       assertLt(
         _logPrice,
         LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale),

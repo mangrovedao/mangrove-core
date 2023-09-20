@@ -12,20 +12,14 @@ import {
   MAX_LEVEL0_INDEX,
   MAX_LEVEL1_INDEX,
   MIN_LEAF_POS,
-  MIN_LEVEL0_POS,
-  MIN_LEVEL1_POS,
-  MIN_LEVEL2_POS,
-  MIN_LEVEL3_POS,
+  MIN_LEVEL_POS,
+  MIN_ROOT_POS,
   MAX_LEAF_POS,
-  MAX_LEVEL0_POS,
-  MAX_LEVEL1_POS,
-  MAX_LEVEL2_POS,
-  MAX_LEVEL3_POS,
+  MAX_LEVEL_POS,
+  MAX_ROOT_POS,
   MID_LEAF_POS,
-  MID_LEVEL0_POS,
-  MID_LEVEL1_POS,
-  MID_LEVEL2_POS,
-  MID_LEVEL3_POS
+  MID_LEVEL_POS,
+  MID_ROOT_POS
 } from "mgv_test/lib/TestTickTree.sol";
 import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
@@ -66,21 +60,21 @@ abstract contract TickTreeTest is MangroveTest {
   //
   // In addition, we test the min and max ticks allowed by (log)Price math.
 
-  // min L3, max L2-0, max leaf
-  // We use this tick to test the case where the tick is at the max position in all levels except level3:
+  // min ROOT, max L2-0, max leaf
+  // We use this tick to test the case where the tick is at the max position in all levels except root:
   // Max in all positions isn't supported by (log)price math.
-  Tick immutable TICK_MIN_L3_MAX_OTHERS =
-    TickTreeUtil.tickFromPositions(MIN_LEVEL3_POS, MAX_LEVEL2_POS, MAX_LEVEL1_POS, MAX_LEVEL0_POS, MAX_LEAF_POS);
+  Tick immutable TICK_MIN_ROOT_MAX_OTHERS =
+    TickTreeUtil.tickFromPositions(MIN_ROOT_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEAF_POS);
 
-  // max L3, min L2-0, min leaf
-  // We use this tick to test the case where the tick is at the min position in all levels except level3:
+  // max ROOT, min L2-0, min leaf
+  // We use this tick to test the case where the tick is at the min position in all levels except root:
   // Min in all positions isn't supported by (log)price math.
-  Tick immutable TICK_MAX_L3_MIN_OTHERS =
-    TickTreeUtil.tickFromPositions(MAX_LEVEL3_POS, MIN_LEVEL2_POS, MIN_LEVEL1_POS, MIN_LEVEL0_POS, MIN_LEAF_POS);
+  Tick immutable TICK_MAX_ROOT_MIN_OTHERS =
+    TickTreeUtil.tickFromPositions(MAX_ROOT_POS, MIN_LEVEL_POS, MIN_LEVEL_POS, MIN_LEVEL_POS, MIN_LEAF_POS);
 
-  // middle L3-0, middle leaf
+  // middle ROOT-0, middle leaf
   Tick immutable TICK_MIDDLE =
-    TickTreeUtil.tickFromPositions(MID_LEVEL3_POS, MID_LEVEL2_POS, MID_LEVEL1_POS, MID_LEVEL0_POS, MID_LEAF_POS);
+    TickTreeUtil.tickFromPositions(MID_ROOT_POS, MID_LEVEL_POS, MID_LEVEL_POS, MID_LEVEL_POS, MID_LEAF_POS);
 
   // min tick allowed by (log)price math
   Tick immutable TICK_MIN_ALLOWED = Tick.wrap(MIN_TICK_ALLOWED);
@@ -141,44 +135,44 @@ abstract contract TickTreeTest is MangroveTest {
     if (tick.posInLeaf() < MAX_LEAF_POS) {
       // higher leaf position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() + 1
+        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() + 1
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel0() < MAX_LEVEL0_POS) {
+    if (tick.posInLevel0() < MAX_LEVEL_POS) {
       // higher level0 position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() + 1, tick.posInLeaf()
+        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() + 1, tick.posInLeaf()
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel1() < MAX_LEVEL1_POS) {
+    if (tick.posInLevel1() < MAX_LEVEL_POS) {
       // higher level1 position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1() + 1, tick.posInLevel0(), tick.posInLeaf()
+        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1() + 1, tick.posInLevel0(), tick.posInLeaf()
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel2() < MAX_LEVEL2_POS) {
+    if (tick.posInLevel2() < MAX_LEVEL_POS) {
       // higher level2 position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2() + 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
+        tick.posInRoot(), tick.posInLevel2() + 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel3() < MAX_LEVEL3_POS) {
-      // higher level3 position
+    if (tick.posInRoot() < MAX_ROOT_POS) {
+      // higher root position
       // Choosing MIN POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
-      // The important thing is to have a higher position in level3.
-      ticks[next++] = TickTreeUtil.tickFromPositions(tick.posInLevel3() + 1, 0, 0, 0, 0);
+      // The important thing is to have a higher position in root.
+      ticks[next++] = TickTreeUtil.tickFromPositions(tick.posInRoot() + 1, 0, 0, 0, 0);
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
       }
@@ -197,7 +191,7 @@ abstract contract TickTreeTest is MangroveTest {
     if (tick.posInLeaf() > 0) {
       // lower leaf position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() - 1
+        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() - 1
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
@@ -206,7 +200,7 @@ abstract contract TickTreeTest is MangroveTest {
     if (tick.posInLevel0() > 0) {
       // lower level0 position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() - 1, tick.posInLeaf()
+        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() - 1, tick.posInLeaf()
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
@@ -215,7 +209,7 @@ abstract contract TickTreeTest is MangroveTest {
     if (tick.posInLevel1() > 0) {
       // lower level1 position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1() - 1, tick.posInLevel0(), tick.posInLeaf()
+        tick.posInRoot(), tick.posInLevel2(), tick.posInLevel1() - 1, tick.posInLevel0(), tick.posInLeaf()
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
@@ -224,19 +218,18 @@ abstract contract TickTreeTest is MangroveTest {
     if (tick.posInLevel2() > 0) {
       // lower level2 position
       ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3(), tick.posInLevel2() - 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
+        tick.posInRoot(), tick.posInLevel2() - 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
       );
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
       }
     }
-    if (tick.posInLevel3() > 0) {
-      // lower level3 position
+    if (tick.posInRoot() > 0) {
+      // lower root position
       // Choosing MAX POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
-      // The important thing is to have a lower position in level3.
-      ticks[next++] = TickTreeUtil.tickFromPositions(
-        tick.posInLevel3() - 1, MAX_LEVEL2_POS, MAX_LEVEL1_POS, MAX_LEVEL0_POS, MAX_LEAF_POS
-      );
+      // The important thing is to have a lower position in root.
+      ticks[next++] =
+        TickTreeUtil.tickFromPositions(tick.posInRoot() - 1, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEAF_POS);
       if (!isAllowedByPriceMath(ticks[next - 1])) {
         next--;
       }
@@ -343,7 +336,7 @@ abstract contract TickTreeTest is MangroveTest {
     uint posInLevel0,
     uint posInLevel1,
     uint posInLevel2,
-    uint posInLevel3
+    uint posInRoot
   ) internal {
     string memory tickString = toString(tick);
     assertEq(
@@ -384,13 +377,10 @@ abstract contract TickTreeTest is MangroveTest {
       )
     );
     assertEq(
-      tick.posInLevel3(),
-      posInLevel3,
+      tick.posInRoot(),
+      posInRoot,
       string.concat(
-        "tick's posInLevel3 does not match expected value | posInLevel3: ",
-        vm.toString(posInLevel3),
-        ", tick: ",
-        tickString
+        "tick's posInRoot does not match expected value | posInRoot: ", vm.toString(posInRoot), ", tick: ", tickString
       )
     );
   }

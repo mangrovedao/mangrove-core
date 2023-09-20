@@ -19,22 +19,16 @@ int constant MIN_LEVEL2_INDEX = -NUM_LEVEL2 / 2;
 int constant MAX_LEVEL2_INDEX = -MIN_LEVEL2_INDEX - 1;
 
 uint constant MIN_LEAF_POS = 0;
-uint constant MIN_LEVEL0_POS = 0;
-uint constant MIN_LEVEL1_POS = 0;
-uint constant MIN_LEVEL2_POS = 0;
-uint constant MIN_LEVEL3_POS = 0;
+uint constant MIN_LEVEL_POS = 0;
+uint constant MIN_ROOT_POS = 0;
 
 uint constant MAX_LEAF_POS = uint(LEAF_SIZE - 1);
-uint constant MAX_LEVEL0_POS = uint(LEVEL0_SIZE - 1);
-uint constant MAX_LEVEL1_POS = uint(LEVEL1_SIZE - 1);
-uint constant MAX_LEVEL2_POS = uint(LEVEL2_SIZE - 1);
-uint constant MAX_LEVEL3_POS = uint(LEVEL3_SIZE - 1);
+uint constant MAX_LEVEL_POS = uint(LEVEL_SIZE - 1);
+uint constant MAX_ROOT_POS = uint(ROOT_SIZE - 1);
 
 uint constant MID_LEAF_POS = MAX_LEAF_POS / 2;
-uint constant MID_LEVEL0_POS = MAX_LEVEL0_POS / 2;
-uint constant MID_LEVEL1_POS = MAX_LEVEL1_POS / 2;
-uint constant MID_LEVEL2_POS = MAX_LEVEL2_POS / 2;
-uint constant MID_LEVEL3_POS = MAX_LEVEL3_POS / 2;
+uint constant MID_LEVEL_POS = MAX_LEVEL_POS / 2;
+uint constant MID_ROOT_POS = MAX_ROOT_POS / 2;
 
 library TickTreeUtil {
   function setBit(Field field, uint pos) public pure returns (Field) {
@@ -49,27 +43,27 @@ library TickTreeUtil {
     return (Field.unwrap(field) & (1 << pos)) > 0;
   }
 
-  function level2IndexFromLevel3Pos(uint pos) public pure returns (int) {
-    return int(pos) - LEVEL3_SIZE / 2;
+  function level2IndexFromRootPos(uint pos) public pure returns (int) {
+    return int(pos) - ROOT_SIZE / 2;
   }
 
   function level1IndexFromLevel2IndexAndPos(int level2Index, uint pos) public pure returns (int) {
-    return (level2Index << LEVEL2_SIZE_BITS) | int(pos);
+    return (level2Index << LEVEL_SIZE_BITS) | int(pos);
   }
 
   function level0IndexFromLevel1IndexAndPos(int level1Index, uint pos) public pure returns (int) {
-    return (level1Index << LEVEL1_SIZE_BITS) | int(pos);
+    return (level1Index << LEVEL_SIZE_BITS) | int(pos);
   }
 
   function leafIndexFromLevel0IndexAndPos(int level0Index, uint pos) public pure returns (int) {
-    return (level0Index << LEVEL0_SIZE_BITS) | int(pos);
+    return (level0Index << LEVEL_SIZE_BITS) | int(pos);
   }
 
   function tickFromLeafIndexAndPos(int leafIndex, uint pos) public pure returns (Tick) {
     return Tick.wrap((leafIndex << LEAF_SIZE_BITS) | int(pos));
   }
 
-  function tickFromPositions(uint posInLevel3, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
+  function tickFromPositions(uint posInRoot, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
     public
     pure
     returns (Tick)
@@ -79,10 +73,8 @@ library TickTreeUtil {
         | (
           (
             posInLevel0
-              | (
-                posInLevel1
-                  | (posInLevel2 | uint((int(posInLevel3) - LEVEL3_SIZE / 2) << LEVEL2_SIZE_BITS)) << LEVEL1_SIZE_BITS
-              ) << LEVEL0_SIZE_BITS
+              | (posInLevel1 | (posInLevel2 | uint((int(posInRoot) - ROOT_SIZE / 2) << LEVEL_SIZE_BITS)) << LEVEL_SIZE_BITS)
+                << LEVEL_SIZE_BITS
           ) << LEAF_SIZE_BITS
         );
       return Tick.wrap(int(utick));
@@ -116,17 +108,17 @@ contract TestTickTree is MangroveTest {
   // Creates a snapshot of the Mangrove tick tree
   function snapshotMgvTickTree() public {
     local = mgv.local(olKey);
-    Field level3 = mgv.level3(olKey);
+    Field root = mgv.root(olKey);
     uint[4] memory levelPoss;
-    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POS; ++levelPoss[3]) {
-      if (!TickTreeUtil.isBitSet(level3, levelPoss[3])) {
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_ROOT_POS; ++levelPoss[3]) {
+      if (!TickTreeUtil.isBitSet(root, levelPoss[3])) {
         continue;
       }
 
-      int level2Index = TickTreeUtil.level2IndexFromLevel3Pos(levelPoss[3]);
+      int level2Index = TickTreeUtil.level2IndexFromRootPos(levelPoss[3]);
       Field level2 = mgv.level2(olKey, level2Index);
       level2s[level2Index] = level2;
-      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POS; ++levelPoss[2]) {
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         if (!TickTreeUtil.isBitSet(level2, levelPoss[2])) {
           continue;
         }
@@ -134,7 +126,7 @@ contract TestTickTree is MangroveTest {
         int level1Index = TickTreeUtil.level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = mgv.level1(olKey, level1Index);
         level1s[level1Index] = level1;
-        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POS; ++levelPoss[1]) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           if (!TickTreeUtil.isBitSet(level1, levelPoss[1])) {
             continue;
           }
@@ -142,7 +134,7 @@ contract TestTickTree is MangroveTest {
           int level0Index = TickTreeUtil.level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = mgv.level0(olKey, level0Index);
           level0s[level0Index] = level0;
-          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POS; ++levelPoss[0]) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL_POS; ++levelPoss[0]) {
             if (!TickTreeUtil.isBitSet(level0, levelPoss[0])) {
               continue;
             }
@@ -166,18 +158,18 @@ contract TestTickTree is MangroveTest {
 
   // Checks that the current Mangrove tick tree in olKey is consistent
   function assertMgvTickTreeIsConsistent() public {
-    Field level3 = mgv.level3(olKey);
+    Field root = mgv.root(olKey);
     uint[4] memory levelPoss;
-    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POS; ++levelPoss[3]) {
-      bool level3PosIsSet = TickTreeUtil.isBitSet(level3, levelPoss[3]);
-      int level2Index = TickTreeUtil.level2IndexFromLevel3Pos(levelPoss[3]);
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_ROOT_POS; ++levelPoss[3]) {
+      bool rootPosIsSet = TickTreeUtil.isBitSet(root, levelPoss[3]);
+      int level2Index = TickTreeUtil.level2IndexFromRootPos(levelPoss[3]);
       Field level2 = mgv.level2(olKey, level2Index);
 
-      if (!level3PosIsSet) {
+      if (!rootPosIsSet) {
         assertTrue(
           level2.eq(FieldLib.EMPTY),
           string.concat(
-            "level2 should be empty when bit is not set in level3 | tree branch: ", branchToString(levelPoss, 3)
+            "level2 should be empty when bit is not set in root | tree branch: ", branchToString(levelPoss, 3)
           )
         );
         // checking that the entire subtree is empty is too expensive, so we stop here
@@ -186,11 +178,11 @@ contract TestTickTree is MangroveTest {
       assertTrue(
         !level2.eq(FieldLib.EMPTY),
         string.concat(
-          "level2 should not be empty when bit is set in level3 | tree branch: ", branchToString(levelPoss, 3)
+          "level2 should not be empty when bit is set in root | tree branch: ", branchToString(levelPoss, 3)
         )
       );
 
-      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POS; ++levelPoss[2]) {
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         bool level2PosIsSet = TickTreeUtil.isBitSet(level2, levelPoss[2]);
         int level1Index = TickTreeUtil.level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = mgv.level1(olKey, level1Index);
@@ -215,7 +207,7 @@ contract TestTickTree is MangroveTest {
           )
         );
 
-        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POS; ++levelPoss[1]) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           bool level1PosIsSet = TickTreeUtil.isBitSet(level1, levelPoss[1]);
           int level0Index = TickTreeUtil.level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = mgv.level0(olKey, level0Index);
@@ -237,7 +229,7 @@ contract TestTickTree is MangroveTest {
             )
           );
 
-          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POS; ++levelPoss[0]) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL_POS; ++levelPoss[0]) {
             bool level0PosIsSet = TickTreeUtil.isBitSet(level0, levelPoss[0]);
             int leafIndex = TickTreeUtil.leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             Leaf leaf = mgv.leafs(olKey, leafIndex);
@@ -323,21 +315,21 @@ contract TestTickTree is MangroveTest {
 
   // Checks that the current Mangrove tick tree in olKey is equal to the tick tree passed as argument
   function assertEqToMgvTickTree() public {
-    Field level3 = mgv.level3(olKey);
+    Field root = mgv.root(olKey);
     uint[4] memory levelPoss;
-    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POS; ++levelPoss[3]) {
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_ROOT_POS; ++levelPoss[3]) {
       assertEq(
-        TickTreeUtil.isBitSet(level3, levelPoss[3]),
-        TickTreeUtil.isBitSet(local.level3(), levelPoss[3]),
-        string.concat("level3 bit mismatch, branch: ", branchToString(levelPoss, 3))
+        TickTreeUtil.isBitSet(root, levelPoss[3]),
+        TickTreeUtil.isBitSet(local.root(), levelPoss[3]),
+        string.concat("root bit mismatch, branch: ", branchToString(levelPoss, 3))
       );
-      if (!TickTreeUtil.isBitSet(level3, levelPoss[3])) {
+      if (!TickTreeUtil.isBitSet(root, levelPoss[3])) {
         continue;
       }
 
-      int level2Index = TickTreeUtil.level2IndexFromLevel3Pos(levelPoss[3]);
+      int level2Index = TickTreeUtil.level2IndexFromRootPos(levelPoss[3]);
       Field level2 = mgv.level2(olKey, level2Index);
-      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POS; ++levelPoss[2]) {
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         assertEq(
           TickTreeUtil.isBitSet(level2, levelPoss[2]),
           TickTreeUtil.isBitSet(level2s[level2Index], levelPoss[2]),
@@ -349,7 +341,7 @@ contract TestTickTree is MangroveTest {
 
         int level1Index = TickTreeUtil.level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = mgv.level1(olKey, level1Index);
-        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POS; ++levelPoss[1]) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           assertEq(
             TickTreeUtil.isBitSet(level1, levelPoss[1]),
             TickTreeUtil.isBitSet(level1s[level1Index], levelPoss[1]),
@@ -361,7 +353,7 @@ contract TestTickTree is MangroveTest {
 
           int level0Index = TickTreeUtil.level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = mgv.level0(olKey, level0Index);
-          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POS; ++levelPoss[0]) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL_POS; ++levelPoss[0]) {
             assertEq(
               TickTreeUtil.isBitSet(level0, levelPoss[0]),
               TickTreeUtil.isBitSet(level0s[level0Index], levelPoss[0]),
@@ -429,27 +421,27 @@ contract TestTickTree is MangroveTest {
   }
 
   function logTickTree() public view {
-    Field level3 = local.level3();
+    Field root = local.root();
     uint[4] memory levelPoss;
-    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POS; ++levelPoss[3]) {
-      if (!TickTreeUtil.isBitSet(level3, levelPoss[3])) {
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_ROOT_POS; ++levelPoss[3]) {
+      if (!TickTreeUtil.isBitSet(root, levelPoss[3])) {
         continue;
       }
       console.log("l3: %s", levelPoss[3]);
 
-      int level2Index = TickTreeUtil.level2IndexFromLevel3Pos(levelPoss[3]);
+      int level2Index = TickTreeUtil.level2IndexFromRootPos(levelPoss[3]);
       Field level2 = level2s[level2Index];
-      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POS; ++levelPoss[2]) {
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         if (!TickTreeUtil.isBitSet(level2, levelPoss[2])) {
           continue;
         }
         console.log(
-          "  l2: %s (index: %s)", levelPoss[2], vm.toString(TickTreeUtil.level2IndexFromLevel3Pos(levelPoss[3]))
+          "  l2: %s (index: %s)", levelPoss[2], vm.toString(TickTreeUtil.level2IndexFromRootPos(levelPoss[3]))
         );
 
         int level1Index = TickTreeUtil.level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = level1s[level1Index];
-        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POS; ++levelPoss[1]) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           if (!TickTreeUtil.isBitSet(level1, levelPoss[1])) {
             continue;
           }
@@ -461,7 +453,7 @@ contract TestTickTree is MangroveTest {
 
           int level0Index = TickTreeUtil.level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = level0s[level0Index];
-          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POS; ++levelPoss[0]) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL_POS; ++levelPoss[0]) {
             if (!TickTreeUtil.isBitSet(level0, levelPoss[0])) {
               continue;
             }
@@ -493,25 +485,25 @@ contract TestTickTree is MangroveTest {
 
   function best() public view returns (uint bestOfferId, Tick bestTick) {
     uint[4] memory levelPoss;
-    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POS; ++levelPoss[3]) {
-      if (!TickTreeUtil.isBitSet(local.level3(), levelPoss[3])) {
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_ROOT_POS; ++levelPoss[3]) {
+      if (!TickTreeUtil.isBitSet(local.root(), levelPoss[3])) {
         continue;
       }
 
-      int level2Index = TickTreeUtil.level2IndexFromLevel3Pos(levelPoss[3]);
-      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POS; ++levelPoss[2]) {
+      int level2Index = TickTreeUtil.level2IndexFromRootPos(levelPoss[3]);
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         if (!TickTreeUtil.isBitSet(level2s[level2Index], levelPoss[2])) {
           continue;
         }
 
         int level1Index = TickTreeUtil.level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
-        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POS; ++levelPoss[1]) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           if (!TickTreeUtil.isBitSet(level1s[level1Index], levelPoss[1])) {
             continue;
           }
 
           int level0Index = TickTreeUtil.level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
-          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POS; ++levelPoss[0]) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL_POS; ++levelPoss[0]) {
             if (!TickTreeUtil.isBitSet(level0s[level0Index], levelPoss[0])) {
               continue;
             }
@@ -568,7 +560,7 @@ contract TestTickTree is MangroveTest {
     });
 
     // Update levels
-    local = local.level3(TickTreeUtil.setBit(local.level3(), tick.posInLevel3()));
+    local = local.root(TickTreeUtil.setBit(local.root(), tick.posInRoot()));
     // As an optimization, Mangrove only updates these for the part of the branch that is not best.
     // We don't do that here, as there's no reason for the complexity.
     level2s[tick.level2Index()] = TickTreeUtil.setBit(level2s[tick.level2Index()], tick.posInLevel2());
@@ -607,7 +599,7 @@ contract TestTickTree is MangroveTest {
         if (level1s[tick.level1Index()].eq(FieldLib.EMPTY)) {
           level2s[tick.level2Index()] = TickTreeUtil.unsetBit(level2s[tick.level2Index()], tick.posInLevel2());
           if (level2s[tick.level2Index()].eq(FieldLib.EMPTY)) {
-            local = local.level3(TickTreeUtil.unsetBit(local.level3(), tick.posInLevel3()));
+            local = local.root(TickTreeUtil.unsetBit(local.root(), tick.posInRoot()));
           }
         }
       }

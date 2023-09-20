@@ -195,23 +195,19 @@ contract TickTest is Test {
   function test_posInLevel0_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel0()), tn / LEAF_SIZE % LEVEL0_SIZE);
+    assertEq(int(Tick.wrap(tick).posInLevel0()), tn / LEAF_SIZE % LEVEL_SIZE);
   }
 
   function test_posInLevel1_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel1()), tn / (LEAF_SIZE * LEVEL0_SIZE) % LEVEL1_SIZE);
+    assertEq(int(Tick.wrap(tick).posInLevel1()), tn / (LEAF_SIZE * LEVEL_SIZE) % LEVEL_SIZE);
   }
 
   function test_posInLevel2_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(
-      int(Tick.wrap(tick).posInLevel2()),
-      tn / (LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) % LEVEL2_SIZE,
-      "wrong posInLevel2"
-    );
+    assertEq(int(Tick.wrap(tick).posInLevel2()), tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) % LEVEL_SIZE, "wrong posInLevel2");
   }
 
   // note that tick(p) is max {t | price(t) <= p}
@@ -299,14 +295,14 @@ contract TickTest is Test {
   function test_level0Index_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    int index = tn / (LEAF_SIZE * LEVEL0_SIZE) - NUM_LEVEL0 / 2;
+    int index = tn / (LEAF_SIZE * LEVEL_SIZE) - NUM_LEVEL0 / 2;
     assertEq(Tick.wrap(tick).level0Index(), index);
   }
 
   function test_level1Index_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    int index = tn / (LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) - NUM_LEVEL1 / 2;
+    int index = tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) - NUM_LEVEL1 / 2;
     assertEq(Tick.wrap(tick).level1Index(), index);
   }
 
@@ -315,25 +311,25 @@ contract TickTest is Test {
     uint _level0,
     uint _level1,
     uint _level2,
-    uint _level3
+    uint _root
   ) public {
     tickPosInLeaf = bound(tickPosInLeaf, 0, 3);
-    Field level0 = Field.wrap(bound(_level0, 1, uint(LEVEL0_SIZE) - 1));
-    Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL1_SIZE) - 1));
-    Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL2_SIZE) - 1));
-    Field level3 = Field.wrap(bound(_level3, 1, uint(LEVEL3_SIZE) - 1));
+    Field level0 = Field.wrap(bound(_level0, 1, uint(LEVEL_SIZE) - 1));
+    Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL_SIZE) - 1));
+    Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL_SIZE) - 1));
+    Field root = Field.wrap(bound(_root, 1, uint(ROOT_SIZE) - 1));
     MgvStructs.LocalPacked local;
     local = local.tickPosInLeaf(tickPosInLeaf);
     local = local.level0(level0);
     local = local.level1(level1);
     local = local.level2(level2);
-    local = local.level3(level3);
+    local = local.root(root);
     Tick tick = TickLib.bestTickFromLocal(local);
     assertEq(tick.posInLeaf(), tickPosInLeaf, "wrong pos in leaf");
     assertEq(tick.posInLevel0(), BitLib.ctz64(Field.unwrap(level0)), "wrong pos in level0");
     assertEq(tick.posInLevel1(), BitLib.ctz64(Field.unwrap(level1)), "wrong pos in level1");
     assertEq(tick.posInLevel2(), BitLib.ctz64(Field.unwrap(level2)), "wrong pos in level2");
-    assertEq(tick.posInLevel3(), BitLib.ctz64(Field.unwrap(level3)), "wrong pos in level3");
+    assertEq(tick.posInRoot(), BitLib.ctz64(Field.unwrap(root)), "wrong pos in root");
   }
 
   // HELPER FUNCTIONS
@@ -344,7 +340,7 @@ contract TickTest is Test {
 
 contract FieldTest is Test {
   function test_flipBit0(uint _field, uint8 posInLevel) public {
-    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL0_SIZE - 1)));
+    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
     Tick tick = Tick.wrap(LEAF_SIZE * int(uint(posInLevel)));
@@ -353,30 +349,30 @@ contract FieldTest is Test {
   }
 
   function test_flipBit1(uint _field, uint8 posInLevel) public {
-    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL1_SIZE - 1)));
+    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * int(uint(posInLevel)));
+    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
     Field flipped = base.flipBitAtLevel1(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
   function test_flipBit2(uint _field, uint8 posInLevel) public {
-    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL2_SIZE - 1)));
+    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * int(uint(posInLevel)));
+    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
     Field flipped = base.flipBitAtLevel2(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
   function test_flipBit3(uint _field, uint8 posInLevel) public {
-    posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL3_SIZE - 1)));
+    posInLevel = uint8(bound(posInLevel, 0, uint(ROOT_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    int adjustedPos = int(uint(posInLevel)) - LEVEL3_SIZE / 2;
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE * adjustedPos);
-    Field flipped = base.flipBitAtLevel3(tick);
+    int adjustedPos = int(uint(posInLevel)) - ROOT_SIZE / 2;
+    Tick tick = Tick.wrap(LEAF_SIZE * (LEVEL_SIZE ** 3) * adjustedPos);
+    Field flipped = base.flipBitAtRoot(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
@@ -393,7 +389,7 @@ contract FieldTest is Test {
     for (; i < 256; i++) {
       if (uint(b >> i) % 2 == 1) break;
     }
-    assertFirstOnePosition(uint(b), i > MAX_LEVEL_SIZE ? MAX_LEVEL_SIZE : i);
+    assertFirstOnePosition(uint(b), i > MAX_FIELD_SIZE ? MAX_FIELD_SIZE : i);
   }
 
   function assertFirstOnePosition(uint field, uint pos) internal {

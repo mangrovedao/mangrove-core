@@ -83,49 +83,53 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   //
   // We therefore restrict the ticks we test to the ToI
 
-  // TICK_MIN_L3_MAX_OTHERS tests
-  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIN_L3_MAX_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+  // TICK_MIN_ROOT_MAX_OTHERS tests
+  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_L3_MAX_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_MIN_ROOT_MAX_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_L3_MAX_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+      TICK_MIN_ROOT_MAX_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MIN_L3_MAX_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_MIN_ROOT_MAX_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
     );
   }
 
-  // TICK_MAX_L3_MIN_OTHERS tests
-  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MAX_L3_MIN_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_L3_MIN_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_MIN_ROOT_MAX_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+  // TICK_MAX_ROOT_MIN_OTHERS tests
+  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_L3_MIN_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+      TICK_MAX_ROOT_MIN_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(
-      TICK_MAX_L3_MIN_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+      TICK_MAX_ROOT_MIN_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MAX_ROOT_MIN_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+    );
+  }
+
+  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MAX_ROOT_MIN_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
     );
   }
 

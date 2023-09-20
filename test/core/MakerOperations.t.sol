@@ -1012,9 +1012,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     MgvStructs.LocalPacked local = mgv.local(olKey);
     // Derive a new level0, level1
     uint leafPos = local.level0().firstOnePosition();
-    Field otherLevel0 = Field.wrap(1 << (leafPos + 1) % uint(LEVEL0_SIZE));
+    Field otherLevel0 = Field.wrap(1 << (leafPos + 1) % uint(LEVEL_SIZE));
     uint level0Pos = local.level1().firstOnePosition();
-    Field otherLevel1 = Field.wrap(1 << (level0Pos + 1) % uint(LEVEL1_SIZE));
+    Field otherLevel1 = Field.wrap(1 << (level0Pos + 1) % uint(LEVEL_SIZE));
     MgvStructs.LocalPacked badLocal = local.level0(otherLevel0).level1(otherLevel1);
     // Make sure we changed the implied tick of badLocal
     assertTrue(!badLocal.bestTick().eq(lowTick), "test setup: bad tick should not be original lowTick");

@@ -403,9 +403,9 @@ contract MgvOfferMaking is MgvHasOffers {
             } else {
               offerList.level2[insertionIndex] = field.flipBitAtLevel2(insertionTick).dirty();
             }
-            // if level2 was empty, flip tick on at level3
+            // if level2 was empty, flip tick on at root
             if (field.isEmpty()) {
-              ofp.local = ofp.local.level3(ofp.local.level3().flipBitAtLevel3(insertionTick));
+              ofp.local = ofp.local.root(ofp.local.root().flipBitAtRoot(insertionTick));
             }
           }
         }

@@ -14,8 +14,8 @@ import {
   LEVEL1_HIGHER_LOG_PRICE,
   LEVEL2_LOWER_LOG_PRICE,
   LEVEL2_HIGHER_LOG_PRICE,
-  LEVEL3_LOWER_LOG_PRICE,
-  LEVEL3_HIGHER_LOG_PRICE
+  ROOT_LOWER_LOG_PRICE,
+  ROOT_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
@@ -143,23 +143,23 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_LOWER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_ROOT_LOWER_LOG_PRICE is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL3_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL3_LOWER_LOG_PRICE");
+    setUpLogPrice(ROOT_LOWER_LOG_PRICE);
+    description = string.concat(description, " - Case: ROOT_LOWER_LOG_PRICE");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_LOG_PRICE is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL3_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL3_HIGHER_LOG_PRICE");
+    setUpLogPrice(ROOT_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: ROOT_HIGHER_LOG_PRICE");
   }
 }
 
@@ -269,23 +269,23 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasT
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL3_LOWER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_ROOT_LOWER_LOG_PRICE is
   ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL3_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL3_LOWER_LOG_PRICE");
+    setUpLogPrice(ROOT_LOWER_LOG_PRICE);
+    description = string.concat(description, " - Case: ROOT_LOWER_LOG_PRICE");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL3_HIGHER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_ROOT_HIGHER_LOG_PRICE is
   ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL3_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL3_HIGHER_LOG_PRICE");
+    setUpLogPrice(ROOT_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: ROOT_HIGHER_LOG_PRICE");
   }
 }
 

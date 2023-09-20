@@ -695,7 +695,7 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.level2(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level3(olKey);
+    mgv.root(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.best(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
@@ -728,7 +728,7 @@ contract GatekeepingTest is MangroveTest {
     mgv.level0(olKey, 0);
     mgv.level1(olKey, 0);
     mgv.level2(olKey, 0);
-    mgv.level3(olKey);
+    mgv.root(olKey);
     mgv.best(olKey);
     mgv.offers(olKey, 0);
     mgv.offerDetails(olKey, 0);

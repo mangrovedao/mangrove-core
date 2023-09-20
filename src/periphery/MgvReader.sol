@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs, TickTreeIndex, Leaf, Field, LogPriceLib, OLKey} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, TickTreeIndex, Leaf, Field, TickLib, OLKey} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
+import {TickConversionLib} from "mgv_lib/TickConversionLib.sol";
 
 struct VolumeData {
   uint totalGot;
@@ -51,7 +51,7 @@ function toOLKey(Market memory market) pure returns (OLKey memory) {
 contract MgvReader {
   struct MarketOrder {
     OLKey olKey;
-    int maxLogPrice;
+    int maxTick;
     uint initialFillVolume;
     uint totalGot;
     uint totalGave;
@@ -395,32 +395,30 @@ contract MgvReader {
     bool accumulate
   ) public view returns (VolumeData[] memory) {
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
-    return simulateMarketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, accumulate);
+    int maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+    return simulateMarketOrderByTick(olKey, maxTick, fillVolume, fillWants, accumulate);
   }
 
-  function simulateMarketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
+  function simulateMarketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants)
     public
     view
     returns (VolumeData[] memory)
   {
-    return simulateMarketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, true);
+    return simulateMarketOrderByTick(olKey, maxTick, fillVolume, fillWants, true);
   }
 
-  function simulateMarketOrderByLogPrice(
-    OLKey memory olKey,
-    int maxLogPrice,
-    uint fillVolume,
-    bool fillWants,
-    bool accumulate
-  ) public view returns (VolumeData[] memory) {
+  function simulateMarketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants, bool accumulate)
+    public
+    view
+    returns (VolumeData[] memory)
+  {
     MarketOrder memory mr;
     mr.olKey = olKey;
     MgvStructs.GlobalPacked _global;
     (_global, mr.local) = MGV.config(olKey);
     mr.offerId = MGV.best(olKey);
     mr.offer = MGV.offers(olKey, mr.offerId);
-    mr.maxLogPrice = maxLogPrice;
+    mr.maxTick = maxTick;
     mr.currentFillVolume = fillVolume;
     mr.initialFillVolume = fillVolume;
     mr.fillWants = fillWants;
@@ -434,9 +432,7 @@ contract MgvReader {
 
   function simulateInternalMarketOrder(MarketOrder memory mr) internal view {
     unchecked {
-      if (
-        mr.currentFillVolume > 0 && mr.offer.logPrice() <= mr.maxLogPrice && mr.offerId > 0 && mr.maxRecursionDepth > 0
-      ) {
+      if (mr.currentFillVolume > 0 && mr.offer.tick() <= mr.maxTick && mr.offerId > 0 && mr.maxRecursionDepth > 0) {
         uint currentIndex = mr.numOffers;
 
         mr.offerDetail = MGV.offerDetails(mr.olKey, mr.offerId);
@@ -484,11 +480,11 @@ contract MgvReader {
           mr.currentGives = offerWants;
         } else {
           if (mr.fillWants) {
-            mr.currentGives = LogPriceLib.inboundFromOutboundUp(mr.offer.logPrice(), fillVolume);
+            mr.currentGives = TickLib.inboundFromOutboundUp(mr.offer.tick(), fillVolume);
             mr.currentWants = fillVolume;
           } else {
             // offerWants = 0 is forbidden at offer writing
-            mr.currentWants = LogPriceLib.outboundFromInbound(mr.offer.logPrice(), fillVolume);
+            mr.currentWants = TickLib.outboundFromInbound(mr.offer.tick(), fillVolume);
             mr.currentGives = fillVolume;
           }
         }

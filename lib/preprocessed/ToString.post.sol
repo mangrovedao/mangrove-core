@@ -13,8 +13,8 @@ Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
 import "mgv_lib/TickTreeIndexLib.sol";
-import "mgv_lib/LogPriceLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -26,7 +26,7 @@ function toString(OfferPacked __packed) pure returns (string memory) {
 }
 
 function toString(OfferUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "logPrice: ", vm.toString(__unpacked.logPrice), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
+  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "tick: ", vm.toString(__unpacked.tick), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
 }
 
 import {OfferDetailPacked, OfferDetailUnpacked} from "mgv_src/preprocessed/MgvOfferDetail.post.sol";
@@ -65,19 +65,19 @@ function toString(TickTreeIndex tick) pure returns (string memory ret) {
   if (MIN_TICK_TREE_INDEX > TickTreeIndex.unwrap(tick) || TickTreeIndex.unwrap(tick) > MAX_TICK_TREE_INDEX) {
     suffix = "out of range";
   } else if (MIN_TICK_TREE_INDEX_ALLOWED > TickTreeIndex.unwrap(tick) || TickTreeIndex.unwrap(tick) > MAX_TICK_TREE_INDEX_ALLOWED) {
-    suffix = "out of logPrice range";
+    suffix = "out of tick range";
   } else {
-    suffix = logPriceToString(LogPriceLib.fromTickTreeIndex(tick,1));
+    suffix = tickToString(TickLib.fromTickTreeIndex(tick,1));
   }
 
   ret = string.concat(unicode"「", vm.toString(TickTreeIndex.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickTreeIndexBranchToString(tick), "}", unicode"」");
 }
 
-function logPriceToString(int logPrice) pure returns (string memory ret) {
-  (uint man, uint exp)  = LogPriceConversionLib.ratioFromLogPrice(logPrice);
+function tickToString(int tick) pure returns (string memory ret) {
+  (uint man, uint exp)  = TickConversionLib.ratioFromTick(tick);
   string memory str = toFixed(man,exp);
 
-  ret = string.concat(unicode"⦗ ",vm.toString(logPrice),"|", str,unicode":1 ⦘");
+  ret = string.concat(unicode"⦗ ",vm.toString(tick),"|", str,unicode":1 ⦘");
 }
 
 function toString(Leaf leaf) pure returns (string memory ret) {

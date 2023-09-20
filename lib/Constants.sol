@@ -40,7 +40,7 @@ uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
 
 
 
-// +/- 2**20-1 because only 20 bits are examined by the logPrice->ratio function
+// +/- 2**20-1 because only 20 bits are examined by the tick->ratio function
 int constant MIN_LOG_PRICE = -((1 << 20)-1);
 int constant MAX_LOG_PRICE = -MIN_LOG_PRICE;
 uint constant MIN_RATIO_MANTISSA = 4735129379934731672174804159539094721182826496;

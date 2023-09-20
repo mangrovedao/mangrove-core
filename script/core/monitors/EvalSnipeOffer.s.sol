@@ -49,8 +49,7 @@ contract EvalSnipeOffer is Test2, Deployer {
       } else {
         heap.takerWants = heap.offer.gives() / i;
       }
-      heap.target =
-        wrap_dynamic(MgvLib.CleanTarget(offerId, heap.offer.logPrice(), heap.details.gasreq(), heap.takerWants));
+      heap.target = wrap_dynamic(MgvLib.CleanTarget(offerId, heap.offer.tick(), heap.details.gasreq(), heap.takerWants));
       _gas();
       string memory fill_str = i == 0 ? "0" : string.concat(vm.toString(11 - i), "/10");
       (uint successes, uint bounty) = mgv.cleanByImpersonation(olKey, heap.target, address(this));

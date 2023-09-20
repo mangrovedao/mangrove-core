@@ -156,7 +156,7 @@ contract TickTreeCleanOfferTest is TickTreeTest {
 
     // 4. Clean the offer
     mgv.cleanByImpersonation(
-      olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, offer.logPrice(), offerDetail.gasreq(), 1 ether)), $(this)
+      olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, offer.tick(), offerDetail.gasreq(), 1 ether)), $(this)
     );
     if (scenario.offerFail) {
       tickTree.removeOffer(offerId);

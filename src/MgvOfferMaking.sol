@@ -2,18 +2,10 @@
 pragma solidity ^0.8.10;
 
 import {
-  IMaker,
-  HasMgvEvents,
-  MgvStructs,
-  TickTreeIndex,
-  TickTreeIndexLib,
-  Leaf,
-  Field,
-  LogPriceLib,
-  OLKey
+  IMaker, HasMgvEvents, MgvStructs, TickTreeIndex, TickTreeIndexLib, Leaf, Field, TickLib, OLKey
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
+import {TickConversionLib} from "mgv_lib/TickConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
@@ -58,11 +50,11 @@ contract MgvOfferMaking is MgvHasOffers {
     returns (uint offerId)
   {
     unchecked {
-      return newOfferByLogPrice(olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
+      return newOfferByTick(olKey, TickConversionLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice);
     }
   }
 
-  function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
+  function newOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice)
     public
     payable
     returns (uint offerId)
@@ -88,7 +80,7 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.gasprice = gasprice;
 
       /* The second parameter to writeOffer indicates that we are creating a new offer, not updating an existing one. */
-      writeOffer(offerList, ofp, logPrice, false);
+      writeOffer(offerList, ofp, tick, false);
 
       /* Since we locally modified a field of the local configuration (`last`), we save the change to storage. Note that `writeOffer` may have further modified the local configuration by updating the current `best` offer. */
       offerList.local = ofp.local;
@@ -114,13 +106,11 @@ contract MgvOfferMaking is MgvHasOffers {
     payable
   {
     unchecked {
-      updateOfferByLogPrice(
-        olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId
-      );
+      updateOfferByTick(olKey, TickConversionLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
     }
   }
 
-  function updateOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId)
+  function updateOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice, uint offerId)
     public
     payable
   {
@@ -143,7 +133,7 @@ contract MgvOfferMaking is MgvHasOffers {
       MgvStructs.LocalPacked oldLocal = ofp.local;
       // ofp.tickleaf = tickleafs[outbound_tkn][inbound_tkn][ofp.tick];
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
-      writeOffer(offerList, ofp, logPrice, true);
+      writeOffer(offerList, ofp, tick, true);
       /* We saved the current offerList's configuration before calling `writeOffer`, since that function may update the current `best` offer. We now check for any change to the configuration and update it if needed. */
       if (!oldLocal.eq(ofp.local)) {
         offerList.local = ofp.local;
@@ -230,7 +220,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   /* ## Write Offer */
 
-  function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionLogPrice, bool update) internal {
+  function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionTick, bool update) internal {
     unchecked {
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(MgvStructs.Global.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
@@ -253,15 +243,14 @@ contract MgvOfferMaking is MgvHasOffers {
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
 
       uint tickSpacing = ofp.olKey.tickSpacing;
-      // normalize logPrice to tickSpacing
-      TickTreeIndex insertionTickTreeIndex =
-        TickTreeIndexLib.nearestHigherTickToLogPrice(insertionLogPrice, tickSpacing);
-      insertionLogPrice = LogPriceLib.fromTickTreeIndex(insertionTickTreeIndex, tickSpacing);
-      require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
+      // normalize tick to tickSpacing
+      TickTreeIndex insertionTickTreeIndex = TickTreeIndexLib.nearestHigherTickToTick(insertionTick, tickSpacing);
+      insertionTick = TickLib.fromTickTreeIndex(insertionTickTreeIndex, tickSpacing);
+      require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;
-      emit OfferWrite(ofp.olKey.hash(), msg.sender, insertionLogPrice, ofp.gives, ofp.gasprice, ofp.gasreq, ofrId);
+      emit OfferWrite(ofp.olKey.hash(), msg.sender, insertionTick, ofp.gives, ofp.gasprice, ofp.gasreq, ofrId);
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       {
@@ -439,7 +428,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =
-        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __logPrice: insertionLogPrice, __gives: ofp.gives});
+        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
       offerList.offerData[ofrId].offer = ofr;
     }
   }

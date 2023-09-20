@@ -15,7 +15,7 @@ import {MgvOfferTakingWithPermit} from "mgv_src/MgvOfferTakingWithPermit.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
-import {LogPriceLib} from "mgv_lib/LogPriceLib.sol";
+import {TickLib} from "mgv_lib/TickLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {
   IERC20,
@@ -177,7 +177,7 @@ contract MangroveTest is Test2, HasMgvEvents {
           string.concat(toFixed(ofr.wants(), req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
           string.concat(toFixed(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
-          string.concat(" (", vm.toString(ofr.logPrice), ") "),
+          string.concat(" (", vm.toString(ofr.tick), ") "),
           vm.toString(detail.maker)
         )
       );
@@ -285,48 +285,48 @@ contract MangroveTest is Test2, HasMgvEvents {
     return tt;
   }
 
-  function mockCompleteFillBuyOrder(uint takerWants, int logPrice) public view returns (MgvLib.SingleOrder memory sor) {
+  function mockCompleteFillBuyOrder(uint takerWants, int tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = olKey;
     // complete fill (prev and next are bogus)
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
     sor.takerWants = sor.offer.gives();
     sor.takerGives = sor.offer.wants();
   }
 
   function mockPartialFillBuyOrder(
     uint takerWants,
-    int logPrice,
+    int tick,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
   ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
     sor.olKey = _olBaseQuote;
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants * partialFill});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
-    sor.takerGives = LogPriceLib.inboundFromOutboundUp(logPrice, takerWants);
+    sor.takerGives = TickLib.inboundFromOutboundUp(tick, takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }
 
-  function mockCompleteFillSellOrder(uint takerWants, int logPrice) public view returns (MgvLib.SingleOrder memory sor) {
+  function mockCompleteFillSellOrder(uint takerWants, int tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = lo;
     // complete fill (prev and next are bogus)
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
     sor.takerWants = sor.offer.gives();
     sor.takerGives = sor.offer.wants();
   }
 
   function mockPartialFillSellOrder(
     uint takerWants,
-    int logPrice,
+    int tick,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
   ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
     sor.olKey = _olBaseQuote.flipped();
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants * partialFill});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
-    sor.takerGives = LogPriceLib.inboundFromOutboundUp(logPrice, takerWants);
+    sor.takerGives = TickLib.inboundFromOutboundUp(tick, takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }
@@ -419,15 +419,15 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
-  /// creates `fold` offers in the (outbound, inbound) market with the same `logPrice`, `gives` and `gasreq` and with `caller` as maker
-  function densify(OLKey memory _ol, int logPrice, uint gives, uint gasreq, uint fold, address caller) internal {
+  /// creates `fold` offers in the (outbound, inbound) market with the same `tick`, `gives` and `gasreq` and with `caller` as maker
+  function densify(OLKey memory _ol, int tick, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
     uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOfferByLogPrice{value: prov}(_ol, logPrice, gives, gasreq, 0);
+      mgv.newOfferByTick{value: prov}(_ol, tick, gives, gasreq, 0);
       fold--;
     }
   }
@@ -437,7 +437,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
-      densify(_ol, offer.logPrice(), offer.gives(), detail.gasreq(), fold, caller);
+      densify(_ol, offer.tick(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(_ol, offer);
     }

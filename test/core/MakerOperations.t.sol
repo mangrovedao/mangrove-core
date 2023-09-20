@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, Leaf, LogPriceLib, IMgvMonitor} from "mgv_src/MgvLib.sol";
+import {MgvStructs, Leaf, TickLib, IMgvMonitor} from "mgv_src/MgvLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/Constants.sol";
 
@@ -53,7 +53,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.offer.prev(), 0, "offer.prev should be hidden");
     assertEq(order.offer.next(), 0, "offer.next should be hidden");
     //   not hidden
-    assertEq(order.offer.logPrice(), 1, "offer.logPrice should not be hidden");
+    assertEq(order.offer.tick(), 1, "offer.tick should not be hidden");
     assertEq(order.offer.gives(), 1 ether, "offer.gives should not be hidden");
 
     // OfferPackedDetail is not filtered
@@ -108,7 +108,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.setExecuteCallback($(this), this.assertSORFieldsFilteredCorrectly.selector);
     deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mkr.newOfferByLogPrice(1, 1 ether, 200_000);
+    uint ofr = mkr.newOfferByTick(1, 1 ether, 200_000);
     require(tkr.marketOrderWithSuccess(0.1 ether), "take must work or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
@@ -903,9 +903,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_branch_on_retract_posInLeaf() public {
     mkr.provisionMgv(10 ether);
     uint wants = 5 ether;
-    mkr.newOfferByVolume(wants, LogPriceLib.outboundFromInbound(3, wants), 100_000, 0);
+    mkr.newOfferByVolume(wants, TickLib.outboundFromInbound(3, wants), 100_000, 0);
     uint posInLeaf = mgv.local(olKey).tickTreeIndexPosInLeaf();
-    uint ofr = mkr.newOfferByVolume(wants, LogPriceLib.outboundFromInbound(2, wants), 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(wants, TickLib.outboundFromInbound(2, wants), 100_000, 0);
     assertGt(
       posInLeaf,
       mgv.local(olKey).tickTreeIndexPosInLeaf(),
@@ -932,7 +932,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   // function test_firstOffer_fuzz_ratio() public {
   //   mkr.provisionMgv(10 ether);
-  //   uint ofr = mkr.newOfferByLogPrice(300_000, 0.0001 ether, 100_000, 0);
+  //   uint ofr = mkr.newOfferByTick(300_000, 0.0001 ether, 100_000, 0);
   // }
 
   function test_update_branch_on_retract_level1() public {
@@ -965,8 +965,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_branch_on_insert_posInLeaf() public {
     mkr.provisionMgv(10 ether);
     TickTreeIndex tick0 = TickTreeIndex.wrap(0);
-    mkr.newOfferByLogPrice(LogPriceLib.fromTickTreeIndex(tick0, olKey.tickSpacing), 1 ether, 100_000, 0);
-    uint ofr = mkr.newOfferByLogPrice(-46055, 100 ether, 100_000, 0);
+    mkr.newOfferByTick(TickLib.fromTickTreeIndex(tick0, olKey.tickSpacing), 1 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByTick(-46055, 100 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     assertTrue(
       offer.tickTreeIndex(olKey.tickSpacing).posInLeaf() != TickTreeIndex.wrap(0).posInLeaf(),
@@ -997,11 +997,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_currentTickTreeIndex_is_cached_no_level01_erasure() public {
     // Create a very low tickTreeIndex so that later the branch of lowTickTreeIndex will be both in storage and in cache
     TickTreeIndex veryLowTickTreeIndex = TickTreeIndex.wrap(-100000);
-    uint ofr_veryLow = mgv.newOfferByLogPrice(olKey, TickTreeIndex.unwrap(veryLowTickTreeIndex), 1 ether, 10_000, 0);
+    uint ofr_veryLow = mgv.newOfferByTick(olKey, TickTreeIndex.unwrap(veryLowTickTreeIndex), 1 ether, 10_000, 0);
 
     // Create an offer at lowTick
     TickTreeIndex lowTickTreeIndex = TickTreeIndex.wrap(10);
-    uint ofr = mgv.newOfferByLogPrice(olKey, TickTreeIndex.unwrap(lowTickTreeIndex), 1 ether, 10_000, 0);
+    uint ofr = mgv.newOfferByTick(olKey, TickTreeIndex.unwrap(lowTickTreeIndex), 1 ether, 10_000, 0);
 
     // Make sure very low tickTreeIndex uses a different branch
     assertTrue(
@@ -1035,11 +1035,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       "test setup: bad tickTreeIndex level0Index should be different"
     );
     // Create a tickTreeIndex there
-    mgv.newOfferByLogPrice(olKey, TickTreeIndex.unwrap(badLocal.bestTickTreeIndex()), 1 ether, 10_000, 0);
+    mgv.newOfferByTick(olKey, TickTreeIndex.unwrap(badLocal.bestTickTreeIndex()), 1 ether, 10_000, 0);
     // Save level0, level1
     Field highLevel0 = mgv.level0(olKey, badLocal.bestTickTreeIndex().level0Index());
     // Update the new tickTreeIndex to an even better tick
-    mgv.updateOfferByLogPrice(olKey, TickTreeIndex.unwrap(veryLowTickTreeIndex), 1 ether, 10_000, 0, ofr);
+    mgv.updateOfferByTick(olKey, TickTreeIndex.unwrap(veryLowTickTreeIndex), 1 ether, 10_000, 0, ofr);
 
     // Make sure we the high offer's branch is still fine
     assertEq(
@@ -1056,18 +1056,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_higher_tick() public {
-    mgv.newOfferByLogPrice(olKey, 2, 1 ether, 100_000, 0);
+    mgv.newOfferByTick(olKey, 2, 1 ether, 100_000, 0);
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
 
-    mgv.newOfferByLogPrice(olKey, 3, 1 ether, 100_000, 0);
+    mgv.newOfferByTick(olKey, 3, 1 ether, 100_000, 0);
     (, local) = mgv.config(olKey);
     assertEq(local.tickTreeIndexPosInLeaf(), 2);
   }
 
-  function test_leaf_update_both_first_and_last(int logPrice) public {
-    logPrice = bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE);
-    uint ofr0 = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 0, 0);
-    TickTreeIndex tickTreeIndex = TickTreeIndexLib.nearestHigherTickToLogPrice(logPrice, olKey.tickSpacing);
+  function test_leaf_update_both_first_and_last(int tick) public {
+    tick = bound(tick, MIN_LOG_PRICE, MAX_LOG_PRICE);
+    uint ofr0 = mgv.newOfferByTick(olKey, tick, 1 ether, 0, 0);
+    TickTreeIndex tickTreeIndex = TickTreeIndexLib.nearestHigherTickToTick(tick, olKey.tickSpacing);
     Leaf expected = LeafLib.EMPTY;
     expected = expected.setPosFirstOrLast(tickTreeIndex.posInLeaf(), ofr0, true);
     expected = expected.setPosFirstOrLast(tickTreeIndex.posInLeaf(), ofr0, false);

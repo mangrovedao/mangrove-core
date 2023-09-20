@@ -27,7 +27,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
   // Resets failure flag and reposts offer at same ratio.
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) external override {
     shouldFail = false;
-    try mgv.updateOfferByLogPrice(order.olKey, 0, minVolume, gasreq, 0, order.offerId) {
+    try mgv.updateOfferByTick(order.olKey, 0, minVolume, gasreq, 0, order.offerId) {
       // we do not fail if we cannot repost since we still need to set shouldFail to false.
     } catch {}
   }
@@ -45,7 +45,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
 
     // 100 offers at same ratio at minimum volume.
     for (uint i; i < 100; ++i) {
-      mgv.newOfferByLogPrice(olKey, 0, minVolume, gasreq, 0);
+      mgv.newOfferByTick(olKey, 0, minVolume, gasreq, 0);
     }
   }
 
@@ -84,7 +84,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     // the first offer succeeds. All other offer fails.
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
+    mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
   }
 
   function test_take_one_then_two_at_once_fails_for_deep_stack() public {
@@ -94,7 +94,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     takeSome(minVolume);
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
+    mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
   }
 }
 
@@ -156,7 +156,7 @@ contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
       } else if (failureMode == 2) {
         fail = uint(keccak256(abi.encodePacked(seed, i))) % 2 == 0;
       }
-      uint offerId = mgv.newOfferByLogPrice(olKey, 0, volume, gasreq, 0);
+      uint offerId = mgv.newOfferByTick(olKey, 0, volume, gasreq, 0);
       if (!fail && depth > i) {
         expectedGot += volume;
       }
@@ -177,7 +177,7 @@ contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
     mgv.setMaxRecursionDepth(depth);
 
     vm.prank($(taker));
-    try mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, 200 ether, false, type(uint).max) {
+    try mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, 200 ether, false, type(uint).max) {
       assertLe(depth, failDepth, "should only succeed at lower depths");
     } catch {
       assertGt(depth, failDepth, "should only fail for high depth");

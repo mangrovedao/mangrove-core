@@ -80,16 +80,16 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     vm.prank(maker);
     TransferLib.approveToken(quote, $(mgv), type(uint).max);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 100000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 100000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 100000, 0);
+    mgv.newOfferByTick(lo, MIDDLE_LOG_PRICE, offerGivesLo, 100000, 0);
   }
 
   function gasbase_to_empty_book(OLKey memory _olKey) internal {
     (IMangrove _mgv,,,) = getStored();
     vm.prank($(taker));
     _gas();
-    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
+    _mgv.marketOrderByTick(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
   }
 

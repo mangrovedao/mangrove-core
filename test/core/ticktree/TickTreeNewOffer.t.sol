@@ -142,9 +142,9 @@ contract TickTreeNewOfferTest is TickTreeTest {
 
     // 4. Create new offer and add it to tickTreeIndex tree
     TickTreeIndex insertionTickTreeIndex = scenario.tickScenario.tickTreeIndex;
-    int logPrice = LogPriceLib.fromTickTreeIndex(insertionTickTreeIndex, olKey.tickSpacing);
+    int tick = TickLib.fromTickTreeIndex(insertionTickTreeIndex, olKey.tickSpacing);
     uint gives = getAcceptableGivesForTickTreeIndex(insertionTickTreeIndex, 50_000);
-    mkr.newOfferByLogPrice(logPrice, gives, 50_000, 50);
+    mkr.newOfferByTick(tick, gives, 50_000, 50);
     tickTree.addOffer(insertionTickTreeIndex, gives, 50_000, 50, $(mkr));
 
     // 5. Assert that Mangrove and tickTreeIndex tree are equal

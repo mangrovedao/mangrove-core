@@ -4,15 +4,15 @@ pragma solidity ^0.8.10;
 
 import "mgv_lib/Test2.sol";
 import "mgv_src/MgvLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract ConstantsTest is Test2 {
   function test_constants_min_max_ratio() public {
-    (uint man, uint exp) = LogPriceConversionLib.ratioFromLogPrice(MIN_LOG_PRICE);
+    (uint man, uint exp) = TickConversionLib.ratioFromTick(MIN_LOG_PRICE);
     assertEq(man, MIN_RATIO_MANTISSA);
     assertEq(int(exp), MIN_RATIO_EXP);
-    (man, exp) = LogPriceConversionLib.ratioFromLogPrice(MAX_LOG_PRICE);
+    (man, exp) = TickConversionLib.ratioFromTick(MAX_LOG_PRICE);
     assertEq(man, MAX_RATIO_MANTISSA);
     assertEq(int(exp), MAX_RATIO_EXP);
   }

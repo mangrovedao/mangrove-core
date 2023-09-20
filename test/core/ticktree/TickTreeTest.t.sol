@@ -194,7 +194,7 @@ abstract contract TickTreeTest is MangroveTest {
     }
     if (tickTreeIndex.posInRoot() < MAX_ROOT_POS) {
       // higher root position
-      // Choosing MIN POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
+      // Choosing MIN POSITION for level2, level1, level0, leaf to avoid hitting tick limits.
       // The important thing is to have a higher position in root.
       ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(tickTreeIndex.posInRoot() + 1, 0, 0, 0, 0);
       if (!isAllowedByRatioMath(ticks[next - 1])) {
@@ -270,7 +270,7 @@ abstract contract TickTreeTest is MangroveTest {
     }
     if (tickTreeIndex.posInRoot() > 0) {
       // lower root position
-      // Choosing MAX POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
+      // Choosing MAX POSITION for level2, level1, level0, leaf to avoid hitting tick limits.
       // The important thing is to have a lower position in root.
       ticks[next++] = TickTreeUtil.tickTreeIndexFromPositions(
         tickTreeIndex.posInRoot() - 1, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEVEL_POS, MAX_LEAF_POS
@@ -364,15 +364,15 @@ abstract contract TickTreeTest is MangroveTest {
     internal
     returns (uint[] memory offerIds, uint gives)
   {
-    int logPrice = LogPriceLib.fromTickTreeIndex(tickTreeIndex, olKey.tickSpacing);
+    int tick = TickLib.fromTickTreeIndex(tickTreeIndex, olKey.tickSpacing);
     uint gasreq = 10_000_000;
     gives = getAcceptableGivesForTickTreeIndex(tickTreeIndex, gasreq);
     offerIds = new uint[](n);
     for (uint i = 0; i < n; ++i) {
       if (offersFail) {
-        offerIds[i] = mkr.newFailingOfferByLogPrice(logPrice, gives, gasreq);
+        offerIds[i] = mkr.newFailingOfferByTick(tick, gives, gasreq);
       } else {
-        offerIds[i] = mkr.newOfferByLogPrice(logPrice, gives, gasreq);
+        offerIds[i] = mkr.newOfferByTick(tick, gives, gasreq);
       }
     }
   }

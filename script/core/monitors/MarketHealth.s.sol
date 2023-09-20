@@ -135,7 +135,7 @@ contract MarketHealth is Test2, Deployer {
       // FIXME: This is no longer possible with the new clean function
       // offering a better ratio than what the offer requires
       vars.targets =
-        wrap_dynamic(MgvLib.CleanTarget(vars.best, vars.offer.logPrice, vars.offerDetail.gasreq, vars.takerWants));
+        wrap_dynamic(MgvLib.CleanTarget(vars.best, vars.offer.tick, vars.offerDetail.gasreq, vars.takerWants));
       _gas();
       (vars.snipesSuccesses, vars.snipesBounty) = mgv.cleanByImpersonation(olKey, vars.targets, address(this));
       vars.g = gas_(true);

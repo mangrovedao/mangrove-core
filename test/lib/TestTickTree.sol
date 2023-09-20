@@ -562,8 +562,8 @@ contract TestTickTree is MangroveTest {
     // console.log("leaf after: %s", toString(leafs[tickTreeIndex.leafIndex()]));
 
     // Create offer
-    int logPrice = LogPriceLib.fromTickTreeIndex(tickTreeIndex, olKey.tickSpacing);
-    offers[offerId].offer = MgvStructs.Offer.pack({__prev: lastId, __next: 0, __logPrice: logPrice, __gives: gives});
+    int tick = TickLib.fromTickTreeIndex(tickTreeIndex, olKey.tickSpacing);
+    offers[offerId].offer = MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: tick, __gives: gives});
     offers[offerId].detail = MgvStructs.OfferDetail.pack({
       __maker: maker,
       __gasreq: gasreq,

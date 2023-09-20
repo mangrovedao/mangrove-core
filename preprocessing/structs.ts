@@ -105,15 +105,15 @@ const struct_defs = {
       id_field("prev"),
       /* * `next` points to the immediately worse offer. The worst offer's `next` is 0. _32 bits wide_. */
       id_field("next"),
-      {name:"logPrice",bits:24,type:"int"},
+      {name:"tick",bits:24,type:"int"},
       /* * `gives` is the amount of `outbound_tkn` the offer will give if successfully executed.
       _96 bits wide_, so assuming the usual 18 decimals, amounts can only go up to
       10 billions. */
       fields.gives,
     ],
     additionalDefinitions: `import "mgv_lib/TickTreeIndexLib.sol";
-import "mgv_lib/LogPriceLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -124,7 +124,7 @@ uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(prev_mask_inv | next_mask_inv);
 library OfferPackedExtra {
   // Compute wants from tick and gives
   function wants(OfferPacked offer) internal pure returns (uint) {
-    return LogPriceLib.inboundFromOutbound(offer.logPrice(),offer.gives());
+    return TickLib.inboundFromOutbound(offer.tick(),offer.gives());
   }
   // Sugar to test offer liveness
   function isLive(OfferPacked offer) internal pure returns (bool resp) {
@@ -134,8 +134,8 @@ library OfferPackedExtra {
     }
   }
   function tickTreeIndex(OfferPacked offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
-    // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickTreeIndexLib.fromTickTreeIndexAlignedLogPrice(offer.logPrice(), tickSpacing);
+    // Offers are always stored with a tick that corresponds exactly to a tick
+    return TickTreeIndexLib.fromTickTreeIndexAlignedTick(offer.tick(), tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -149,7 +149,7 @@ library OfferPackedExtra {
 library OfferUnpackedExtra {
   // Compute wants from tick and gives
   function wants(OfferUnpacked memory offer) internal pure returns (uint) {
-    return LogPriceLib.inboundFromOutbound(offer.logPrice,offer.gives);
+    return TickLib.inboundFromOutbound(offer.tick,offer.gives);
   }
   // Sugar to test offer liveness
   function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {
@@ -159,8 +159,8 @@ library OfferUnpackedExtra {
     }
   }
   function tickTreeIndex(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
-    // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickTreeIndexLib.fromTickTreeIndexAlignedLogPrice(offer.logPrice, tickSpacing);
+    // Offers are always stored with a tick that corresponds exactly to a tick
+    return TickTreeIndexLib.fromTickTreeIndexAlignedTick(offer.tick, tickSpacing);
   }
 
 }

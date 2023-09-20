@@ -15,12 +15,12 @@ import {
   DirtyField,
   DirtyFieldLib,
   DirtyLeaf,
-  LogPriceLib,
+  TickLib,
   OLKey
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickTreeIndexLib} from "mgv_lib/TickTreeIndexLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
@@ -35,7 +35,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume; // used globally
     uint feePaid; // used globally
     Leaf leaf;
-    int maxLogPrice; // maxLogPrice is the log of the max ratio that can be reached by the market order as a limit ratio.
+    int maxTick; // maxTick is the log of the max ratio that can be reached by the market order as a limit ratio.
     uint maxGasreqForFailingOffers;
     uint gasreqForFailingOffers;
     uint maxRecursionDepth;
@@ -58,28 +58,28 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
-    return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
+    int maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+    return marketOrderByTick(olKey, maxTick, fillVolume, fillWants);
   }
 
-  function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
+  function marketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
-      return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, 0);
+      return marketOrderByTick(olKey, maxTick, fillVolume, fillWants, 0);
     }
   }
 
-  function marketOrderByLogPrice(
+  function marketOrderByTick(
     OLKey memory olKey,
-    int maxLogPrice,
+    int maxTick,
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
   ) public returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
     unchecked {
-      return generalMarketOrder(olKey, maxLogPrice, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers);
+      return generalMarketOrder(olKey, maxTick, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers);
     }
   }
 
@@ -153,7 +153,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function generalMarketOrder(
     OLKey memory olKey,
-    int maxLogPrice,
+    int maxTick,
     uint fillVolume,
     bool fillWants,
     address taker,
@@ -162,11 +162,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     unchecked {
       /* Checking that `takerWants` and `takerGives` fit in 104 bits prevents overflow during the main market order loop. */
       require(fillVolume <= MAX_SAFE_VOLUME, "mgv/mOrder/fillVolume/tooBig");
-      require(LogPriceLib.inRange(maxLogPrice), "mgv/mOrder/logPrice/outOfRange");
+      require(TickLib.inRange(maxTick), "mgv/mOrder/tick/outOfRange");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;
-      mor.maxLogPrice = maxLogPrice;
+      mor.maxTick = maxTick;
       mor.taker = taker;
       mor.fillWants = fillWants;
 
@@ -202,7 +202,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.local = sor.local.lock(true);
       offerList.local = sor.local;
 
-      emit OrderStart(sor.olKey.hash(), taker, maxLogPrice, fillVolume, fillWants);
+      emit OrderStart(sor.olKey.hash(), taker, maxTick, fillVolume, fillWants);
 
       /* Call recursive `internalMarketOrder` function.*/
       internalMarketOrder(offerList, mor, sor);
@@ -225,7 +225,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     unchecked {
       if (
-        mor.fillVolume > 0 && sor.offer.logPrice() <= mor.maxLogPrice && sor.offerId > 0 && mor.maxRecursionDepth > 0
+        mor.fillVolume > 0 && sor.offer.tick() <= mor.maxTick && sor.offerId > 0 && mor.maxRecursionDepth > 0
           && mor.gasreqForFailingOffers <= mor.maxGasreqForFailingOffers
       ) {
         mor.maxRecursionDepth--;
@@ -361,7 +361,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           MgvLib.CleanTarget calldata target = targets[i];
           encodedCall = abi.encodeCall(
             this.internalCleanByImpersonation,
-            (olKey, target.offerId, target.logPrice, target.gasreq, target.takerWants, taker)
+            (olKey, target.offerId, target.tick, target.gasreq, target.takerWants, taker)
           );
         }
         bytes memory retdata;
@@ -389,7 +389,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   function internalCleanByImpersonation(
     OLKey memory olKey,
     uint offerId,
-    int logPrice,
+    int tick,
     uint gasreq,
     uint takerWants,
     address taker
@@ -400,8 +400,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       MultiOrder memory mor;
       {
-        require(LogPriceLib.inRange(logPrice), "mgv/clean/logPrice/outOfRange");
-        mor.maxLogPrice = logPrice;
+        require(TickLib.inRange(tick), "mgv/clean/tick/outOfRange");
+        mor.maxTick = tick;
       }
       {
         require(uint96(takerWants) == takerWants, "mgv/clean/takerWants/96bits");
@@ -429,7 +429,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. */
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
       /* A mismatched ratio will be detected by `execute`. */
-      require(sor.offer.logPrice() == logPrice, "mgv/clean/tickMismatch");
+      require(sor.offer.tick() == tick, "mgv/clean/tickMismatch");
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);
@@ -498,11 +498,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           sor.takerGives = offerWants;
         } else {
           if (mor.fillWants) {
-            sor.takerGives = LogPriceLib.inboundFromOutboundUp(sor.offer.logPrice(), fillVolume);
+            sor.takerGives = TickLib.inboundFromOutboundUp(sor.offer.tick(), fillVolume);
             sor.takerWants = fillVolume;
           } else {
             // offerWants = 0 is forbidden at offer writing
-            sor.takerWants = LogPriceLib.outboundFromInbound(sor.offer.logPrice(), fillVolume);
+            sor.takerWants = TickLib.outboundFromInbound(sor.offer.tick(), fillVolume);
             sor.takerGives = fillVolume;
           }
         }

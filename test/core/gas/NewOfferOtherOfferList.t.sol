@@ -11,7 +11,7 @@ import {OLKey} from "mgv_src/MgvLib.sol";
 contract ExternalNewOfferOtherOfferList_AlwaysEmptyGasTest is SingleGasTestBase {
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal override {
     _gas();
-    mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    mgv.newOfferByTick(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     gas_();
     description =
       "Worst case scenario if strat posts on different, as of yet always empty, list. This is unlikely to happen in practice";
@@ -21,9 +21,9 @@ contract ExternalNewOfferOtherOfferList_AlwaysEmptyGasTest is SingleGasTestBase 
 contract ExternalNewOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGasTestBase {
   function setUp() public virtual override {
     super.setUp();
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     vm.prank($(_taker));
-    mgv.marketOrderByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, true);
+    mgv.marketOrderByTick(olKey, MIDDLE_LOG_PRICE, 1, true);
     assertEq(0, mgv.best(olKey));
     description =
       "Worst case scenario if strat posts on a different offer list which has become empty. This can happen in practice if offer list runs out of liquidity";
@@ -31,7 +31,7 @@ contract ExternalNewOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGasTes
 
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal virtual override {
     _gas();
-    mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    mgv.newOfferByTick(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     gas_();
   }
 }
@@ -39,13 +39,13 @@ contract ExternalNewOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGasTes
 contract ExternalNewOfferOtherOfferList_WithOtherOfferGasTest is TickTreeBoundariesGasTest, GasTestBase {
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     description = "Posting a new offer when another offer exists at various tick-distances to the new offer";
   }
 
-  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _logPrice) internal override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _tick) internal override {
     _gas();
-    mgv.newOfferByLogPrice(_olKey, _logPrice, 0.00001 ether, 100_000, 0);
+    mgv.newOfferByTick(_olKey, _tick, 0.00001 ether, 100_000, 0);
     gas_();
   }
 }
@@ -70,7 +70,7 @@ contract ExternalNewOfferOtherOfferList_WithPriorNewOfferAndNoOtherOffersGasTest
   }
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) internal override {
-    mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    mgv.newOfferByTick(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
     super.impl(mgv, taker, _olKey, offerId);
   }
 }

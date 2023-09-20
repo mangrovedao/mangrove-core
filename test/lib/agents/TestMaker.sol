@@ -290,69 +290,62 @@ contract SimpleTestMaker is TrivialTestMaker {
     return offerId;
   }
 
-  function newOfferByLogPrice(int logPrice, uint gives, uint gasreq) public returns (uint) {
-    return newOfferByLogPrice(logPrice, gives, gasreq, 0);
+  function newOfferByTick(int tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTick(tick, gives, gasreq, 0);
   }
 
-  function newFailingOfferByLogPrice(int logPrice, uint gives, uint gasreq) public returns (uint) {
-    return newOfferByLogPriceWithFunding(
-      olKey, logPrice, gives, gasreq, 0, 0, OfferData({shouldRevert: true, executeData: "someData"})
+  function newFailingOfferByTick(int tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTickWithFunding(
+      olKey, tick, gives, gasreq, 0, 0, OfferData({shouldRevert: true, executeData: "someData"})
     );
   }
 
-  function newOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint gasprice) public returns (uint) {
-    return newOfferByLogPrice(olKey, logPrice, gives, gasreq, gasprice);
+  function newOfferByTick(int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+    return newOfferByTick(olKey, tick, gives, gasreq, gasprice);
   }
 
-  function newOfferByLogPrice(OLKey memory _olKey, int logPrice, uint gives, uint gasreq) public returns (uint) {
-    return newOfferByLogPrice(_olKey, logPrice, gives, gasreq, 0);
+  function newOfferByTick(OLKey memory _olKey, int tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTick(_olKey, tick, gives, gasreq, 0);
   }
 
-  function newOfferByLogPrice(OLKey memory _olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
+  function newOfferByTick(OLKey memory _olKey, int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+    return newOfferByTickWithFunding(_olKey, tick, gives, gasreq, gasprice, 0);
+  }
+
+  function newOfferByTickWithFunding(OLKey memory _ol, int tick, uint gives, uint gasreq, uint gasprice, uint amount)
     public
     returns (uint)
   {
-    return newOfferByLogPriceWithFunding(_olKey, logPrice, gives, gasreq, gasprice, 0);
-  }
-
-  function newOfferByLogPriceWithFunding(
-    OLKey memory _ol,
-    int logPrice,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint amount
-  ) public returns (uint) {
     OfferData memory offerData;
-    return newOfferByLogPriceWithFunding(_ol, logPrice, gives, gasreq, gasprice, amount, offerData);
+    return newOfferByTickWithFunding(_ol, tick, gives, gasreq, gasprice, amount, offerData);
   }
 
-  function newOfferByLogPriceWithFunding(
+  function newOfferByTickWithFunding(
     OLKey memory _ol,
-    int logPrice,
+    int tick,
     uint gives,
     uint gasreq,
     uint gasprice,
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOfferByLogPrice{value: amount}(_ol, logPrice, gives, gasreq, gasprice);
+    uint offerId = mgv.newOfferByTick{value: amount}(_ol, tick, gives, gasreq, gasprice);
     offerDatas[olKey.hash()][offerId] = offerData;
     return offerId;
   }
 
-  function updateOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint offerId) public {
-    updateOfferByLogPrice(logPrice, gives, gasreq, 0, offerId);
+  function updateOfferByTick(int tick, uint gives, uint gasreq, uint offerId) public {
+    updateOfferByTick(tick, gives, gasreq, 0, offerId);
   }
 
-  function updateOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId) public {
+  function updateOfferByTick(int tick, uint gives, uint gasreq, uint gasprice, uint offerId) public {
     OfferData memory offerData;
-    updateOfferByLogPriceWithFunding(olKey, logPrice, gives, gasreq, gasprice, offerId, 0, offerData);
+    updateOfferByTickWithFunding(olKey, tick, gives, gasreq, gasprice, offerId, 0, offerData);
   }
 
-  function updateOfferByLogPriceWithFunding(
+  function updateOfferByTickWithFunding(
     OLKey memory _olKey,
-    int logPrice,
+    int tick,
     uint gives,
     uint gasreq,
     uint gasprice,
@@ -360,7 +353,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public {
-    mgv.updateOfferByLogPrice{value: amount}(_olKey, logPrice, gives, gasreq, gasprice, offerId);
+    mgv.updateOfferByTick{value: amount}(_olKey, tick, gives, gasreq, gasprice, offerId);
     offerDatas[_olKey.hash()][offerId] = offerData;
   }
 
@@ -444,22 +437,22 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function clean(uint offerId, uint takerWants) public returns (bool success) {
-    int logPrice = mgv.offers(olKey, offerId).logPrice();
-    return clean(olKey, offerId, logPrice, takerWants);
+    int tick = mgv.offers(olKey, offerId).tick();
+    return clean(olKey, offerId, tick, takerWants);
   }
 
-  function clean(uint offerId, int logPrice, uint takerWants) public returns (bool success) {
-    return clean(olKey, offerId, logPrice, takerWants);
+  function clean(uint offerId, int tick, uint takerWants) public returns (bool success) {
+    return clean(olKey, offerId, tick, takerWants);
   }
 
   function clean(OLKey memory _olKey, uint offerId, uint takerWants) public returns (bool success) {
-    int logPrice = mgv.offers(olKey, offerId).logPrice();
-    return clean(_olKey, offerId, logPrice, takerWants);
+    int tick = mgv.offers(olKey, offerId).tick();
+    return clean(_olKey, offerId, tick, takerWants);
   }
 
-  function clean(OLKey memory _olKey, uint offerId, int logPrice, uint takerWants) public returns (bool success) {
+  function clean(OLKey memory _olKey, uint offerId, int tick, uint takerWants) public returns (bool success) {
     MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](1);
-    targets[0] = MgvLib.CleanTarget(offerId, logPrice, type(uint48).max, takerWants);
+    targets[0] = MgvLib.CleanTarget(offerId, tick, type(uint48).max, takerWants);
     (uint successes,) = mgv.cleanByImpersonation(_olKey, targets, address(this));
     return successes > 0;
   }

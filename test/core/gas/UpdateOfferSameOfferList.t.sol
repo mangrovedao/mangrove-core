@@ -14,7 +14,7 @@ contract PosthookSuccessUpdateOfferSameList_WithNoOtherOffersGasTest is TickTree
 
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     description =
       "Updating an offer in posthook for now empty offer list but where new offer has varying closeness to taken offer";
   }
@@ -30,17 +30,17 @@ contract PosthookSuccessUpdateOfferSameList_WithNoOtherOffersGasTest is TickTree
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata) public virtual override {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
-      int _logPrice = logPrice;
+      int _tick = tick;
       _gas();
       // Same gasreq, not deprovisioned, gasprice unchanged.
-      mgv.updateOfferByLogPrice(_olKey, _logPrice, 0.00001 ether, 1_000_000, 0, offerId);
+      mgv.updateOfferByTick(_olKey, _tick, 0.00001 ether, 1_000_000, 0, offerId);
       gas_();
     }
   }
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal virtual override {
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, true);
+    mgv.marketOrderByTick(_olKey, MIDDLE_LOG_PRICE, 1, true);
   }
 }
 
@@ -52,8 +52,8 @@ contract PosthookSuccessUpdateOfferSameList_WithOtherOfferGasTest is
   function setUp() public virtual override {
     super.setUp();
     // We insert two others so PosthookFailure will still have the second offer on the book when executing posthook as the first is taken to do the fill.
-    offerId2 = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    offerId2 = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     description =
       "Updating an offer in posthook for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer";
   }
@@ -69,12 +69,12 @@ contract PosthookSuccessUpdateOfferSameList_WithOtherOfferAndOfferOnSameTickTree
       "Updating an offer in posthook for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tick";
   }
 
-  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, int _logPrice) internal override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, int _tick) internal override {
     // Skip lower ratios as they would be taken by market order if posted so they are not posted.
-    if (_logPrice < MIDDLE_LOG_PRICE) {
+    if (_tick < MIDDLE_LOG_PRICE) {
       return;
     }
-    super.impl(mgv, taker, _olKey, offerId, _logPrice);
+    super.impl(mgv, taker, _olKey, offerId, _tick);
   }
 }
 
@@ -91,7 +91,7 @@ contract PosthookSuccessUpdateOfferSameList_WithPriorUpdateOfferAndNoOtherOffers
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
       // Insert at middle ratio - the measured one is at various tick-distances.
-      mgv.updateOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0, offerId2);
+      mgv.updateOfferByTick(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0, offerId2);
     }
     super.makerPosthook(sor, result);
   }

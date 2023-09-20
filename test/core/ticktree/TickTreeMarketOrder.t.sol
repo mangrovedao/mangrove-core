@@ -261,7 +261,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     removeTakenOffers(scenario.lowerTickTreeIndex, lowerOfferIds);
     removeTakenOffers(scenario.middleTickTreeIndex, middleOfferIds);
     removeTakenOffers(scenario.higherTickTreeIndex, higherOfferIds);
-    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, fillVolume, true);
+    mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, fillVolume, true);
     assertTrue(lastTakenOfferId == 0 || lastTakenOfferPosthookCalled, "last taken offer posthook not called");
 
     // assertMgvTickTreeIsConsistent();

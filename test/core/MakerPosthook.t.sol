@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, LogPriceLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, TickLib} from "mgv_src/MgvLib.sol";
 
 contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
@@ -236,8 +236,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
 
-    int offerLogPrice = mgv.offers(olKey, ofr).logPrice();
-    assertFalse(tkr.cleanByLogPrice(ofr, offerLogPrice, 1 ether, gasreq - 1), "clean should fail");
+    int offerTick = mgv.offers(olKey, ofr).tick();
+    assertFalse(tkr.cleanByTick(ofr, offerTick, 1 ether, gasreq - 1), "clean should fail");
     assertTrue(!called, "PostHook was called");
   }
 
@@ -245,8 +245,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     executeReturnData = "NOK2";
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
 
-    int offerLogPrice = mgv.offers(olKey, ofr).logPrice();
-    assertFalse(tkr.cleanByLogPrice(ofr, offerLogPrice, 1 ether, gasreq - 1), "clean should fail");
+    int offerTick = mgv.offers(olKey, ofr).tick();
+    assertFalse(tkr.cleanByTick(ofr, offerTick, 1 ether, gasreq - 1), "clean should fail");
     // using asserts in makerPosthook here
     assertTrue(!called, "PostHook was called");
   }
@@ -254,9 +254,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_posthook_of_skipped_offer_wrong_ratio_should_not_be_called() public {
     _posthook = failer_posthook;
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
-    int logPrice = mgv.offers(olKey, ofr).logPrice();
-    int newLogPrice = logPrice - 1; // Snipe at a lower ratio
-    assertFalse(tkr.cleanByLogPrice(ofr, newLogPrice, 1 ether, gasreq), "clean should fail");
+    int tick = mgv.offers(olKey, ofr).tick();
+    int newTick = tick - 1; // Snipe at a lower ratio
+    assertFalse(tkr.cleanByTick(ofr, newTick, 1 ether, gasreq), "clean should fail");
     assertTrue(!called, "PostHook was called");
   }
 

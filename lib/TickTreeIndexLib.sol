@@ -184,23 +184,23 @@ library TickTreeIndexLib {
     }
   }
 
-  // Returns the nearest, higher tickTreeIndex to the given logPrice at the given tickSpacing
-  function nearestHigherTickToLogPrice(int logPrice, uint tickSpacing) internal pure returns (TickTreeIndex) {
+  // Returns the nearest, higher tickTreeIndex to the given tick at the given tickSpacing
+  function nearestHigherTickToTick(int tick, uint tickSpacing) internal pure returns (TickTreeIndex) {
     unchecked {
-      // Do not force logPrices to fit the tickSpacing (aka logPrice%tickSpacing==0)
+      // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
       // Round maker ratios up such that maker is always paid at least what they asked for
-      int tickTreeIndex = logPrice / int(tickSpacing);
-      if (logPrice > 0 && logPrice % int(tickSpacing) != 0) {
+      int tickTreeIndex = tick / int(tickSpacing);
+      if (tick > 0 && tick % int(tickSpacing) != 0) {
         tickTreeIndex = tickTreeIndex + 1;
       }
       return TickTreeIndex.wrap(tickTreeIndex);
     }
   }
 
-  // Optimized conversion for logPrices that are known to map exactly to a tickTreeIndex at the given tickSpacing,
-  // eg for offers in the offer list which are always written with a tick-aligned logPrice
-  function fromTickTreeIndexAlignedLogPrice(int logPrice, uint tickSpacing) internal pure returns (TickTreeIndex) {
-    return TickTreeIndex.wrap(logPrice / int(tickSpacing));
+  // Optimized conversion for ticks that are known to map exactly to a tickTreeIndex at the given tickSpacing,
+  // eg for offers in the offer list which are always written with a tick-aligned tick
+  function fromTickTreeIndexAlignedTick(int tick, uint tickSpacing) internal pure returns (TickTreeIndex) {
+    return TickTreeIndex.wrap(tick / int(tickSpacing));
   }
 
   // Utility for tests&unpacked structs, less gas-optimal

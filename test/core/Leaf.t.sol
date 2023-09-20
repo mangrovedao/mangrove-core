@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_lib/Test2.sol";
 import "mgv_src/MgvLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract LeafTest is Test2 {
@@ -215,63 +215,63 @@ contract TickTest is Test {
   }
 
   // note that tick(p) is max {t | ratio(t) <= p}
-  function test_logPriceFromVolumes() public {
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, 1), 0);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(2, 1), 6931);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, 2), -6932);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(1e18, 1), 414486);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(type(uint96).max, 1), 665454);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, type(uint96).max), -665455);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(type(uint72).max, 1), 499090);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, type(uint72).max), -499091);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(999999, 1000000), -1);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(1000000, 999999), 0);
-    assertEq(LogPriceConversionLib.logPriceFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
+  function test_tickFromVolumes() public {
+    assertEq(TickConversionLib.tickFromVolumes(1, 1), 0);
+    assertEq(TickConversionLib.tickFromVolumes(2, 1), 6931);
+    assertEq(TickConversionLib.tickFromVolumes(1, 2), -6932);
+    assertEq(TickConversionLib.tickFromVolumes(1e18, 1), 414486);
+    assertEq(TickConversionLib.tickFromVolumes(type(uint96).max, 1), 665454);
+    assertEq(TickConversionLib.tickFromVolumes(1, type(uint96).max), -665455);
+    assertEq(TickConversionLib.tickFromVolumes(type(uint72).max, 1), 499090);
+    assertEq(TickConversionLib.tickFromVolumes(1, type(uint72).max), -499091);
+    assertEq(TickConversionLib.tickFromVolumes(999999, 1000000), -1);
+    assertEq(TickConversionLib.tickFromVolumes(1000000, 999999), 0);
+    assertEq(TickConversionLib.tickFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
   }
 
-  function test_ratioFromLogPrice() public {
-    inner_test_ratioFromLogPrice({
+  function test_ratioFromTick() public {
+    inner_test_ratioFromTick({
       tickTreeIndex: 2 ** 20 - 1,
       expected_sig: 3441571814221581909035848501253497354125574144,
       expected_exp: 0
     });
 
-    inner_test_ratioFromLogPrice({
+    inner_test_ratioFromTick({
       tickTreeIndex: 138162,
       expected_sig: 5444510673556857440102348422228887810808479744,
       expected_exp: 132
     });
 
-    inner_test_ratioFromLogPrice({
+    inner_test_ratioFromTick({
       tickTreeIndex: -1,
       expected_sig: 5708419928830956428590284849313049240594808832,
       expected_exp: 152
     });
 
-    inner_test_ratioFromLogPrice({
+    inner_test_ratioFromTick({
       tickTreeIndex: 0,
       expected_sig: 2854495385411919762116571938898990272765493248,
       expected_exp: 151
     });
 
-    inner_test_ratioFromLogPrice({
+    inner_test_ratioFromTick({
       tickTreeIndex: 1,
       expected_sig: 2854780834950460954092783596092880171791548416,
       expected_exp: 151
     });
   }
 
-  function inner_test_ratioFromLogPrice(int tickTreeIndex, uint expected_sig, uint expected_exp) internal {
-    (uint sig, uint exp) = LogPriceConversionLib.ratioFromLogPrice(tickTreeIndex);
+  function inner_test_ratioFromTick(int tickTreeIndex, uint expected_sig, uint expected_exp) internal {
+    (uint sig, uint exp) = TickConversionLib.ratioFromTick(tickTreeIndex);
     assertEq(expected_sig, sig, "wrong sig");
     assertEq(expected_exp, exp, "wrong exp");
   }
 
-  function showLogPriceApprox(uint wants, uint gives) internal pure {
-    int logPrice = LogPriceConversionLib.logPriceFromVolumes(wants, gives);
-    uint wants2 = LogPriceLib.inboundFromOutbound(logPrice, gives);
-    uint gives2 = LogPriceLib.outboundFromInbound(logPrice, wants);
-    console.log("logPrice  ", logPriceToString(logPrice));
+  function showTickApprox(uint wants, uint gives) internal pure {
+    int tick = TickConversionLib.tickFromVolumes(wants, gives);
+    uint wants2 = TickLib.inboundFromOutbound(tick, gives);
+    uint gives2 = TickLib.outboundFromInbound(tick, wants);
+    console.log("tick  ", tickToString(tick));
     console.log("wants ", wants);
     console.log("wants2", wants2);
     console.log("--------------");
@@ -282,10 +282,10 @@ contract TickTest is Test {
     console.log("===========");
   }
 
-  function logPriceShifting() public pure {
-    showLogPriceApprox(30 ether, 1 ether);
-    showLogPriceApprox(30 ether, 30 * 30 ether);
-    showLogPriceApprox(1 ether, 1 ether);
+  function tickShifting() public pure {
+    showTickApprox(30 ether, 1 ether);
+    showTickApprox(30 ether, 30 * 30 ether);
+    showTickApprox(1 ether, 1 ether);
   }
 
   // int constant min_tick_abs = int(2**(TICK_TREE_INDEX_BITS-1));
@@ -402,7 +402,7 @@ contract FieldTest is Test {
 
   function ratio_ratioFromVolumes_not_zero_div() public {
     // should not revert
-    (uint man,) = LogPriceConversionLib.ratioFromVolumes(1, type(uint).max);
+    (uint man,) = TickConversionLib.ratioFromVolumes(1, type(uint).max);
     assertTrue(man != 0, "mantissa cannot be 0");
   }
 
@@ -410,7 +410,7 @@ contract FieldTest is Test {
     vm.assume(inbound != 0);
     vm.assume(outbound != 0);
     // should not revert
-    (uint man,) = LogPriceConversionLib.ratioFromVolumes(inbound, outbound);
+    (uint man,) = TickConversionLib.ratioFromVolumes(inbound, outbound);
     assertTrue(man != 0, "mantissa cannot be 0");
   }
 
@@ -492,20 +492,20 @@ contract FieldTest is Test {
     return a / den + carry;
   }
 
-  function test_inboundFromOutboundUp_and_converse(int logPrice, uint amt) public {
+  function test_inboundFromOutboundUp_and_converse(int tick, uint amt) public {
     amt = bound(amt, 0, MAX_SAFE_VOLUME);
-    logPrice = bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE);
+    tick = bound(tick, MIN_LOG_PRICE, MAX_LOG_PRICE);
 
     uint sig;
     uint exp;
 
     //inboundFromOutboundUp
-    (sig, exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(logPrice);
-    assertEq(LogPriceLib.inboundFromOutboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
+    (sig, exp) = TickConversionLib.nonNormalizedRatioFromTick(tick);
+    assertEq(TickLib.inboundFromOutboundUp(tick, amt), divExpUp_spec(sig * amt, exp));
 
     //outboundFromInboundUp
-    (sig, exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(-logPrice);
-    assertEq(LogPriceLib.outboundFromInboundUp(logPrice, amt), divExpUp_spec(sig * amt, exp));
+    (sig, exp) = TickConversionLib.nonNormalizedRatioFromTick(-tick);
+    assertEq(TickLib.outboundFromInboundUp(tick, amt), divExpUp_spec(sig * amt, exp));
   }
 
   function test_divExpUp(uint a, uint exp) public {

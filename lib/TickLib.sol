@@ -3,12 +3,12 @@ pragma solidity ^0.8.17;
 
 import {TickTreeIndex} from "mgv_lib/TickTreeIndexLib.sol";
 import "mgv_lib/Constants.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 
-library LogPriceLib {
+library TickLib {
 
-  function inRange(int logPrice) internal pure returns (bool) {
-    return logPrice >= MIN_LOG_PRICE && logPrice <= MAX_LOG_PRICE;
+  function inRange(int tick) internal pure returns (bool) {
+    return tick >= MIN_LOG_PRICE && tick <= MAX_LOG_PRICE;
   }
   function fromTickTreeIndex(TickTreeIndex tickTreeIndex, uint tickSpacing) internal pure returns (int) {
     return TickTreeIndex.unwrap(tickTreeIndex) * int(tickSpacing);
@@ -17,16 +17,16 @@ library LogPriceLib {
   // tickTreeIndex underestimates the ratio, so we underestimate  inbound here, i.e. the inbound/outbound ratio will again be underestimated
   // no overflow if outboundAmt is on 104 bits
   // rounds down
-  function inboundFromOutbound(int logPrice, uint outboundAmt) internal pure returns (uint) {
-    (uint sig, uint exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(logPrice);
+  function inboundFromOutbound(int tick, uint outboundAmt) internal pure returns (uint) {
+    (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(tick);
     return (sig * outboundAmt) >> exp;
   }
 
   // no overflow if outboundAmt is on 104 bits
   // rounds up
-  function inboundFromOutboundUp(int logPrice, uint outboundAmt) internal pure returns (uint) {
+  function inboundFromOutboundUp(int tick, uint outboundAmt) internal pure returns (uint) {
     unchecked {
-      (uint sig, uint exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(logPrice);
+      (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(tick);
       return divExpUp(sig*outboundAmt,exp);
     }
   }
@@ -34,14 +34,14 @@ library LogPriceLib {
   // tickTreeIndex underestimates the ratio, and we underestimate outbound here, so ratio will be overestimated here
   // no overflow if inboundAmt is on 104 bits
   // rounds down
-  function outboundFromInbound(int logPrice, uint inboundAmt) internal pure returns (uint) {
-    (uint sig, uint exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(-logPrice);
+  function outboundFromInbound(int tick, uint inboundAmt) internal pure returns (uint) {
+    (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(-tick);
     return (sig * inboundAmt) >> exp;
   }
 
-  function outboundFromInboundUp(int logPrice, uint inboundAmt) internal pure returns (uint) {
+  function outboundFromInboundUp(int tick, uint inboundAmt) internal pure returns (uint) {
     unchecked {
-      (uint sig, uint exp) = LogPriceConversionLib.nonNormalizedRatioFromLogPrice(-logPrice);
+      (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(-tick);
       return divExpUp(sig*inboundAmt,exp);
     }
   }

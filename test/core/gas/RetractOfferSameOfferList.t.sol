@@ -17,18 +17,18 @@ contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickTreeBo
   function setUp() public virtual override {
     super.setUp();
     this.newOfferOnAllTestRatios();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1000 ether, 1_000_000, 0);
-    logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 1000 ether, 1_000_000, 0);
+    tickOfferIds[MIDDLE_LOG_PRICE] = _offerId;
     // Offer to take at very low ratio
-    mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
-    offerId2 = mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
+    mgv.newOfferByTick(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
+    offerId2 = mgv.newOfferByTick(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
     description =
       "Retracting an offer in posthook for now empty offer list but where new offer has varying closeness to taken offer";
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) public virtual override {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
-    uint offerId = logPriceOfferIds[logPrice];
+    uint offerId = tickOfferIds[tick];
     _gas();
     mgv.retractOffer(_olKey, offerId, true);
     gas_();
@@ -36,7 +36,7 @@ contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickTreeBo
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal override {
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice(_olKey, LOW_LOG_PRICE, 1, true);
+    mgv.marketOrderByTick(_olKey, LOW_LOG_PRICE, 1, true);
   }
 }
 

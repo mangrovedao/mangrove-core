@@ -24,9 +24,10 @@ contract ConstantsTest is Test2 {
 
   // Some BitLib.ctz64 relies on specific level sizes
   function test_level_sizes() public {
-    assertLe(ROOT_SIZE, int(MAX_FIELD_SIZE), "bad root size");
-    assertGt(ROOT_SIZE, 0);
-    assertLe(LEVEL_SIZE, int(MAX_FIELD_SIZE), "bad level size");
+    assertLe(ROOT_SIZE, int(MAX_FIELD_SIZE), "level size too big");
+    assertGt(ROOT_SIZE, 0, "level3 size too small");
+    assertLe(LEVEL_SIZE, int(MAX_FIELD_SIZE), "level size too big");
+    assertGt(LEVEL_SIZE, 0, "level size too small");
   }
 
   // checks that there is no overflow

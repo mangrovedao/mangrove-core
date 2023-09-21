@@ -5,17 +5,17 @@ pragma solidity ^0.8.18;
 import {
   SingleGasTestBase,
   GasTestBase,
-  MIDDLE_TICK,
-  LEAF_LOWER_TICK,
-  LEAF_HIGHER_TICK,
-  LEVEL3_LOWER_TICK,
-  LEVEL3_HIGHER_TICK,
-  LEVEL2_LOWER_TICK,
-  LEVEL2_HIGHER_TICK,
-  LEVEL1_LOWER_TICK,
-  LEVEL1_HIGHER_TICK,
-  ROOT_LOWER_TICK,
-  ROOT_HIGHER_TICK
+  MIDDLE_BIN,
+  LEAF_LOWER_BIN,
+  LEAF_HIGHER_BIN,
+  LEVEL3_LOWER_BIN,
+  LEVEL3_HIGHER_BIN,
+  LEVEL2_LOWER_BIN,
+  LEVEL2_HIGHER_BIN,
+  LEVEL1_LOWER_BIN,
+  LEVEL1_HIGHER_BIN,
+  ROOT_LOWER_BIN,
+  ROOT_HIGHER_BIN
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
@@ -29,8 +29,8 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
 
   function setUp() public virtual override {
     super.setUp();
-    tick = MIDDLE_TICK;
-    _offerId = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
+    tick = MIDDLE_BIN;
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
     description = "Worst case scenario of taking the last offer from an offer list which now becomes empty";
   }
 
@@ -43,7 +43,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByTick(_olKey, MIDDLE_TICK, 1, false);
+    mgv.marketOrderByTick(_olKey, MIDDLE_BIN, 1, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order partial");
@@ -54,7 +54,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByTick(_olKey, MIDDLE_TICK, 1, true);
+    mgv.marketOrderByTick(_olKey, MIDDLE_BIN, 1, true);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order partial with fillwants=true");
@@ -65,7 +65,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByTick(_olKey, MIDDLE_TICK, 0.00001 ether, false);
+    mgv.marketOrderByTick(_olKey, MIDDLE_BIN, 0.00001 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order by log price full fill");
@@ -75,7 +75,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   function test_market_order_by_volume_full() public {
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     uint takerGives = 0.00001 ether;
-    uint takerWants = TickLib.outboundFromInbound(MIDDLE_TICK, takerGives);
+    uint takerWants = TickLib.outboundFromInbound(MIDDLE_BIN, takerGives);
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByVolume(_olKey, takerWants, takerGives, false);
@@ -89,7 +89,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByTick(_olKey, MIDDLE_TICK, 0.00001 ether, false);
+    mgv.marketOrderByTick(_olKey, MIDDLE_BIN, 0.00001 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order by ratio full fill");
@@ -103,8 +103,8 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
   function setUp() public virtual override {
     super.setUp();
     // The offer to take
-    tick = MIDDLE_TICK;
-    _offerId = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
+    tick = MIDDLE_BIN;
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
     description = "Market order taking an offer which moves the ratio up various tick-distances";
   }
 
@@ -118,7 +118,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByTick(_olKey, MIDDLE_TICK, 1, false);
+    mgv.marketOrderByTick(_olKey, MIDDLE_BIN, 1, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
     assertEq(tick, TickLib.fromBin(local.bestBin(), _olKey.tickSpacing));
@@ -126,82 +126,82 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_MIDDLE_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_MIDDLE_BIN is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(MIDDLE_TICK);
-    description = string.concat(description, " - Case: MIDDLE_TICK");
+    setUpTick(MIDDLE_BIN);
+    description = string.concat(description, " - Case: MIDDLE_BIN");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_BIN is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEAF_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEAF_HIGHER_TICK");
+    setUpTick(LEAF_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEAF_HIGHER_BIN");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_BIN is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL3_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+    setUpTick(LEVEL3_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_BIN");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_BIN is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL2_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL2_HIGHER_TICK");
+    setUpTick(LEVEL2_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_HIGHER_BIN");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_BIN is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL1_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
+    setUpTick(LEVEL1_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_HIGHER_BIN");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_BIN is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(ROOT_HIGHER_TICK);
-    description = string.concat(description, " - Case: ROOT_HIGHER_TICK");
+    setUpTick(ROOT_HIGHER_BIN);
+    description = string.concat(description, " - Case: ROOT_HIGHER_BIN");
   }
 }
 
 abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin is SingleGasTestBase {
   function setUpOffers(uint count) internal {
     for (uint i; i < count; ++i) {
-      _offerId = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
+      _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
     }
-    mgv.newOfferByTick(olKey, MIDDLE_TICK + 1, 0.00001 ether, 100_000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_BIN + 1, 0.00001 ether, 100_000, 0);
     description = string.concat(string.concat("Market order taking ", vm.toString(count), " offers at same tick"));
   }
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint) internal virtual override {
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByTick(_olKey, MIDDLE_TICK, 2 ** 96, false);
+    mgv.marketOrderByTick(_olKey, MIDDLE_BIN, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertEq(MIDDLE_TICK + 1, TickLib.fromBin(local.bestBin(), _olKey.tickSpacing));
+    assertEq(MIDDLE_BIN + 1, TickLib.fromBin(local.bestBin(), _olKey.tickSpacing));
     printDescription();
   }
 }

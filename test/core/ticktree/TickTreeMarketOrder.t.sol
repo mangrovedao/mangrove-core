@@ -10,9 +10,9 @@ import "mgv_lib/Debug.sol";
 //
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
-//   - a lower tick
+//   - a lower bin
 //   - a middle tick
-//   - a higher tick
+//   - a higher bin
 // 2. we take a snapshot of Mangrove's tick tree
 // 3. we remove the offers the market order should take from the snapshot tick tree
 // 4. we run a market order in Mangrove
@@ -21,7 +21,7 @@ import "mgv_lib/Debug.sol";
 //
 // The scenarios we want to test are:
 // - lower bin list
-//   - bin is a *bin of interest* (ToI) as listed in TickTreeTest
+//   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //     - if feasible, given middle tick
 //   - list:
 //     1. is empty

@@ -11,15 +11,15 @@ import "mgv_lib/Debug.sol";
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
 //   - the offer to be retracted's bin (including the offer itself)
-//   - a higher tick
-//   - a lower tick
+//   - a higher bin
+//   - a lower bin
 // 2. we take a snapshot of Mangrove's tick tree
 // 3. we retract the offer in both Mangrove and in the snapshot tick tree
 // 4. we check that Mangrove's tick tree matches the test tick tree.
 //
 // The scenarios we want to test are:
 // - retraction tick
-//   - bin is a *bin of interest* (ToI) as listed in TickTreeTest
+//   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //   - list:
 //     1. the offer to be retracted is alone
 //     2. the offer to be retracted is first of two offers

@@ -30,7 +30,7 @@ contract DynamicBinsTest is MangroveTest {
   function test_tick_to_nearest_bin(int96 tick, uint16 _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
     Bin bin = BinLib.tickToNearestHigherBin(tick, _tickSpacing);
-    assertGe(TickLib.fromBin(bin, _tickSpacing), tick, "tick -> bin -> tick must give same or lower tick");
+    assertGe(TickLib.fromBin(bin, _tickSpacing), tick, "tick -> bin -> tick must give same or lower bin");
 
     int tickSpacing = int(uint(_tickSpacing));
     int expectedBin = tick / tickSpacing;
@@ -177,7 +177,7 @@ contract DynamicBinsTest is MangroveTest {
 
     mgv.activate(olKey, 0, 100 << 32, 0);
     uint id = mgv.newOfferByTick(olKey, tick, 1 ether, 100_00, 30);
-    assertEq(mgv.offers(olKey, id).tick(), insertionTick, "recorded tick does not match nearest lower tick");
+    assertEq(mgv.offers(olKey, id).tick(), insertionTick, "recorded tick does not match nearest lower bin");
     assertEq(
       int(mgv.offers(olKey, id).tick()) % int(uint(tickSpacing)), 0, "recorded tick should be a multiple of tickSpacing"
     );

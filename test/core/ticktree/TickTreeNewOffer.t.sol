@@ -11,13 +11,13 @@ import "mgv_lib/Debug.sol";
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
 //   - the insertion tick
-//   - a higher tick
-//   - a lower tick
+//   - a higher bin
+//   - a lower bin
 // 2. we take a snapshot of Mangrove's tick tree
 // 3. we insert a new offer at the insertion bin in both Mangrove and in the snapshot tick tree
 // 4. we check that Mangrove's tick tree matches the test tick tree.
 //
-// The reason for a having higher/lower ticks is to test Mangrove's handling of the levels that are stored in `local`.
+// The reason for a having higher/lower bins is to test Mangrove's handling of the levels that are stored in `local`.
 // - if there are offers at a lower bin, the new offer will not be inserted on the best branch.
 //   - But part of the branch may be shared -> we need to test the different cases of branch sharing: leaf, level3, level2, level1
 // - if there are offers at a higher bin, those offer will not be be best after the new offer is inserted.
@@ -27,7 +27,7 @@ import "mgv_lib/Debug.sol";
 // The scenarios we want to test are:
 // - empty book (this happens when lower, higher, and insertion ticks are empty)
 // - insertion tick
-//   - bin is a *bin of interest* (ToI) as listed in TickTreeTest
+//   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //   - list:
 //     1. is empty
 //     2. has one offer

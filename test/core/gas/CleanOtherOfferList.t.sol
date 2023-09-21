@@ -6,17 +6,17 @@ import {
   SingleGasTestBase,
   GasTestBase,
   GasTestBaseStored,
-  MIDDLE_TICK,
-  LEAF_LOWER_TICK,
-  LEAF_HIGHER_TICK,
-  LEVEL3_LOWER_TICK,
-  LEVEL3_HIGHER_TICK,
-  LEVEL2_LOWER_TICK,
-  LEVEL2_HIGHER_TICK,
-  LEVEL1_LOWER_TICK,
-  LEVEL1_HIGHER_TICK,
-  ROOT_LOWER_TICK,
-  ROOT_HIGHER_TICK
+  MIDDLE_BIN,
+  LEAF_LOWER_BIN,
+  LEAF_HIGHER_BIN,
+  LEVEL3_LOWER_BIN,
+  LEVEL3_HIGHER_BIN,
+  LEVEL2_LOWER_BIN,
+  LEVEL2_HIGHER_BIN,
+  LEVEL1_LOWER_BIN,
+  LEVEL1_HIGHER_BIN,
+  ROOT_LOWER_BIN,
+  ROOT_HIGHER_BIN
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
@@ -29,8 +29,8 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
 
   function setUp() public virtual override {
     super.setUp();
-    tick = MIDDLE_TICK;
-    _offerId = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
+    tick = MIDDLE_BIN;
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
     description = "Worst case scenario where cleaning an offer from an offer list which now becomes empty";
   }
 
@@ -57,113 +57,113 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_MIDDLE_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_MIDDLE_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(MIDDLE_TICK);
-    description = string.concat(description, " - Case: MIDDLE_TICK");
+    setUpTick(MIDDLE_BIN);
+    description = string.concat(description, " - Case: MIDDLE_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEAF_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEAF_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEAF_LOWER_TICK);
-    description = string.concat(description, " - Case: LEAF_LOWER_TICK");
+    setUpTick(LEAF_LOWER_BIN);
+    description = string.concat(description, " - Case: LEAF_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEAF_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEAF_HIGHER_TICK");
+    setUpTick(LEAF_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEAF_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL3_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL3_LOWER_TICK");
+    setUpTick(LEVEL3_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL3_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+    setUpTick(LEVEL3_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL2_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL2_LOWER_TICK");
+    setUpTick(LEVEL2_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL2_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL2_HIGHER_TICK");
+    setUpTick(LEVEL2_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL1_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL1_LOWER_TICK");
+    setUpTick(LEVEL1_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL1_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
+    setUpTick(LEVEL1_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_ROOT_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_ROOT_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(ROOT_LOWER_TICK);
-    description = string.concat(description, " - Case: ROOT_LOWER_TICK");
+    setUpTick(ROOT_LOWER_BIN);
+    description = string.concat(description, " - Case: ROOT_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(ROOT_HIGHER_TICK);
-    description = string.concat(description, " - Case: ROOT_HIGHER_TICK");
+    setUpTick(ROOT_HIGHER_BIN);
+    description = string.concat(description, " - Case: ROOT_HIGHER_BIN");
   }
 }
 
@@ -182,113 +182,113 @@ abstract contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameB
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_MIDDLE_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_MIDDLE_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(MIDDLE_TICK);
-    description = string.concat(description, " - Case: MIDDLE_TICK");
+    setUpTick(MIDDLE_BIN);
+    description = string.concat(description, " - Case: MIDDLE_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEAF_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEAF_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEAF_LOWER_TICK);
-    description = string.concat(description, " - Case: LEAF_LOWER_TICK");
+    setUpTick(LEAF_LOWER_BIN);
+    description = string.concat(description, " - Case: LEAF_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEAF_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEAF_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEAF_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEAF_HIGHER_TICK");
+    setUpTick(LEAF_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEAF_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL3_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL3_LOWER_TICK");
+    setUpTick(LEVEL3_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL3_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+    setUpTick(LEVEL3_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL2_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL2_LOWER_TICK");
+    setUpTick(LEVEL2_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL2_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL2_HIGHER_TICK");
+    setUpTick(LEVEL2_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL1_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL1_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL1_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL1_LOWER_TICK");
+    setUpTick(LEVEL1_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL1_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL1_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL1_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
+    setUpTick(LEVEL1_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_HIGHER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_ROOT_LOWER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_ROOT_LOWER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(ROOT_LOWER_TICK);
-    description = string.concat(description, " - Case: ROOT_LOWER_TICK");
+    setUpTick(ROOT_LOWER_BIN);
+    description = string.concat(description, " - Case: ROOT_LOWER_BIN");
   }
 }
 
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_ROOT_HIGHER_TICK is
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_ROOT_HIGHER_BIN is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(ROOT_HIGHER_TICK);
-    description = string.concat(description, " - Case: ROOT_HIGHER_TICK");
+    setUpTick(ROOT_HIGHER_BIN);
+    description = string.concat(description, " - Case: ROOT_HIGHER_BIN");
   }
 }
 
@@ -300,11 +300,11 @@ contract ExternalCleanOfferOtherOfferList_WithPriorCleanOfferAndNoOtherOffersGas
 
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
-    tickOfferIds[MIDDLE_TICK] = _offerId;
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
+    tickOfferIds[MIDDLE_BIN] = _offerId;
     this.newOfferOnAllTestRatios();
-    offerId2 = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
-    description = "Cleaning a second offer at various tick-distances after cleaning an offer at MIDDLE_TICK";
+    offerId2 = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
+    description = "Cleaning a second offer at various tick-distances after cleaning an offer at MIDDLE_BIN";
   }
 
   function makerExecute(MgvLib.SingleOrder calldata) external virtual override returns (bytes32) {
@@ -314,7 +314,7 @@ contract ExternalCleanOfferOtherOfferList_WithPriorCleanOfferAndNoOtherOffersGas
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _tick) internal override {
     vm.prank($(taker));
     mgv.cleanByImpersonation(
-      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId2, MIDDLE_TICK, 100_000, 0.05 ether)), $(taker)
+      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId2, MIDDLE_BIN, 100_000, 0.05 ether)), $(taker)
     );
 
     vm.prank($(taker));
@@ -338,7 +338,7 @@ abstract contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameBinGasTest
     for (uint i; i < count; ++i) {
       targets.push(
         MgvLib.CleanTarget(
-          mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0), MIDDLE_TICK, 100_000, 0.05 ether
+          mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0), MIDDLE_BIN, 100_000, 0.05 ether
         )
       );
     }

@@ -11,15 +11,15 @@ import "mgv_lib/Debug.sol";
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
 //   - the offer to be updated's bin (the offer itself may not be live)
-//   - a higher tick
-//   - a lower tick
+//   - a higher bin
+//   - a lower bin
 // 2. we take a snapshot of Mangrove's tick tree
 // 3. we update the offer in both Mangrove and in the snapshot tick tree
 // 4. we check that Mangrove's tick tree matches the test tick tree.
 //
 // The scenarios we want to test are:
 // - starting offer tick
-//   - bin is a *bin of interest* (ToI) as listed in TickTreeTest
+//   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //   - list:
 //     1. offer is not live
 //     2. is singleton
@@ -43,8 +43,8 @@ import "mgv_lib/Debug.sol";
 //     2. is non-empty
 // - new offer tick
 //   1. same tick
-//   2. the lower tick
-//   3. the higher tick
+//   2. the lower bin
+//   3. the higher bin
 contract TickTreeUpdateOfferTest is TickTreeTest {
   struct UpdateOfferScenario {
     BinScenario tickScenario;

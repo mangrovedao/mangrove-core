@@ -45,7 +45,7 @@ contract MgvCommon is HasMgvEvents {
   */
 
   /* Note that offers are structured into a tree with linked lists at its leves.
-     The root is level1, has 256 level2 node children, each has 256 level3 node children, each has 256 leaves, each has 4 ticks (it holds the first and last offer of each tick's linked list).
+     The root is level0, has 2 level1 node children, each has 64 level2 node children, each has 64 level3 node children, each has 64 leaves, each has 4 ticks (it holds the first and last offer of each tick's linked list).
      level1, level2 and level3 nodes are bitfield, a bit is set iff there is a bin set below them.
   */
   struct OfferList {

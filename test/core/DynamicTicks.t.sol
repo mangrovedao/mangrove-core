@@ -21,13 +21,13 @@ contract DynamicBinsTest is MangroveTest {
     super.setUp();
   }
 
-  function test_tick_to_tick(int24 _bin, uint16 tickSpacing) public {
+  function test_bin_to_tick(int24 _bin, uint16 tickSpacing) public {
     vm.assume(tickSpacing != 0);
     Bin bin = Bin.wrap(_bin);
     assertEq(TickLib.fromBin(bin, tickSpacing), int(_bin) * int(uint(tickSpacing)), "wrong bin -> tick");
   }
 
-  function test_tick_to_nearest_tick(int96 tick, uint16 _tickSpacing) public {
+  function test_tick_to_nearest_bin(int96 tick, uint16 _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
     Bin bin = BinLib.nearestHigherTickToTick(tick, _tickSpacing);
     assertGe(TickLib.fromBin(bin, _tickSpacing), tick, "tick -> bin -> tick must give same or lower tick");
@@ -37,10 +37,10 @@ contract DynamicBinsTest is MangroveTest {
     if (tick > 0 && tick % tickSpacing != 0) {
       expectedBin = expectedBin + 1;
     }
-    assertEq(Bin.unwrap(bin), expectedBin, "wrong tick -> tick");
+    assertEq(Bin.unwrap(bin), expectedBin, "wrong tick -> bin");
   }
 
-  function test_aligned_tick_to_tick(int96 tick, uint _tickSpacing) public {
+  function test_aligned_tick_to_bin(int96 tick, uint _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
     vm.assume(tick % int(uint(_tickSpacing)) == 0);
     Bin bin = BinLib.fromBinAlignedTick(tick, _tickSpacing);
@@ -144,7 +144,7 @@ contract DynamicBinsTest is MangroveTest {
   }
 
   // creating offer at zero tickSpacing is impossible
-  function test_noOfferAtZeroBinScale(int24 tick, uint96 gives) public {
+  function test_noOfferAtZeroTickSpacing(int24 tick, uint96 gives) public {
     vm.assume(gives > 0);
     tick = boundTick(tick);
     olKey.tickSpacing = 0;

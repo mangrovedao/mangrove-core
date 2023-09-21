@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Bin,Field} from "mgv_lib/BinLib.sol";
+import {Field} from "mgv_lib/BinLib.sol";
 import {MIN_TICK,ONES} from "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 

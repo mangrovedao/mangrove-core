@@ -185,7 +185,7 @@ library BinLib {
   }
 
   // Returns the nearest, higher bin to the given tick at the given tickSpacing
-  function nearestHigherBinToTick(int tick, uint tickSpacing) internal pure returns (Bin) {
+  function tickToNearestHigherBin(int tick, uint tickSpacing) internal pure returns (Bin) {
     unchecked {
       // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
       // Round maker ratios up such that maker is always paid at least what they asked for

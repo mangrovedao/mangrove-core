@@ -149,7 +149,7 @@ library TickConversionLib {
   // first return value is the mantissa, second value is the opposite of the exponent
   function nonNormalizedRatioFromTick(int tick) internal pure returns (uint man, uint exp) {
     uint absTick = tick < 0 ? uint(-int(tick)) : uint(tick);
-    require(absTick <= uint(MAX_LOG_PRICE), "absTick/outOfBounds");
+    require(absTick <= uint(MAX_TICK), "absTick/outOfBounds");
 
     // each 1.0001^(2^i) below is shifted 128+(an additional shift value)
     int extra_shift;

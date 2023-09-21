@@ -41,8 +41,8 @@ uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
 
 
 // +/- 2**20-1 because only 20 bits are examined by the tick->ratio function
-int constant MIN_LOG_PRICE = -((1 << 20)-1);
-int constant MAX_LOG_PRICE = -MIN_LOG_PRICE;
+int constant MIN_TICK = -((1 << 20)-1);
+int constant MAX_TICK = -MIN_TICK;
 uint constant MIN_RATIO_MANTISSA = 4735129379934731672174804159539094721182826496;
 int constant MIN_RATIO_EXP = 303;
 uint constant MAX_RATIO_MANTISSA = 3441571814221581909035848501253497354125574144;
@@ -56,5 +56,5 @@ uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
 
 // Price math limits the allowed ticks to a subset of the full range
-int constant MIN_BIN_ALLOWED = MIN_LOG_PRICE;
-int constant MAX_BIN_ALLOWED = MAX_LOG_PRICE;
+int constant MIN_BIN_ALLOWED = MIN_TICK;
+int constant MAX_BIN_ALLOWED = MAX_TICK;

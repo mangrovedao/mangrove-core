@@ -8,7 +8,7 @@ import "mgv_lib/TickConversionLib.sol";
 library TickLib {
 
   function inRange(int tick) internal pure returns (bool) {
-    return tick >= MIN_LOG_PRICE && tick <= MAX_LOG_PRICE;
+    return tick >= MIN_TICK && tick <= MAX_TICK;
   }
   function fromBin(Bin bin, uint tickSpacing) internal pure returns (int) {
     return Bin.unwrap(bin) * int(tickSpacing);

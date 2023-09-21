@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
+import {SingleGasTestBase, GasTestBase, MIDDLE_TICK} from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
@@ -10,9 +10,9 @@ import {OLKey} from "mgv_src/MgvLib.sol";
 contract ExternalUpdateOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGasTestBase {
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
     vm.prank($(_taker));
-    mgv.marketOrderByTick(olKey, MIDDLE_LOG_PRICE, 1, true);
+    mgv.marketOrderByTick(olKey, MIDDLE_TICK, 1, true);
     assertEq(0, mgv.best(olKey));
     description =
       "Worst case scenario if strat updates an offer on a different offer list which has become empty. This can happen in practice if offer list runs out of liquidity";
@@ -20,7 +20,7 @@ contract ExternalUpdateOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGas
 
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId) internal virtual override {
     _gas();
-    mgv.updateOfferByTick(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0, offerId);
+    mgv.updateOfferByTick(_olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0, offerId);
     gas_();
   }
 }
@@ -28,8 +28,8 @@ contract ExternalUpdateOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGas
 contract ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest is TickTreeBoundariesGasTest, GasTestBase {
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
-    mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
     description =
       "Updating an offer when another offer exists at various tick-distances to the offer's new ratio (initial same ratio)";
   }
@@ -59,15 +59,15 @@ contract ExternalUpdateOfferOtherOfferList_WithPriorUpdateOfferAndNoOtherOffersG
 
   function setUp() public virtual override {
     super.setUp();
-    offerId2 = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    offerId2 = mgv.newOfferByTick(olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0);
     vm.prank($(_taker));
-    mgv.marketOrderByTick(olKey, MIDDLE_LOG_PRICE, 1, true);
+    mgv.marketOrderByTick(olKey, MIDDLE_TICK, 1, true);
     assertEq(0, mgv.best(olKey));
-    description = "Updating a second offer at various tick-distances after updating an offer at MIDDLE_LOG_PRICE";
+    description = "Updating a second offer at various tick-distances after updating an offer at MIDDLE_TICK";
   }
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) internal override {
-    mgv.updateOfferByTick(_olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0, offerId2);
+    mgv.updateOfferByTick(_olKey, MIDDLE_TICK, 0.00001 ether, 100_000, 0, offerId2);
     super.impl(mgv, taker, _olKey, offerId);
   }
 }

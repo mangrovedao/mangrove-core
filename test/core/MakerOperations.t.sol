@@ -1049,7 +1049,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_leaf_update_both_first_and_last(int tick) public {
-    tick = bound(tick, MIN_LOG_PRICE, MAX_LOG_PRICE);
+    tick = bound(tick, MIN_TICK, MAX_TICK);
     uint ofr0 = mgv.newOfferByTick(olKey, tick, 1 ether, 0, 0);
     Bin bin = BinLib.nearestHigherTickToTick(tick, olKey.tickSpacing);
     Leaf expected = LeafLib.EMPTY;

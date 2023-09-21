@@ -478,7 +478,7 @@ contract FieldTest is Test {
 
   function test_inboundFromOutboundUp_and_converse(int tick, uint amt) public {
     amt = bound(amt, 0, MAX_SAFE_VOLUME);
-    tick = bound(tick, MIN_LOG_PRICE, MAX_LOG_PRICE);
+    tick = bound(tick, MIN_TICK, MAX_TICK);
 
     uint sig;
     uint exp;

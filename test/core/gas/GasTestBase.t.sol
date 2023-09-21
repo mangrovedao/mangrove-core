@@ -9,24 +9,24 @@ import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
 
 // A log price with room for bits above and below at all bin levels, except at root which has only 2 bits.
 // forgefmt: disable-start
-int constant MIDDLE_LOG_PRICE = 
+int constant MIDDLE_TICK = 
   /* mid leaf */ LEAF_SIZE / 2 + 
   /* mid level2 */ LEAF_SIZE * (LEVEL_SIZE / 2) +
   /* mid level 1 */ LEAF_SIZE * (LEVEL_SIZE**2)/2  +
   /* mid level 2 */ LEAF_SIZE * (LEVEL_SIZE ** 3)/4;
 // forgefmt: disable-end
 
-int constant LEAF_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - 1;
-int constant LEAF_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + 1;
-int constant LEVEL2_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE;
-int constant LEVEL2_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE;
-int constant LEVEL1_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL_SIZE;
-int constant LEVEL1_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL_SIZE;
-int constant LEVEL0_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * (LEVEL_SIZE ** 2);
-int constant LEVEL0_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * (LEVEL_SIZE ** 2);
-// Not multiplying by full LEVEL_SIZE or ROOT_HIGHER_LOG_PRICE goes out of tick range
-int constant ROOT_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
-int constant ROOT_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
+int constant LEAF_LOWER_TICK = MIDDLE_TICK - 1;
+int constant LEAF_HIGHER_TICK = MIDDLE_TICK + 1;
+int constant LEVEL2_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE;
+int constant LEVEL2_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE;
+int constant LEVEL1_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * LEVEL_SIZE;
+int constant LEVEL1_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * LEVEL_SIZE;
+int constant LEVEL0_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * (LEVEL_SIZE ** 2);
+int constant LEVEL0_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * (LEVEL_SIZE ** 2);
+// Not multiplying by full LEVEL_SIZE or ROOT_HIGHER_TICK goes out of tick range
+int constant ROOT_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
+int constant ROOT_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
 
 abstract contract GasTestBaseStored {
   mapping(int tick => uint offerId) internal tickOfferIds;
@@ -40,32 +40,26 @@ abstract contract GasTestBaseStored {
 
   function newOfferOnAllTestRatios() public virtual {
     this.newOfferOnAllLowerThanMiddleTestRatios();
-    // MIDDLE_LOG_PRICE is often controlled in tests so leaving it out. mgv.newOfferByTick(_olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
+    // MIDDLE_TICK is often controlled in tests so leaving it out. mgv.newOfferByTick(_olKey, MIDDLE_TICK, 1 ether, 1_000_000, 0);
     this.newOfferOnAllHigherThanMiddleTestRatios();
   }
 
   function newOfferOnAllLowerThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
-    tickOfferIds[LEAF_LOWER_LOG_PRICE] = mgv.newOfferByTick(_olKey, LEAF_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL2_LOWER_LOG_PRICE] =
-      mgv.newOfferByTick(_olKey, LEVEL2_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL1_LOWER_LOG_PRICE] =
-      mgv.newOfferByTick(_olKey, LEVEL1_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL0_LOWER_LOG_PRICE] =
-      mgv.newOfferByTick(_olKey, LEVEL0_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[ROOT_LOWER_LOG_PRICE] = mgv.newOfferByTick(_olKey, ROOT_LOWER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEAF_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEAF_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL2_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEVEL2_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL1_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEVEL1_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL0_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEVEL0_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[ROOT_LOWER_TICK] = mgv.newOfferByTick(_olKey, ROOT_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
   }
 
   function newOfferOnAllHigherThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
-    tickOfferIds[LEAF_HIGHER_LOG_PRICE] = mgv.newOfferByTick(_olKey, LEAF_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL2_HIGHER_LOG_PRICE] =
-      mgv.newOfferByTick(_olKey, LEVEL2_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL1_HIGHER_LOG_PRICE] =
-      mgv.newOfferByTick(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL0_HIGHER_LOG_PRICE] =
-      mgv.newOfferByTick(_olKey, LEVEL0_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[ROOT_HIGHER_LOG_PRICE] = mgv.newOfferByTick(_olKey, ROOT_HIGHER_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEAF_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEAF_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL2_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEVEL2_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL1_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEVEL1_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL0_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEVEL0_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[ROOT_HIGHER_TICK] = mgv.newOfferByTick(_olKey, ROOT_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
   }
 }
 

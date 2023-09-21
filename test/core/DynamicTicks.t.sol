@@ -49,7 +49,7 @@ contract DynamicBinsTest is MangroveTest {
 
   // get a valid tick from a random int24
   function boundTick(int24 tick) internal view returns (int24) {
-    return int24(bound(tick, MIN_LOG_PRICE, MAX_LOG_PRICE));
+    return int24(bound(tick, MIN_TICK, MAX_TICK));
   }
 
   // different tickSpacings map to different storage slots

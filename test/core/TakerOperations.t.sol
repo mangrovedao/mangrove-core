@@ -96,7 +96,7 @@ contract TakerOperationsTest is MangroveTest {
     int bin = -7000; // ratio slightly < 1/2
     mkr.newOfferByTick(bin, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
-    mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, 1, true);
+    mgv.marketOrderByTick(olKey, MAX_TICK, 1, true);
     uint newBal = quote.balanceOf($(this));
     assertGt(oldBal, newBal, "oldBal should be strictly higher");
   }
@@ -1080,7 +1080,7 @@ contract TakerOperationsTest is MangroveTest {
   This test just considers as many offers as possible that each have a maximal `wants` and makes sure the error will be about stack overflow, not uint overflow. 
   */
   function test_maximal_wants_is_ok() public {
-    uint maxOfferWants = TickLib.inboundFromOutboundUp(MAX_LOG_PRICE, type(uint96).max);
+    uint maxOfferWants = TickLib.inboundFromOutboundUp(MAX_TICK, type(uint96).max);
     unchecked {
       uint recp = mgv.global().maxRecursionDepth() + 1;
       assertTrue(

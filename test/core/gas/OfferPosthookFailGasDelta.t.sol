@@ -7,7 +7,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
+import {MIDDLE_TICK} from "./GasTestBase.t.sol";
 import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {AbstractMangrove, TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
@@ -129,25 +129,25 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_TICK, offerGivesOl, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByTick(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
+    mgv.newOfferByTick(lo, MIDDLE_TICK, offerGivesLo, 10000, 0);
 
     // Do not approve maker - we will let offers fail since then penalty must be calculated, which costs gas.
     for (uint i; i < 19; i++) {
-      mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
-      mgv.newOfferByTick(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
+      mgv.newOfferByTick(olKey, MIDDLE_TICK, offerGivesOl, 10000, 0);
+      mgv.newOfferByTick(lo, MIDDLE_TICK, offerGivesLo, 10000, 0);
     }
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_TICK, offerGivesOl, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByTick(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
+    mgv.newOfferByTick(lo, MIDDLE_TICK, offerGivesLo, 10000, 0);
   }
 
   function posthook_delta_deep_order(OLKey memory olKey) public {
     vm.prank($(taker));
-    mgv.marketOrderByTick({olKey: olKey, maxTick: MIDDLE_LOG_PRICE, fillVolume: 1 ether, fillWants: false});
+    mgv.marketOrderByTick({olKey: olKey, maxTick: MIDDLE_TICK, fillVolume: 1 ether, fillWants: false});
   }
 }

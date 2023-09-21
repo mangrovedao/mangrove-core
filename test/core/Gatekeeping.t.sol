@@ -197,17 +197,17 @@ contract GatekeepingTest is MangroveTest {
 
   function test_newOfferByTick_extrema_tick() public {
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.newOfferByTick(MIN_LOG_PRICE - 1, 1 ether, 10_000, 0);
+    mkr.newOfferByTick(MIN_TICK - 1, 1 ether, 10_000, 0);
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.newOfferByTick(MAX_LOG_PRICE + 1, 1 ether, 10_000, 0);
+    mkr.newOfferByTick(MAX_TICK + 1, 1 ether, 10_000, 0);
   }
 
   function test_updateOfferByTick_extrema_tick() public {
     uint ofr = mkr.newOfferByTick(0, 1 ether, 10_000, 0);
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.updateOfferByTick(MIN_LOG_PRICE - 1, 1 ether, 10_000, ofr);
+    mkr.updateOfferByTick(MIN_TICK - 1, 1 ether, 10_000, ofr);
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.updateOfferByTick(MAX_LOG_PRICE + 1, 1 ether, 10_000, ofr);
+    mkr.updateOfferByTick(MAX_TICK + 1, 1 ether, 10_000, ofr);
   }
 
   function test_retractOffer_wrong_owner_fails() public {
@@ -950,15 +950,15 @@ contract GatekeepingTest is MangroveTest {
 
   function test_marketOrderByTick_extrema() public {
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderByTick(olKey, MAX_LOG_PRICE + 1, 100, true);
+    mgv.marketOrderByTick(olKey, MAX_TICK + 1, 100, true);
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderByTick(olKey, MIN_LOG_PRICE - 1, 100, true);
+    mgv.marketOrderByTick(olKey, MIN_TICK - 1, 100, true);
   }
 
   function test_marketOrderForByTick_extrema(address taker) public {
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderForByTick(olKey, MAX_LOG_PRICE + 1, 100, true, taker);
+    mgv.marketOrderForByTick(olKey, MAX_TICK + 1, 100, true, taker);
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderForByTick(olKey, MIN_LOG_PRICE - 1, 100, true, taker);
+    mgv.marketOrderForByTick(olKey, MIN_TICK - 1, 100, true, taker);
   }
 }

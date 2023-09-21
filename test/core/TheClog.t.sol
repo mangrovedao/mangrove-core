@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
-import {IMaker, MgvLib, MgvStructs, MAX_LOG_PRICE} from "mgv_src/MgvLib.sol";
+import {IMaker, MgvLib, MgvStructs, MAX_TICK} from "mgv_src/MgvLib.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 contract TooDeepRecursionClogTest is MangroveTest, IMaker {
@@ -84,7 +84,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     // the first offer succeeds. All other offer fails.
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
+    mgv.marketOrderByTick(olKey, MAX_TICK, minVolume + 1, false, type(uint).max);
   }
 
   function test_take_one_then_two_at_once_fails_for_deep_stack() public {
@@ -94,7 +94,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     takeSome(minVolume);
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
+    mgv.marketOrderByTick(olKey, MAX_TICK, minVolume + 1, false, type(uint).max);
   }
 }
 
@@ -177,7 +177,7 @@ contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
     mgv.setMaxRecursionDepth(depth);
 
     vm.prank($(taker));
-    try mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, 200 ether, false, type(uint).max) {
+    try mgv.marketOrderByTick(olKey, MAX_TICK, 200 ether, false, type(uint).max) {
       assertLe(depth, failDepth, "should only succeed at lower depths");
     } catch {
       assertGt(depth, failDepth, "should only fail for high depth");

@@ -309,7 +309,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
           (ofp.local, shouldUpdateBranch) =
             dislodgeOffer(offerList, tickSpacing, ofp.oldOffer, ofp.local, cachedLocalBin, shouldUpdateBranch);
-          // If !shouldUpdateBranch, then ofp.local.level3 and ofp.local.level2 reflect the removed tick's branch post-removal, so one cannot infer the bin by reading those fields. If shouldUpdateBranch, then the new bin must be inferred from the new info in local.
+          // If !shouldUpdateBranch, then ofp.local.level3, ofp.local.level2, and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the bin by reading those fields. If shouldUpdateBranch, then the new bin must be inferred from the new info in local.
           if (shouldUpdateBranch) {
             // force control flow through gas-saving path if retraction emptied the offer list
             if (ofp.local.level3().isEmpty()) {

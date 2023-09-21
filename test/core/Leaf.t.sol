@@ -185,7 +185,7 @@ contract LeafTest is Test2 {
   }
 }
 
-contract TickTest is Test {
+contract TickAndBinTest is Test {
   function test_posInLeaf_auto(int bin) public {
     bin = bound(bin, MIN_BIN, MAX_BIN);
     int tn = NUM_BINS / 2 + bin; // normalize to positive

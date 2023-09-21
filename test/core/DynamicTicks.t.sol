@@ -177,7 +177,7 @@ contract DynamicBinsTest is MangroveTest {
 
     mgv.activate(olKey, 0, 100 << 32, 0);
     uint id = mgv.newOfferByTick(olKey, tick, 1 ether, 100_00, 30);
-    assertEq(mgv.offers(olKey, id).tick(), insertionTick, "recorded tick does not match nearest lower bin");
+    assertEq(mgv.offers(olKey, id).tick(), insertionTick, "recorded tick does not match nearest higher bin");
     assertEq(
       int(mgv.offers(olKey, id).tick()) % int(uint(tickSpacing)), 0, "recorded tick should be a multiple of tickSpacing"
     );

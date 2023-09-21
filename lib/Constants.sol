@@ -30,10 +30,10 @@ uint constant LEAF_SIZE_MASK = ~(ONES << LEAF_SIZE_BITS);
 uint constant LEVEL_SIZE_MASK = ~(ONES << LEVEL_SIZE_BITS);
 uint constant ROOT_SIZE_MASK = ~(ONES << ROOT_SIZE_BITS);
 
-int constant NUM_LEAFS = NUM_LEVEL3 * LEVEL_SIZE;
 int constant NUM_LEVEL1 = int(ROOT_SIZE);
 int constant NUM_LEVEL2 = NUM_LEVEL1 * LEVEL_SIZE;
 int constant NUM_LEVEL3 = NUM_LEVEL2 * LEVEL_SIZE;
+int constant NUM_LEAFS = NUM_LEVEL3 * LEVEL_SIZE;
 int constant NUM_BINS = NUM_LEAFS * LEAF_SIZE;
 
 uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);

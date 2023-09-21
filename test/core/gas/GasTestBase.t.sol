@@ -11,9 +11,9 @@ import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
 // forgefmt: disable-start
 int constant MIDDLE_TICK = 
   /* mid leaf */ LEAF_SIZE / 2 + 
-  /* mid level3 */ LEAF_SIZE * (LEVEL_SIZE / 2) +
-  /* mid level 1 */ LEAF_SIZE * (LEVEL_SIZE**2)/2  +
-  /* mid level 2 */ LEAF_SIZE * (LEVEL_SIZE ** 3)/4;
+  /* mid level 3 */ LEAF_SIZE * (LEVEL_SIZE / 2) +
+  /* mid level 2 */ LEAF_SIZE * (LEVEL_SIZE**2)/2  +
+  /* mid level 1 */ LEAF_SIZE * (LEVEL_SIZE ** 3)/4;
 // forgefmt: disable-end
 
 int constant LEAF_LOWER_TICK = MIDDLE_TICK - 1;

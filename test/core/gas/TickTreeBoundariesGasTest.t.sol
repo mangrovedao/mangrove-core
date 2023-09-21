@@ -67,37 +67,37 @@ abstract contract TickTreeBoundariesGasTest is GasTestBaseStored {
 
   function test_NewLevel2HigherBin() public {
     testTick(LEVEL2_HIGHER_TICK);
-    description = string.concat(description, " - Case: New level 1 higher tick");
+    description = string.concat(description, " - Case: New level 2 higher tick");
     printDescription();
   }
 
   function test_NewLevel2LowerBin() public {
     testTick(LEVEL2_LOWER_TICK);
-    description = string.concat(description, " - Case: New level 1 lower tick");
+    description = string.concat(description, " - Case: New level 2 lower tick");
     printDescription();
   }
 
   function test_NewLevel1HigherBin() public {
     testTick(LEVEL1_HIGHER_TICK);
-    description = string.concat(description, " - Case: New level 2 higher tick");
+    description = string.concat(description, " - Case: New level 1 higher tick");
     printDescription();
   }
 
   function test_NewLevel1LowerBin() public {
     testTick(LEVEL1_LOWER_TICK);
-    description = string.concat(description, " - Case: New level 2 lower tick");
+    description = string.concat(description, " - Case: New level 1 lower tick");
     printDescription();
   }
 
   function test_NewRootHigherBin() public {
     testTick(ROOT_HIGHER_TICK);
-    description = string.concat(description, " - Case: New level 3 higher tick");
+    description = string.concat(description, " - Case: New root higher tick");
     printDescription();
   }
 
   function test_NewRootLowerBin() public {
     testTick(ROOT_LOWER_TICK);
-    description = string.concat(description, " - Case: New level 3 lower tick");
+    description = string.concat(description, " - Case: New root lower tick");
     printDescription();
   }
 }

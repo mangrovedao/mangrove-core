@@ -293,7 +293,7 @@ library BinLib {
 
   // see note posIn*
   // note with int24 bin we only use 2 bits in root
-  //   level 3 single node
+  //   root single node
   // <--------------------->
   //  1                  0
   //  ^initial level1

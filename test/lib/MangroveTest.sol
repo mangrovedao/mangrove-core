@@ -504,10 +504,10 @@ contract MangroveTest is Test2, HasMgvEvents {
     console.log("Current posInLeaf %s", bin.posInLeaf());
     int leafIndex = bin.leafIndex();
     console.log("Current leaf %s (index %s)", toString(_mgv.leafs(_ol, leafIndex)), vm.toString(leafIndex));
-    console.log("Current level 0 %s (index %s)", toString(_local.level3()), vm.toString(bin.level3Index()));
+    console.log("Current level 3 %s (index %s)", toString(_local.level3()), vm.toString(bin.level3Index()));
     int level2Index = bin.level2Index();
-    console.log("Current level 1 %s (index %s)", toString(_mgv.level2(_ol, level2Index)), vm.toString(level2Index));
-    console.log("Current level 2 %s", toString(_local.level1()));
+    console.log("Current level 2 %s (index %s)", toString(_mgv.level2(_ol, level2Index)), vm.toString(level2Index));
+    console.log("Current level 1 %s", toString(_local.level1()));
     console.log("----------------------------------------");
   }
 }

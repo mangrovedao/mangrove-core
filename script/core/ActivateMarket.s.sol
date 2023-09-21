@@ -38,7 +38,7 @@ contract ActivateMarket is Deployer {
     gaspriceOverride: overrides current mangrove's gasprice for the computation of density - default innerRun uses mangrove's gasprice
     tkn1: first tokens
     tkn2: second tokens,
-    tickSpacing: bin scale,
+    tickSpacing: tick spacing,
     tkn1_in_gwei: price of one tkn1 (display units) in gwei
     tkn2_in_gwei: price of one tkn2 (display units) in gwei
     fee: fee in per 10_000

@@ -20,7 +20,7 @@ import {
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
-import {TickTreeIndexLib, TickTreeIndex, LEAF_SIZE, LEVEL_SIZE, ROOT_SIZE} from "mgv_lib/TickTreeIndexLib.sol";
+import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE, ROOT_SIZE} from "mgv_lib/BinLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -121,7 +121,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
     mgv.marketOrderByTick(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertEq(tick, TickLib.fromTickTreeIndex(local.bestTickTreeIndex(), _olKey.tickSpacing));
+    assertEq(tick, TickLib.fromBin(local.bestBin(), _olKey.tickSpacing));
     printDescription();
   }
 }
@@ -186,7 +186,7 @@ contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_LOG
   }
 }
 
-abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex is SingleGasTestBase {
+abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin is SingleGasTestBase {
   function setUpOffers(uint count) internal {
     for (uint i; i < count; ++i) {
       _offerId = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
@@ -201,13 +201,13 @@ abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick
     mgv.marketOrderByTick(_olKey, MIDDLE_LOG_PRICE, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertEq(MIDDLE_LOG_PRICE + 1, TickLib.fromTickTreeIndex(local.bestTickTreeIndex(), _olKey.tickSpacing));
+    assertEq(MIDDLE_LOG_PRICE + 1, TickLib.fromBin(local.bestBin(), _olKey.tickSpacing));
     printDescription();
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex_1 is
-  ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex
+contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin_1 is
+  ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin
 {
   function setUp() public virtual override {
     super.setUp();
@@ -215,8 +215,8 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex_2 is
-  ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex
+contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin_2 is
+  ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin
 {
   function setUp() public virtual override {
     super.setUp();
@@ -224,8 +224,8 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex_4 is
-  ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex
+contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin_4 is
+  ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin
 {
   function setUp() public virtual override {
     super.setUp();
@@ -233,14 +233,11 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTickTreeIndex
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTickTreeIndexs is
-  TickTreeBoundariesGasTest,
-  GasTestBase
-{
+contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyBins is TickTreeBoundariesGasTest, GasTestBase {
   function setUp() public virtual override {
     super.setUp();
     this.newOfferOnAllTestRatios();
-    description = "Market order taking offers up to a tickTreeIndex with offers on all test ticks";
+    description = "Market order taking offers up to a bin with offers on all test ticks";
   }
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _tick) internal virtual override {
@@ -249,12 +246,10 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTickTreeIndex
     mgv.marketOrderByTick(_olKey, _tick, 2 ** 104 - 1, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    // In some tests the market order takes all offers, in others not. `local.bestTickTreeIndex()` must only be called when the book is non-empty
+    // In some tests the market order takes all offers, in others not. `local.bestBin()` must only be called when the book is non-empty
     if (!local.root().isEmpty()) {
       assertLt(
-        _tick,
-        TickLib.fromTickTreeIndex(local.bestTickTreeIndex(), _olKey.tickSpacing),
-        "tick should be strictly less than current tick"
+        _tick, TickLib.fromBin(local.bestBin(), _olKey.tickSpacing), "tick should be strictly less than current tick"
       );
     }
   }

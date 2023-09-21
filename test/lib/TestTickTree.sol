@@ -59,19 +59,17 @@ library TickTreeUtil {
     return (level0Index << LEVEL_SIZE_BITS) | int(pos);
   }
 
-  function tickTreeIndexFromLeafIndexAndPos(int leafIndex, uint pos) public pure returns (TickTreeIndex) {
-    return TickTreeIndex.wrap((leafIndex << LEAF_SIZE_BITS) | int(pos));
+  function binFromLeafIndexAndPos(int leafIndex, uint pos) public pure returns (Bin) {
+    return Bin.wrap((leafIndex << LEAF_SIZE_BITS) | int(pos));
   }
 
-  function tickTreeIndexFromPositions(
-    uint posInRoot,
-    uint posInLevel2,
-    uint posInLevel1,
-    uint posInLevel0,
-    uint posInLeaf
-  ) public pure returns (TickTreeIndex) {
+  function binFromPositions(uint posInRoot, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
+    public
+    pure
+    returns (Bin)
+  {
     unchecked {
-      uint utickTreeIndex = posInLeaf
+      uint ubin = posInLeaf
         | (
           (
             posInLevel0
@@ -79,13 +77,13 @@ library TickTreeUtil {
                 << LEVEL_SIZE_BITS
           ) << LEAF_SIZE_BITS
         );
-      return TickTreeIndex.wrap(int(utickTreeIndex));
+      return Bin.wrap(int(ubin));
     }
   }
 }
 
-// Provides a simple tickTreeIndex tree data structure and operations on it that can be used to simulate Mangrove's tickTreeIndex tree
-// and then be compared to the actual tickTreeIndex tree.
+// Provides a simple bin tree data structure and operations on it that can be used to simulate Mangrove's bin tree
+// and then be compared to the actual bin tree.
 //
 // See core/ticktree/README.md for more details on how this can be used.
 //
@@ -107,7 +105,7 @@ contract TestTickTree is MangroveTest {
     vm.label($(this), "TestTickTree");
   }
 
-  // Creates a snapshot of the Mangrove tickTreeIndex tree
+  // Creates a snapshot of the Mangrove bin tree
   function snapshotMgvTickTree() public {
     local = mgv.local(olKey);
     Field root = mgv.root(olKey);
@@ -158,7 +156,7 @@ contract TestTickTree is MangroveTest {
     }
   }
 
-  // Checks that the current Mangrove tickTreeIndex tree in olKey is consistent
+  // Checks that the current Mangrove bin tree in olKey is consistent
   function assertMgvTickTreeIsConsistent() public {
     Field root = mgv.root(olKey);
     uint[4] memory levelPoss;
@@ -254,13 +252,13 @@ contract TestTickTree is MangroveTest {
             );
 
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
-              TickTreeIndex tickTreeIndex = TickTreeUtil.tickTreeIndexFromLeafIndexAndPos(leafIndex, leafPos);
+              Bin bin = TickTreeUtil.binFromLeafIndexAndPos(leafIndex, leafPos);
               uint offerId = leaf.firstOfPos(leafPos);
               if (offerId == 0) {
                 assertEq(
                   leaf.lastOfPos(leafPos),
                   0,
-                  string.concat("last offer should be 0 when first is 0 | tickTreeIndex: ", toString(tickTreeIndex))
+                  string.concat("last offer should be 0 when first is 0 | bin: ", toString(bin))
                 );
                 continue;
               }
@@ -268,13 +266,10 @@ contract TestTickTree is MangroveTest {
               do {
                 MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
                 assertEq(
-                  offer.tickTreeIndex(olKey.tickSpacing),
-                  tickTreeIndex,
+                  offer.bin(olKey.tickSpacing),
+                  bin,
                   string.concat(
-                    "offer[",
-                    vm.toString(offerId),
-                    "] tickTreeIndex does not match location in tickTreeIndex tree | tickTreeIndex: ",
-                    toString(tickTreeIndex)
+                    "offer[", vm.toString(offerId), "] bin does not match location in bin tree | bin: ", toString(bin)
                   )
                 );
                 assertEq(
@@ -283,18 +278,13 @@ contract TestTickTree is MangroveTest {
                   string.concat(
                     "offer[",
                     vm.toString(offerId),
-                    "].prev does point to previous offer in tickTreeIndex list | tickTreeIndex: ",
-                    toString(tickTreeIndex)
+                    "].prev does point to previous offer in bin list | bin: ",
+                    toString(bin)
                   )
                 );
                 assertTrue(
                   offer.isLive(),
-                  string.concat(
-                    "offer[",
-                    vm.toString(offerId),
-                    "] in tickTreeIndex tree should be live | tickTreeIndex: ",
-                    toString(tickTreeIndex)
-                  )
+                  string.concat("offer[", vm.toString(offerId), "] in bin tree should be live | bin: ", toString(bin))
                 );
                 prev = offerId;
                 offerId = offer.next();
@@ -305,10 +295,10 @@ contract TestTickTree is MangroveTest {
                 string.concat(
                   "last offer[",
                   vm.toString(leaf.lastOfPos(leafPos)),
-                  "] in tickTreeIndex does not match last offer[",
+                  "] in bin does not match last offer[",
                   vm.toString(prev),
-                  "] in tickTreeIndex list | tickTreeIndex: ",
-                  toString(tickTreeIndex)
+                  "] in bin list | bin: ",
+                  toString(bin)
                 )
               );
             }
@@ -318,7 +308,7 @@ contract TestTickTree is MangroveTest {
     }
   }
 
-  // Checks that the current Mangrove tickTreeIndex tree in olKey is equal to the tickTreeIndex tree passed as argument
+  // Checks that the current Mangrove bin tree in olKey is equal to the bin tree passed as argument
   function assertEqToMgvTickTree() public {
     Field root = mgv.root(olKey);
     uint[4] memory levelPoss;
@@ -372,16 +362,16 @@ contract TestTickTree is MangroveTest {
             Leaf leaf = mgv.leafs(olKey, leafIndex);
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
               {
-                TickTreeIndex tickTreeIndex = TickTreeUtil.tickTreeIndexFromLeafIndexAndPos(leafIndex, leafPos);
+                Bin bin = TickTreeUtil.binFromLeafIndexAndPos(leafIndex, leafPos);
                 assertEq(
                   leaf.firstOfPos(leafPos),
                   leafs[leafIndex].firstOfPos(leafPos),
-                  string.concat("leaf first mismatch | tickTreeIndex: ", toString(tickTreeIndex))
+                  string.concat("leaf first mismatch | bin: ", toString(bin))
                 );
                 assertEq(
                   leaf.lastOfPos(leafPos),
                   leafs[leafIndex].lastOfPos(leafPos),
-                  string.concat("leaf last mismatch | tickTreeIndex: ", toString(tickTreeIndex))
+                  string.concat("leaf last mismatch | bin: ", toString(bin))
                 );
               }
               uint offerId = leaf.firstOfPos(leafPos);
@@ -396,7 +386,7 @@ contract TestTickTree is MangroveTest {
                       vm.toString(offerId),
                       " | MGV ",
                       toString(offer),
-                      " | tickTreeIndex tree ",
+                      " | bin tree ",
                       toString(offerTickTree)
                     )
                   );
@@ -412,7 +402,7 @@ contract TestTickTree is MangroveTest {
                       vm.toString(offerId),
                       " | MGV ",
                       toString(detail),
-                      " | tickTreeIndex tree ",
+                      " | bin tree ",
                       toString(detailTickTree)
                     )
                   );
@@ -471,17 +461,12 @@ contract TestTickTree is MangroveTest {
             int leafIndex = TickTreeUtil.leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             Leaf leaf = leafs[leafIndex];
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
-              TickTreeIndex tickTreeIndex = TickTreeUtil.tickTreeIndexFromLeafIndexAndPos(leafIndex, leafPos);
+              Bin bin = TickTreeUtil.binFromLeafIndexAndPos(leafIndex, leafPos);
               uint offerId = leaf.firstOfPos(leafPos);
               if (offerId == 0) {
                 continue;
               }
-              console.log(
-                "        leaf: %s (index: %s) | tickTreeIndex: %s",
-                leafPos,
-                vm.toString(leafIndex),
-                toString(tickTreeIndex)
-              );
+              console.log("        leaf: %s (index: %s) | bin: %s", leafPos, vm.toString(leafIndex), toString(bin));
               do {
                 console.log("          offer: %s", offerId);
                 offerId = offers[offerId].offer.next();
@@ -493,7 +478,7 @@ contract TestTickTree is MangroveTest {
     }
   }
 
-  function best() public view returns (uint bestOfferId, TickTreeIndex bestTickTreeIndex) {
+  function best() public view returns (uint bestOfferId, Bin bestBin) {
     uint[4] memory levelPoss;
     for (levelPoss[3] = 0; levelPoss[3] <= MAX_ROOT_POS; ++levelPoss[3]) {
       if (!TickTreeUtil.isBitSet(local.root(), levelPoss[3])) {
@@ -520,12 +505,12 @@ contract TestTickTree is MangroveTest {
 
             int leafIndex = TickTreeUtil.leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
-              TickTreeIndex tickTreeIndex = TickTreeUtil.tickTreeIndexFromLeafIndexAndPos(leafIndex, leafPos);
+              Bin bin = TickTreeUtil.binFromLeafIndexAndPos(leafIndex, leafPos);
               uint offerId = leafs[leafIndex].firstOfPos(leafPos);
               if (offerId == 0) {
                 continue;
               }
-              return (offerId, tickTreeIndex);
+              return (offerId, bin);
             }
           }
         }
@@ -546,23 +531,21 @@ contract TestTickTree is MangroveTest {
     }
   }
 
-  function addOffer(uint offerId, TickTreeIndex tickTreeIndex, uint gives, uint gasreq, uint gasprice, address maker)
-    public
-  {
+  function addOffer(uint offerId, Bin bin, uint gives, uint gasreq, uint gasprice, address maker) public {
     // Update leaf and last offer
-    Leaf leaf = leafs[tickTreeIndex.leafIndex()];
+    Leaf leaf = leafs[bin.leafIndex()];
     // console.log("leaf before: %s", toString(leaf));
-    uint lastId = leaf.lastOfPos(tickTreeIndex.posInLeaf());
+    uint lastId = leaf.lastOfPos(bin.posInLeaf());
     if (lastId == 0) {
-      leaf = leaf.setPosFirstOrLast(tickTreeIndex.posInLeaf(), offerId, false);
+      leaf = leaf.setPosFirstOrLast(bin.posInLeaf(), offerId, false);
     } else {
       offers[lastId].offer = offers[lastId].offer.next(offerId);
     }
-    leafs[tickTreeIndex.leafIndex()] = leaf.setPosFirstOrLast(tickTreeIndex.posInLeaf(), offerId, true);
-    // console.log("leaf after: %s", toString(leafs[tickTreeIndex.leafIndex()]));
+    leafs[bin.leafIndex()] = leaf.setPosFirstOrLast(bin.posInLeaf(), offerId, true);
+    // console.log("leaf after: %s", toString(leafs[bin.leafIndex()]));
 
     // Create offer
-    int tick = TickLib.fromTickTreeIndex(tickTreeIndex, olKey.tickSpacing);
+    int tick = TickLib.fromBin(bin, olKey.tickSpacing);
     offers[offerId].offer = MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: tick, __gives: gives});
     offers[offerId].detail = MgvStructs.OfferDetail.pack({
       __maker: maker,
@@ -572,15 +555,12 @@ contract TestTickTree is MangroveTest {
     });
 
     // Update levels
-    local = local.root(TickTreeUtil.setBit(local.root(), tickTreeIndex.posInRoot()));
+    local = local.root(TickTreeUtil.setBit(local.root(), bin.posInRoot()));
     // As an optimization, Mangrove only updates these for the part of the branch that is not best.
     // We don't do that here, as there's no reason for the complexity.
-    level2s[tickTreeIndex.level2Index()] =
-      TickTreeUtil.setBit(level2s[tickTreeIndex.level2Index()], tickTreeIndex.posInLevel2());
-    level1s[tickTreeIndex.level1Index()] =
-      TickTreeUtil.setBit(level1s[tickTreeIndex.level1Index()], tickTreeIndex.posInLevel1());
-    level0s[tickTreeIndex.level0Index()] =
-      TickTreeUtil.setBit(level0s[tickTreeIndex.level0Index()], tickTreeIndex.posInLevel0());
+    level2s[bin.level2Index()] = TickTreeUtil.setBit(level2s[bin.level2Index()], bin.posInLevel2());
+    level1s[bin.level1Index()] = TickTreeUtil.setBit(level1s[bin.level1Index()], bin.posInLevel1());
+    level0s[bin.level0Index()] = TickTreeUtil.setBit(level0s[bin.level0Index()], bin.posInLevel0());
 
     // Update local
     updateLocalWithBestBranch();
@@ -588,36 +568,33 @@ contract TestTickTree is MangroveTest {
 
   function removeOffer(uint offerId) public {
     MgvCommon.OfferData storage offer = offers[offerId];
-    TickTreeIndex tickTreeIndex = offer.offer.tickTreeIndex(olKey.tickSpacing);
+    Bin bin = offer.offer.bin(olKey.tickSpacing);
 
-    // Update leaf and tickTreeIndex list
-    Leaf leaf = leafs[tickTreeIndex.leafIndex()];
+    // Update leaf and bin list
+    Leaf leaf = leafs[bin.leafIndex()];
     uint prevId = offer.offer.prev();
     uint nextId = offer.offer.next();
     if (prevId != 0) {
       offers[prevId].offer = offers[prevId].offer.next(nextId);
     } else {
-      leaf = leaf.setPosFirstOrLast(tickTreeIndex.posInLeaf(), nextId, false);
+      leaf = leaf.setPosFirstOrLast(bin.posInLeaf(), nextId, false);
     }
     if (nextId != 0) {
       offers[nextId].offer = offers[nextId].offer.prev(prevId);
     } else {
-      leaf = leaf.setPosFirstOrLast(tickTreeIndex.posInLeaf(), prevId, true);
+      leaf = leaf.setPosFirstOrLast(bin.posInLeaf(), prevId, true);
     }
-    leafs[tickTreeIndex.leafIndex()] = leaf;
+    leafs[bin.leafIndex()] = leaf;
 
     // Update levels
     if (leaf.eq(LeafLib.EMPTY)) {
-      level0s[tickTreeIndex.level0Index()] =
-        TickTreeUtil.unsetBit(level0s[tickTreeIndex.level0Index()], tickTreeIndex.posInLevel0());
-      if (level0s[tickTreeIndex.level0Index()].eq(FieldLib.EMPTY)) {
-        level1s[tickTreeIndex.level1Index()] =
-          TickTreeUtil.unsetBit(level1s[tickTreeIndex.level1Index()], tickTreeIndex.posInLevel1());
-        if (level1s[tickTreeIndex.level1Index()].eq(FieldLib.EMPTY)) {
-          level2s[tickTreeIndex.level2Index()] =
-            TickTreeUtil.unsetBit(level2s[tickTreeIndex.level2Index()], tickTreeIndex.posInLevel2());
-          if (level2s[tickTreeIndex.level2Index()].eq(FieldLib.EMPTY)) {
-            local = local.root(TickTreeUtil.unsetBit(local.root(), tickTreeIndex.posInRoot()));
+      level0s[bin.level0Index()] = TickTreeUtil.unsetBit(level0s[bin.level0Index()], bin.posInLevel0());
+      if (level0s[bin.level0Index()].eq(FieldLib.EMPTY)) {
+        level1s[bin.level1Index()] = TickTreeUtil.unsetBit(level1s[bin.level1Index()], bin.posInLevel1());
+        if (level1s[bin.level1Index()].eq(FieldLib.EMPTY)) {
+          level2s[bin.level2Index()] = TickTreeUtil.unsetBit(level2s[bin.level2Index()], bin.posInLevel2());
+          if (level2s[bin.level2Index()].eq(FieldLib.EMPTY)) {
+            local = local.root(TickTreeUtil.unsetBit(local.root(), bin.posInRoot()));
           }
         }
       }
@@ -628,31 +605,24 @@ contract TestTickTree is MangroveTest {
   }
 
   function updateLocalWithBestBranch() internal {
-    (, TickTreeIndex tickTreeIndex) = best();
-    local = local.level2(level2s[tickTreeIndex.level2Index()]);
-    local = local.level1(level1s[tickTreeIndex.level1Index()]);
-    local = local.level0(level0s[tickTreeIndex.level0Index()]);
-    local = local.tickTreeIndexPosInLeaf(tickTreeIndex.posInLeaf());
+    (, Bin bin) = best();
+    local = local.level2(level2s[bin.level2Index()]);
+    local = local.level1(level1s[bin.level1Index()]);
+    local = local.level0(level0s[bin.level0Index()]);
+    local = local.binPosInLeaf(bin.posInLeaf());
   }
 
-  function addOffer(TickTreeIndex tickTreeIndex, uint gives, uint gasreq, uint gasprice, address maker) public {
+  function addOffer(Bin bin, uint gives, uint gasreq, uint gasprice, address maker) public {
     uint offerId = 1 + local.last();
     local = local.last(offerId);
 
-    addOffer(offerId, tickTreeIndex, gives, gasreq, gasprice, maker);
+    addOffer(offerId, bin, gives, gasreq, gasprice, maker);
   }
 
-  function updateOffer(
-    uint offerId,
-    TickTreeIndex newTickTreeIndex,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    address maker
-  ) public {
+  function updateOffer(uint offerId, Bin newBin, uint gives, uint gasreq, uint gasprice, address maker) public {
     if (offers[offerId].offer.isLive()) {
       removeOffer(offerId);
     }
-    addOffer(offerId, newTickTreeIndex, gives, gasreq, gasprice, maker);
+    addOffer(offerId, newBin, gives, gasreq, gasprice, maker);
   }
 }

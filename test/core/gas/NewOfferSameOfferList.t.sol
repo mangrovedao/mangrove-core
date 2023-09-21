@@ -51,18 +51,18 @@ contract PosthookSuccessNewOfferSameList_WithOtherOfferGasTest is
     mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     description =
-      "Posting a new offer in posthook for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer";
+      "Posting a new offer in posthook for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer";
   }
 }
 
-contract PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
+contract PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameBinGasTest is
   PosthookSuccessNewOfferSameList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
     this.newOfferOnAllHigherThanMiddleTestRatios();
     description =
-      "Posting a new offer in posthook for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tickTreeIndex. This is only representative for ticks higher than the middle, as lower ticks would be taken by market order";
+      "Posting a new offer in posthook for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that bin. This is only representative for ticks higher than the middle, as lower ticks would be taken by market order";
   }
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, int _tick) internal override {
@@ -111,18 +111,18 @@ contract PosthookFailureNewOfferSameListWith_OtherOfferGasTest is
     super.setUp();
     failExecute = true;
     description =
-      "Posting a new offer in posthook after offer failure for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer";
+      "Posting a new offer in posthook after offer failure for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer";
   }
 }
 
-contract PosthookFailureNewOfferSameList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
-  PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest
+contract PosthookFailureNewOfferSameList_WithOtherOfferAndOfferOnSameBinGasTest is
+  PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
     failExecute = true;
     description =
-      "Posting a new offer in posthook after offer failure for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tick";
+      "Posting a new offer in posthook after offer failure for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tick";
   }
 }
 

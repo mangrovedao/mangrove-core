@@ -111,7 +111,7 @@ const struct_defs = {
       10 billions. */
       fields.gives,
     ],
-    additionalDefinitions: `import "mgv_lib/TickTreeIndexLib.sol";
+    additionalDefinitions: `import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 import "mgv_lib/TickConversionLib.sol";
 
@@ -133,9 +133,9 @@ library OfferPackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tickTreeIndex(OfferPacked offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
+  function bin(OfferPacked offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return TickTreeIndexLib.fromTickTreeIndexAlignedTick(offer.tick(), tickSpacing);
+    return BinLib.fromBinAlignedTick(offer.tick(), tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -158,9 +158,9 @@ library OfferUnpackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tickTreeIndex(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
+  function bin(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return TickTreeIndexLib.fromTickTreeIndexAlignedTick(offer.tick, tickSpacing);
+    return BinLib.fromBinAlignedTick(offer.tick, tickSpacing);
   }
 
 }
@@ -281,7 +281,7 @@ library OfferDetailUnpackedExtra {
       
       */
       { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
-      { name: "tickTreeIndexPosInLeaf", bits: 2, type: "uint" },
+      { name: "binPosInLeaf", bits: 2, type: "uint" },
       { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
@@ -304,14 +304,14 @@ library OfferDetailUnpackedExtra {
       id_field("last"),
     ],
     additionalDefinitions: (struct) => `
-import {TickTreeIndex,TickTreeIndexLib,Field} from "mgv_lib/TickTreeIndexLib.sol";
+import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 
 using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickTreeIndexPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | root_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(binPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | root_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
   function densityFrom96X32(LocalPacked local, uint density96X32) internal pure returns (LocalPacked) { unchecked {
@@ -323,8 +323,8 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
-  function bestTickTreeIndex(LocalPacked local) internal pure returns (TickTreeIndex) {
-    return TickTreeIndexLib.bestTickTreeIndexFromLocal(local);
+  function bestBin(LocalPacked local) internal pure returns (Bin) {
+    return BinLib.bestBinFromLocal(local);
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -345,8 +345,8 @@ library LocalUnpackedExtra {
   function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
     local.kilo_offer_gasbase = val/1e3;
   }}
-  function bestTickTreeIndex(LocalUnpacked memory local) internal pure returns (TickTreeIndex) {
-    return TickTreeIndexLib.bestTickTreeIndexFromBranch(local.tickTreeIndexPosInLeaf,local.level0,local.level1,local.level2,local.root);
+  function bestBin(LocalUnpacked memory local) internal pure returns (Bin) {
+    return BinLib.bestBinFromBranch(local.binPosInLeaf,local.level0,local.level1,local.level2,local.root);
   }
 }
 `,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import {TickTreeIndex} from "mgv_lib/TickTreeIndexLib.sol";
+import {Bin} from "mgv_lib/BinLib.sol";
 import "mgv_lib/Constants.sol";
 import "mgv_lib/TickConversionLib.sol";
 
@@ -10,11 +10,11 @@ library TickLib {
   function inRange(int tick) internal pure returns (bool) {
     return tick >= MIN_LOG_PRICE && tick <= MAX_LOG_PRICE;
   }
-  function fromTickTreeIndex(TickTreeIndex tickTreeIndex, uint tickSpacing) internal pure returns (int) {
-    return TickTreeIndex.unwrap(tickTreeIndex) * int(tickSpacing);
+  function fromBin(Bin bin, uint tickSpacing) internal pure returns (int) {
+    return Bin.unwrap(bin) * int(tickSpacing);
   }
 
-  // tickTreeIndex underestimates the ratio, so we underestimate  inbound here, i.e. the inbound/outbound ratio will again be underestimated
+  // bin underestimates the ratio, so we underestimate  inbound here, i.e. the inbound/outbound ratio will again be underestimated
   // no overflow if outboundAmt is on 104 bits
   // rounds down
   function inboundFromOutbound(int tick, uint outboundAmt) internal pure returns (uint) {
@@ -31,7 +31,7 @@ library TickLib {
     }
   }
 
-  // tickTreeIndex underestimates the ratio, and we underestimate outbound here, so ratio will be overestimated here
+  // bin underestimates the ratio, and we underestimate outbound here, so ratio will be overestimated here
   // no overflow if inboundAmt is on 104 bits
   // rounds down
   function outboundFromInbound(int tick, uint inboundAmt) internal pure returns (uint) {

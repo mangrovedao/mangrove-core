@@ -5,9 +5,9 @@ pragma solidity ^0.8.18;
 import {IMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
-import {TickTreeIndexLib, TickTreeIndex, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/TickTreeIndexLib.sol";
+import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
 
-// A log price with room for bits above and below at all tickTreeIndex levels, except at root which has only 2 bits.
+// A log price with room for bits above and below at all bin levels, except at root which has only 2 bits.
 // forgefmt: disable-start
 int constant MIDDLE_LOG_PRICE = 
   /* mid leaf */ LEAF_SIZE / 2 + 

@@ -40,7 +40,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  // # TickTreeIndex tree view functions
+  // # Bin tree view functions
 
   function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
     unchecked {
@@ -56,7 +56,7 @@ contract MgvView is MgvCommon {
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
 
-      if (_local.bestTickTreeIndex().level0Index() == index) {
+      if (_local.bestBin().level0Index() == index) {
         return _local.level0();
       } else {
         return offerList.level0[index].clean();
@@ -70,7 +70,7 @@ contract MgvView is MgvCommon {
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
 
-      if (_local.bestTickTreeIndex().level1Index() == index) {
+      if (_local.bestBin().level1Index() == index) {
         return _local.level1();
       } else {
         return offerList.level1[index].clean();
@@ -84,7 +84,7 @@ contract MgvView is MgvCommon {
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
 
-      if (_local.bestTickTreeIndex().level2Index() == index) {
+      if (_local.bestBin().level2Index() == index) {
         return _local.level2();
       } else {
         return offerList.level2[index].clean();
@@ -116,7 +116,7 @@ contract MgvView is MgvCommon {
       OfferList storage offerList = offerLists[olKey.hash()];
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
-      return offerList.leafs[_local.bestTickTreeIndex().leafIndex()].clean().getNextOfferId();
+      return offerList.leafs[_local.bestBin().leafIndex()].clean().getNextOfferId();
     }
   }
 

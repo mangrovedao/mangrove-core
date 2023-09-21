@@ -7,7 +7,7 @@ pragma solidity ^0.8.10;
 import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
 import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
-import "mgv_lib/TickTreeIndexLib.sol";
+import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 import "mgv_lib/TickConversionLib.sol";
 

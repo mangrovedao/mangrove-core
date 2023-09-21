@@ -9,7 +9,7 @@ import {
   MgvStructs,
   Leaf,
   Field,
-  TickTreeIndex,
+  Bin,
   LeafLib,
   FieldLib,
   DirtyField,
@@ -19,7 +19,7 @@ import {
   OLKey
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {TickTreeIndexLib} from "mgv_lib/TickTreeIndexLib.sol";
+import {BinLib} from "mgv_lib/BinLib.sol";
 import "mgv_lib/TickConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -91,32 +91,32 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     MgvStructs.LocalPacked local,
     uint tickSpacing
   ) internal returns (uint offerId, MgvStructs.LocalPacked) {
-    TickTreeIndex offerTickTreeIndex = offer.tickTreeIndex(tickSpacing);
+    Bin offerBin = offer.bin(tickSpacing);
     uint nextId = offer.next();
 
     if (nextId == 0) {
       Leaf leaf = mor.leaf;
-      leaf = leaf.setTickTreeIndexFirst(offerTickTreeIndex, 0).setTickTreeIndexLast(offerTickTreeIndex, 0);
+      leaf = leaf.setBinFirst(offerBin, 0).setBinLast(offerBin, 0);
       if (leaf.isEmpty()) {
-        offerList.leafs[offerTickTreeIndex.leafIndex()] = leaf.dirty();
-        int index = offerTickTreeIndex.level0Index();
-        Field field = local.level0().flipBitAtLevel0(offerTickTreeIndex);
+        offerList.leafs[offerBin.leafIndex()] = leaf.dirty();
+        int index = offerBin.level0Index();
+        Field field = local.level0().flipBitAtLevel0(offerBin);
         if (field.isEmpty()) {
           if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
             offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
           }
-          index = offerTickTreeIndex.level1Index();
-          field = local.level1().flipBitAtLevel1(offerTickTreeIndex);
+          index = offerBin.level1Index();
+          field = local.level1().flipBitAtLevel1(offerBin);
           if (field.isEmpty()) {
             if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
               offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
             }
-            index = offerTickTreeIndex.level2Index();
-            field = local.level2().flipBitAtLevel2(offerTickTreeIndex);
+            index = offerBin.level2Index();
+            field = local.level2().flipBitAtLevel2(offerBin);
             if (field.isEmpty()) {
               // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
               offerList.level2[index] = DirtyFieldLib.DIRTY_EMPTY;
-              field = local.root().flipBitAtRoot(offerTickTreeIndex);
+              field = local.root().flipBitAtRoot(offerBin);
               local = local.root(field);
               if (field.isEmpty()) {
                 local = local.level2(field);
@@ -182,7 +182,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
-      mor.leaf = offerList.leafs[sor.local.bestTickTreeIndex().leafIndex()].clean();
+      mor.leaf = offerList.leafs[sor.local.bestBin().leafIndex()].clean();
       sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = offerList.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
@@ -231,7 +231,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.maxRecursionDepth--;
 
         /* #### Case 1 : End of order */
-        /* We execute the offer currently stored in `sor` if its ratio is better than or equal to the ratio the taker is ready to accept (`maxTickTreeIndex`). */
+        /* We execute the offer currently stored in `sor` if its ratio is better than or equal to the ratio the taker is ready to accept (`maxBin`). */
 
         uint gasused; // gas used by `makerExecute`
         bytes32 makerData; // data returned by maker
@@ -296,24 +296,24 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // mark current offer as having no prev if necessary
         // update leaf if necessary
         MgvStructs.OfferPacked offer = sor.offer;
-        TickTreeIndex tickTreeIndex = offer.tickTreeIndex(sor.olKey.tickSpacing);
+        Bin bin = offer.bin(sor.olKey.tickSpacing);
 
-        // Don't uselessly write empty leaf of tickTreeIndex 0
+        // Don't uselessly write empty leaf of bin 0
         if (sor.offerId != 0) {
           // Note: important to not update offer.prev before now or this test will fail spuriously
           if (offer.prev() != 0) {
             offerList.offerData[sor.offerId].offer = sor.offer.prev(0);
-            mor.leaf = mor.leaf.setTickTreeIndexFirst(tickTreeIndex, sor.offerId);
+            mor.leaf = mor.leaf.setBinFirst(bin, sor.offerId);
           }
 
           // no need to test whether level2 has been reached since by default its stored in local
 
-          sor.local = sor.local.tickTreeIndexPosInLeaf(mor.leaf.firstOfferPosition());
+          sor.local = sor.local.binPosInLeaf(mor.leaf.firstOfferPosition());
           // no need to test whether mor.level2 != offerList.level2 since update is ~free
-          // ! local.level0[sor.local.bestTickTreeIndex().level0Index()] is now wrong
+          // ! local.level0[sor.local.bestBin().level0Index()] is now wrong
           // sor.local = sor.local.level0(mor.level0);
 
-          int index = tickTreeIndex.leafIndex();
+          int index = bin.leafIndex();
           // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
           // second conjunct is for when you did not ever read leaf
           // If uselessly written, it's a hot write anyway
@@ -443,8 +443,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         require(mgvData != "mgv/tradeSuccess", "mgv/clean/offerDidNotFail");
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since the offer may be anywhere in the book. So we stitch together offers immediately after `execute`. */
-        (sor.local,) =
-          dislodgeOffer(offerList, olKey.tickSpacing, sor.offer, sor.local, sor.local.bestTickTreeIndex(), true);
+        (sor.local,) = dislodgeOffer(offerList, olKey.tickSpacing, sor.offer, sor.local, sor.local.bestBin(), true);
 
         /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
         * lift the reentrancy lock, and

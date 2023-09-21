@@ -80,7 +80,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     // LocalPacked is partially filtered
     //   hidden
-    assertEq(order.local.tickTreeIndexPosInLeaf(), 0, "tickTreeIndexPosInLeaf should be hidden");
+    assertEq(order.local.binPosInLeaf(), 0, "binPosInLeaf should be hidden");
     assertEq(order.local.level0(), FieldLib.EMPTY, "level0 should be hidden");
     assertEq(order.local.level1(), FieldLib.EMPTY, "level1 should be hidden");
     assertEq(order.local.level2(), FieldLib.EMPTY, "level2 should be hidden");
@@ -364,7 +364,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     // note: a former version of this test was checking reader.prevOfferId(olKey,offer) and offer.next () but:
     // 1. There is no spec of what prev() next() are for a non-live offer (nor of what prev/nextOffer are)
-    // 2. prev() and next() are not meaningful with tickTreeIndex trees
+    // 2. prev() and next() are not meaningful with bin trees
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     MgvStructs.OfferPacked offer0 = mgv.offers(olKey, ofr0);
     assertTrue(offer0.isLive(), "Invalid OB");
@@ -793,7 +793,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.newOfferByVolume(1.0 ether + 0.02 ether, 1 ether, 100_000, 0);
     assertEq(ofr0, mgv.best(olKey), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether + 0.01 ether, 1.0 ether, 100_000, ofr0);
-    // csl.log(mgv.offers(olKey,ofr0).tickTreeIndex().toString());
+    // csl.log(mgv.offers(olKey,ofr0).bin().toString());
     assertEq(ofr0, mgv.best(olKey), "Best offer should not have changed");
   }
 
@@ -904,26 +904,24 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint wants = 5 ether;
     mkr.newOfferByVolume(wants, TickLib.outboundFromInbound(3, wants), 100_000, 0);
-    uint posInLeaf = mgv.local(olKey).tickTreeIndexPosInLeaf();
+    uint posInLeaf = mgv.local(olKey).binPosInLeaf();
     uint ofr = mkr.newOfferByVolume(wants, TickLib.outboundFromInbound(2, wants), 100_000, 0);
     assertGt(
-      posInLeaf,
-      mgv.local(olKey).tickTreeIndexPosInLeaf(),
-      "test void if posInLeaf does not change when second offer is created"
+      posInLeaf, mgv.local(olKey).binPosInLeaf(), "test void if posInLeaf does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(posInLeaf, mgv.local(olKey).tickTreeIndexPosInLeaf(), "posInLeaf should have been restored");
+    assertEq(posInLeaf, mgv.local(olKey).binPosInLeaf(), "posInLeaf should have been restored");
   }
 
   function test_update_branch_on_retract_level0() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level0 = mgv.local(olKey).level0();
-    int level0Index = mgv.local(olKey).bestTickTreeIndex().level0Index();
+    int level0Index = mgv.local(olKey).bestBin().level0Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 10 ether, 100_000, 0);
     assertGt(
       level0Index,
-      mgv.local(olKey).bestTickTreeIndex().level0Index(),
+      mgv.local(olKey).bestBin().level0Index(),
       "test void if level0 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
@@ -939,11 +937,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level1 = mgv.local(olKey).level1();
-    int level1Index = mgv.local(olKey).bestTickTreeIndex().level1Index();
+    int level1Index = mgv.local(olKey).bestBin().level1Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
     assertGt(
       level1Index,
-      mgv.local(olKey).bestTickTreeIndex().level1Index(),
+      mgv.local(olKey).bestBin().level1Index(),
       "test void if level1 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
@@ -964,56 +962,50 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_update_branch_on_insert_posInLeaf() public {
     mkr.provisionMgv(10 ether);
-    TickTreeIndex tick0 = TickTreeIndex.wrap(0);
-    mkr.newOfferByTick(TickLib.fromTickTreeIndex(tick0, olKey.tickSpacing), 1 ether, 100_000, 0);
+    Bin tick0 = Bin.wrap(0);
+    mkr.newOfferByTick(TickLib.fromBin(tick0, olKey.tickSpacing), 1 ether, 100_000, 0);
     uint ofr = mkr.newOfferByTick(-46055, 100 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     assertTrue(
-      offer.tickTreeIndex(olKey.tickSpacing).posInLeaf() != TickTreeIndex.wrap(0).posInLeaf(),
+      offer.bin(olKey.tickSpacing).posInLeaf() != Bin.wrap(0).posInLeaf(),
       "test void if posInLeaf of second offer is not different"
     );
-    assertEq(
-      mgv.local(olKey).tickTreeIndexPosInLeaf(),
-      offer.tickTreeIndex(olKey.tickSpacing).posInLeaf(),
-      "posInLeaf should have changed"
-    );
+    assertEq(mgv.local(olKey).binPosInLeaf(), offer.bin(olKey.tickSpacing).posInLeaf(), "posInLeaf should have changed");
   }
   /* 
   When an offer ofr is updated, ofr is removed then re-added. In that case, if
   ofr is about to be inserted as the best offer, we don't go fetch the "next
-  best offer" just after removing ofr. Instead we leave the updated tickTreeIndex branch
+  best offer" just after removing ofr. Instead we leave the updated bin branch
   in local as-is, to be flushed to storage when ofr gets inserted again. Since
-  `local.bestTickTreeIndex()` is deduced from branch stored in local, `local.bestTickTreeIndex()` becomes
+  `local.bestBin()` is deduced from branch stored in local, `local.bestBin()` becomes
   wrong (it becomes higher than it really is). So we must check that it gets
   cached, otherwise we will 
     a) fail to flush the local level0/level1 to the right index
     b) flush the local level0/level1 to the wrong current index
   To really test a), we need to have some data already where level0/level1
   should be flushed (to check if the flushing has an effect), so we write an
-  offer there (at lowTickTreeIndex) before it's best, and then we make it best so it gets
+  offer there (at lowBin) before it's best, and then we make it best so it gets
   cached to local (but the original data is still in storage)
   */
 
-  function test_currentTickTreeIndex_is_cached_no_level01_erasure() public {
-    // Create a very low tickTreeIndex so that later the branch of lowTickTreeIndex will be both in storage and in cache
-    TickTreeIndex veryLowTickTreeIndex = TickTreeIndex.wrap(-100000);
-    uint ofr_veryLow = mgv.newOfferByTick(olKey, TickTreeIndex.unwrap(veryLowTickTreeIndex), 1 ether, 10_000, 0);
+  function test_currentBin_is_cached_no_level01_erasure() public {
+    // Create a very low bin so that later the branch of lowBin will be both in storage and in cache
+    Bin veryLowBin = Bin.wrap(-100000);
+    uint ofr_veryLow = mgv.newOfferByTick(olKey, Bin.unwrap(veryLowBin), 1 ether, 10_000, 0);
 
     // Create an offer at lowTick
-    TickTreeIndex lowTickTreeIndex = TickTreeIndex.wrap(10);
-    uint ofr = mgv.newOfferByTick(olKey, TickTreeIndex.unwrap(lowTickTreeIndex), 1 ether, 10_000, 0);
+    Bin lowBin = Bin.wrap(10);
+    uint ofr = mgv.newOfferByTick(olKey, Bin.unwrap(lowBin), 1 ether, 10_000, 0);
 
-    // Make sure very low tickTreeIndex uses a different branch
+    // Make sure very low bin uses a different branch
     assertTrue(
-      veryLowTickTreeIndex.level0Index() != lowTickTreeIndex.level0Index(),
-      "test setup: [very]lowTickTreeIndex level0Index should be different"
+      veryLowBin.level0Index() != lowBin.level0Index(), "test setup: [very]lowBin level0Index should be different"
     );
     assertTrue(
-      veryLowTickTreeIndex.level1Index() != lowTickTreeIndex.level1Index(),
-      "test setup: [very]lowTickTreeIndex level1Index should be different"
+      veryLowBin.level1Index() != lowBin.level1Index(), "test setup: [very]lowBin level1Index should be different"
     );
 
-    // Remove veryLowTickTreeIndex. Now lowTickTreeIndex is the best, and its branch is in cache, but also in storage!
+    // Remove veryLowBin. Now lowBin is the best, and its branch is in cache, but also in storage!
     mgv.retractOffer(olKey, ofr_veryLow, true);
 
     // Derive a "bad" local from it
@@ -1024,35 +1016,27 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint level0Pos = local.level1().firstOnePosition();
     Field otherLevel1 = Field.wrap(1 << (level0Pos + 1) % uint(LEVEL_SIZE));
     MgvStructs.LocalPacked badLocal = local.level0(otherLevel0).level1(otherLevel1);
-    // Make sure we changed the implied tickTreeIndex of badLocal
-    assertTrue(
-      !badLocal.bestTickTreeIndex().eq(lowTickTreeIndex),
-      "test setup: bad tickTreeIndex should not be original lowTickTreeIndex"
-    );
+    // Make sure we changed the implied bin of badLocal
+    assertTrue(!badLocal.bestBin().eq(lowBin), "test setup: bad bin should not be original lowBin");
     // Make sure we have changed level indices
     assertTrue(
-      badLocal.bestTickTreeIndex().level0Index() != lowTickTreeIndex.level0Index(),
-      "test setup: bad tickTreeIndex level0Index should be different"
+      badLocal.bestBin().level0Index() != lowBin.level0Index(), "test setup: bad bin level0Index should be different"
     );
-    // Create a tickTreeIndex there
-    mgv.newOfferByTick(olKey, TickTreeIndex.unwrap(badLocal.bestTickTreeIndex()), 1 ether, 10_000, 0);
+    // Create a bin there
+    mgv.newOfferByTick(olKey, Bin.unwrap(badLocal.bestBin()), 1 ether, 10_000, 0);
     // Save level0, level1
-    Field highLevel0 = mgv.level0(olKey, badLocal.bestTickTreeIndex().level0Index());
-    // Update the new tickTreeIndex to an even better tick
-    mgv.updateOfferByTick(olKey, TickTreeIndex.unwrap(veryLowTickTreeIndex), 1 ether, 10_000, 0, ofr);
+    Field highLevel0 = mgv.level0(olKey, badLocal.bestBin().level0Index());
+    // Update the new bin to an even better tick
+    mgv.updateOfferByTick(olKey, Bin.unwrap(veryLowBin), 1 ether, 10_000, 0, ofr);
 
     // Make sure we the high offer's branch is still fine
     assertEq(
-      mgv.level0(olKey, badLocal.bestTickTreeIndex().level0Index()),
+      mgv.level0(olKey, badLocal.bestBin().level0Index()),
       highLevel0,
       "badLocal's tick's level0 should not have changed"
     );
     // Make sure the previously local offer's branch is now empty
-    assertEq(
-      mgv.level0(olKey, lowTickTreeIndex.level0Index()),
-      FieldLib.EMPTY,
-      "lowTickTreeIndex's level0 should have been flushed"
-    );
+    assertEq(mgv.level0(olKey, lowBin.level0Index()), FieldLib.EMPTY, "lowBin's level0 should have been flushed");
   }
 
   function test_higher_tick() public {
@@ -1061,18 +1045,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     mgv.newOfferByTick(olKey, 3, 1 ether, 100_000, 0);
     (, local) = mgv.config(olKey);
-    assertEq(local.tickTreeIndexPosInLeaf(), 2);
+    assertEq(local.binPosInLeaf(), 2);
   }
 
   function test_leaf_update_both_first_and_last(int tick) public {
     tick = bound(tick, MIN_LOG_PRICE, MAX_LOG_PRICE);
     uint ofr0 = mgv.newOfferByTick(olKey, tick, 1 ether, 0, 0);
-    TickTreeIndex tickTreeIndex = TickTreeIndexLib.nearestHigherTickToTick(tick, olKey.tickSpacing);
+    Bin bin = BinLib.nearestHigherTickToTick(tick, olKey.tickSpacing);
     Leaf expected = LeafLib.EMPTY;
-    expected = expected.setPosFirstOrLast(tickTreeIndex.posInLeaf(), ofr0, true);
-    expected = expected.setPosFirstOrLast(tickTreeIndex.posInLeaf(), ofr0, false);
-    assertEq(mgv.leafs(olKey, tickTreeIndex.leafIndex()), expected, "leaf not as expected");
+    expected = expected.setPosFirstOrLast(bin.posInLeaf(), ofr0, true);
+    expected = expected.setPosFirstOrLast(bin.posInLeaf(), ofr0, false);
+    assertEq(mgv.leafs(olKey, bin.leafIndex()), expected, "leaf not as expected");
     mgv.retractOffer(olKey, ofr0, true);
-    assertEq(mgv.leafs(olKey, tickTreeIndex.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
+    assertEq(mgv.leafs(olKey, bin.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 }

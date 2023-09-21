@@ -7,13 +7,13 @@ uint constant TOPBIT = 1 << 255;
 // can't write ~TOPBIT or ~uint(1 << 255) or constant cannot be referred to from assembly
 uint constant NOT_TOPBIT = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-// MIN_TICK_TREE_INDEX and MAX_TICK_TREE_INDEX should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2, ROOT
-int constant MIN_TICK_TREE_INDEX = -1048576;
-int constant MAX_TICK_TREE_INDEX = -MIN_TICK_TREE_INDEX-1;
+// MIN_BIN and MAX_BIN should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2, ROOT
+int constant MIN_BIN = -1048576;
+int constant MAX_BIN = -MIN_BIN-1;
 
 // sizes must match field sizes in structs.ts where relevant
 // FIXME add tests for ^
-uint constant TICK_TREE_INDEX_BITS = 24;
+uint constant BIN_BITS = 24;
 uint constant OFFER_BITS = 32;
 uint constant MAX_FIELD_SIZE = 64; // Constraint given by BitLib.ctz64
 
@@ -34,7 +34,7 @@ int constant NUM_LEVEL2 = int(ROOT_SIZE);
 int constant NUM_LEVEL1 = NUM_LEVEL2 * LEVEL_SIZE;
 int constant NUM_LEVEL0 = NUM_LEVEL1 * LEVEL_SIZE;
 int constant NUM_LEAFS = NUM_LEVEL0 * LEVEL_SIZE;
-int constant NUM_TICK_TREE_INDICES = NUM_LEAFS * LEAF_SIZE;
+int constant NUM_BINS = NUM_LEAFS * LEAF_SIZE;
 
 uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
 
@@ -56,5 +56,5 @@ uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
 
 // Price math limits the allowed ticks to a subset of the full range
-int constant MIN_TICK_TREE_INDEX_ALLOWED = MIN_LOG_PRICE;
-int constant MAX_TICK_TREE_INDEX_ALLOWED = MAX_LOG_PRICE;
+int constant MIN_BIN_ALLOWED = MIN_LOG_PRICE;
+int constant MAX_BIN_ALLOWED = MAX_LOG_PRICE;

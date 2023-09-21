@@ -3,20 +3,13 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {
-  MgvStructs,
-  MAX_TICK_TREE_INDEX,
-  MIN_TICK_TREE_INDEX,
-  MAX_TICK_TREE_INDEX_ALLOWED,
-  MIN_TICK_TREE_INDEX_ALLOWED,
-  TickLib
-} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MAX_BIN, MIN_BIN, MAX_BIN_ALLOWED, MIN_BIN_ALLOWED, TickLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import {stdError} from "forge-std/StdError.sol";
 import "mgv_lib/Constants.sol";
 
 // In these tests, the testing contract is the market maker.
-contract DynamicTickTreeIndexsTest is MangroveTest {
+contract DynamicBinsTest is MangroveTest {
   receive() external payable {}
 
   TestTaker tkr;
@@ -28,42 +21,30 @@ contract DynamicTickTreeIndexsTest is MangroveTest {
     super.setUp();
   }
 
-  function test_tick_to_tick(int24 _tickTreeIndex, uint16 tickSpacing) public {
+  function test_tick_to_tick(int24 _bin, uint16 tickSpacing) public {
     vm.assume(tickSpacing != 0);
-    TickTreeIndex tickTreeIndex = TickTreeIndex.wrap(_tickTreeIndex);
-    assertEq(
-      TickLib.fromTickTreeIndex(tickTreeIndex, tickSpacing),
-      int(_tickTreeIndex) * int(uint(tickSpacing)),
-      "wrong tickTreeIndex -> tick"
-    );
+    Bin bin = Bin.wrap(_bin);
+    assertEq(TickLib.fromBin(bin, tickSpacing), int(_bin) * int(uint(tickSpacing)), "wrong bin -> tick");
   }
 
   function test_tick_to_nearest_tick(int96 tick, uint16 _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
-    TickTreeIndex tickTreeIndex = TickTreeIndexLib.nearestHigherTickToTick(tick, _tickSpacing);
-    assertGe(
-      TickLib.fromTickTreeIndex(tickTreeIndex, _tickSpacing),
-      tick,
-      "tick -> tickTreeIndex -> tick must give same or lower tick"
-    );
+    Bin bin = BinLib.nearestHigherTickToTick(tick, _tickSpacing);
+    assertGe(TickLib.fromBin(bin, _tickSpacing), tick, "tick -> bin -> tick must give same or lower tick");
 
     int tickSpacing = int(uint(_tickSpacing));
-    int expectedTickTreeIndex = tick / tickSpacing;
+    int expectedBin = tick / tickSpacing;
     if (tick > 0 && tick % tickSpacing != 0) {
-      expectedTickTreeIndex = expectedTickTreeIndex + 1;
+      expectedBin = expectedBin + 1;
     }
-    assertEq(TickTreeIndex.unwrap(tickTreeIndex), expectedTickTreeIndex, "wrong tick -> tick");
+    assertEq(Bin.unwrap(bin), expectedBin, "wrong tick -> tick");
   }
 
   function test_aligned_tick_to_tick(int96 tick, uint _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
     vm.assume(tick % int(uint(_tickSpacing)) == 0);
-    TickTreeIndex tickTreeIndex = TickTreeIndexLib.fromTickTreeIndexAlignedTick(tick, _tickSpacing);
-    assertEq(
-      TickLib.fromTickTreeIndex(tickTreeIndex, _tickSpacing),
-      tick,
-      "aligned tick -> tickTreeIndex -> tick must give same tick"
-    );
+    Bin bin = BinLib.fromBinAlignedTick(tick, _tickSpacing);
+    assertEq(TickLib.fromBin(bin, _tickSpacing), tick, "aligned tick -> bin -> tick must give same tick");
   }
 
   // get a valid tick from a random int24
@@ -82,8 +63,7 @@ contract DynamicTickTreeIndexsTest is MangroveTest {
     tick = boundTick(tick);
     uint gives = 1 ether;
 
-    int insertionTick =
-      int24(TickLib.fromTickTreeIndex(TickTreeIndexLib.nearestHigherTickToTick(tick, tickSpacing), tickSpacing));
+    int insertionTick = int24(TickLib.fromBin(BinLib.nearestHigherTickToTick(tick, tickSpacing), tickSpacing));
 
     vm.assume(TickLib.inRange(insertionTick));
 
@@ -103,8 +83,7 @@ contract DynamicTickTreeIndexsTest is MangroveTest {
     OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
     uint gives = 1 ether;
 
-    int insertionTick =
-      int24(TickLib.fromTickTreeIndex(TickTreeIndexLib.nearestHigherTickToTick(tick, tickSpacing), tickSpacing));
+    int insertionTick = int24(TickLib.fromBin(BinLib.nearestHigherTickToTick(tick, tickSpacing), tickSpacing));
     vm.assume(TickLib.inRange(insertionTick));
 
     mgv.activate(olKey, 0, 100 << 32, 0);
@@ -137,37 +116,35 @@ contract DynamicTickTreeIndexsTest is MangroveTest {
     tick = boundTick(tick);
     vm.assume(tickSpacing != 0);
     uint gives = 1 ether;
-    TickTreeIndex insertionTickTreeIndex = TickTreeIndexLib.nearestHigherTickToTick(tick, tickSpacing);
-    int insertionTick = int24(TickLib.fromTickTreeIndex(insertionTickTreeIndex, tickSpacing));
+    Bin insertionBin = BinLib.nearestHigherTickToTick(tick, tickSpacing);
+    int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
     vm.assume(TickLib.inRange(insertionTick));
 
     mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.newOfferByTick(olKey, tick, gives, 100_000, 30);
     assertEq(
-      mgv.leafs(olKey, insertionTickTreeIndex.leafIndex()).firstOfferPosition(),
-      insertionTickTreeIndex.posInLeaf(),
-      "wrong pos in leaf"
+      mgv.leafs(olKey, insertionBin.leafIndex()).firstOfferPosition(), insertionBin.posInLeaf(), "wrong pos in leaf"
     );
     assertEq(
-      mgv.level0(olKey, insertionTickTreeIndex.level0Index()).firstOnePosition(),
-      insertionTickTreeIndex.posInLevel0(),
+      mgv.level0(olKey, insertionBin.level0Index()).firstOnePosition(),
+      insertionBin.posInLevel0(),
       "wrong pos in level0"
     );
     assertEq(
-      mgv.level1(olKey, insertionTickTreeIndex.level1Index()).firstOnePosition(),
-      insertionTickTreeIndex.posInLevel1(),
+      mgv.level1(olKey, insertionBin.level1Index()).firstOnePosition(),
+      insertionBin.posInLevel1(),
       "wrong pos in level1"
     );
     assertEq(
-      mgv.level2(olKey, insertionTickTreeIndex.level2Index()).firstOnePosition(),
-      insertionTickTreeIndex.posInLevel2(),
+      mgv.level2(olKey, insertionBin.level2Index()).firstOnePosition(),
+      insertionBin.posInLevel2(),
       "wrong pos in level2"
     );
-    assertEq(mgv.root(olKey).firstOnePosition(), insertionTickTreeIndex.posInRoot(), "wrong pos in root");
+    assertEq(mgv.root(olKey).firstOnePosition(), insertionBin.posInRoot(), "wrong pos in root");
   }
 
   // creating offer at zero tickSpacing is impossible
-  function test_noOfferAtZeroTickTreeIndexScale(int24 tick, uint96 gives) public {
+  function test_noOfferAtZeroBinScale(int24 tick, uint96 gives) public {
     vm.assume(gives > 0);
     tick = boundTick(tick);
     olKey.tickSpacing = 0;
@@ -193,8 +170,8 @@ contract DynamicTickTreeIndexsTest is MangroveTest {
     vm.assume(tickSpacing != 0);
     vm.assume(int(tick) % int(uint(tickSpacing)) != 0);
     tick = boundTick(tick);
-    TickTreeIndex insertionTickTreeIndex = TickTreeIndexLib.nearestHigherTickToTick(tick, tickSpacing);
-    int insertionTick = int24(TickLib.fromTickTreeIndex(insertionTickTreeIndex, tickSpacing));
+    Bin insertionBin = BinLib.nearestHigherTickToTick(tick, tickSpacing);
+    int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
     vm.assume(TickLib.inRange(insertionTick));
     olKey.tickSpacing = tickSpacing;
 

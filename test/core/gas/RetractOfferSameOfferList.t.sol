@@ -6,7 +6,7 @@ import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
-import {LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/TickTreeIndexLib.sol";
+import {LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
 import "mgv_lib/Debug.sol";
 
 int constant LOW_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * 2 * (LEVEL_SIZE ** 3) / 3;

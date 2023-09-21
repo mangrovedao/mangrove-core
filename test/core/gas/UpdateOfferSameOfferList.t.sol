@@ -55,18 +55,18 @@ contract PosthookSuccessUpdateOfferSameList_WithOtherOfferGasTest is
     offerId2 = mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     mgv.newOfferByTick(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 1_000_000, 0);
     description =
-      "Updating an offer in posthook for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer";
+      "Updating an offer in posthook for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer";
   }
 }
 
-contract PosthookSuccessUpdateOfferSameList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
+contract PosthookSuccessUpdateOfferSameList_WithOtherOfferAndOfferOnSameBinGasTest is
   PosthookSuccessUpdateOfferSameList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
     this.newOfferOnAllHigherThanMiddleTestRatios();
     description =
-      "Updating an offer in posthook for offer list with other offer at same tickTreeIndex as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tick";
+      "Updating an offer in posthook for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tick";
   }
 
   function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, int _tick) internal override {

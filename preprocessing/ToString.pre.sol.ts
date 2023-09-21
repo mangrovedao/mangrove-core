@@ -14,7 +14,7 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
-import "mgv_lib/TickTreeIndexLib.sol";
+import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 import "mgv_lib/TickConversionLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
@@ -43,21 +43,21 @@ function toString(${s.Unpacked} memory __unpacked) pure returns (string memory) 
 }`;
 })}
 
-function tickTreeIndexBranchToString(TickTreeIndex tick) pure returns (string memory) {
+function binBranchToString(Bin tick) pure returns (string memory) {
   return string.concat(vm.toString(tick.posInRoot()), "->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
 }
 
-function toString(TickTreeIndex tick) pure returns (string memory ret) {
+function toString(Bin tick) pure returns (string memory ret) {
   string memory suffix;
-  if (MIN_TICK_TREE_INDEX > TickTreeIndex.unwrap(tick) || TickTreeIndex.unwrap(tick) > MAX_TICK_TREE_INDEX) {
+  if (MIN_BIN > Bin.unwrap(tick) || Bin.unwrap(tick) > MAX_BIN) {
     suffix = "out of range";
-  } else if (MIN_TICK_TREE_INDEX_ALLOWED > TickTreeIndex.unwrap(tick) || TickTreeIndex.unwrap(tick) > MAX_TICK_TREE_INDEX_ALLOWED) {
+  } else if (MIN_BIN_ALLOWED > Bin.unwrap(tick) || Bin.unwrap(tick) > MAX_BIN_ALLOWED) {
     suffix = "out of tick range";
   } else {
-    suffix = tickToString(TickLib.fromTickTreeIndex(tick,1));
+    suffix = tickToString(TickLib.fromBin(tick,1));
   }
 
-  ret = string.concat(unicode"「", vm.toString(TickTreeIndex.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickTreeIndexBranchToString(tick), "}", unicode"」");
+  ret = string.concat(unicode"「", vm.toString(Bin.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", binBranchToString(tick), "}", unicode"」");
 }
 
 function tickToString(int tick) pure returns (string memory ret) {

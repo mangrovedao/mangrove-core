@@ -8,7 +8,7 @@ import {
   MgvStructs,
   Field,
   Leaf,
-  TickTreeIndex,
+  Bin,
   LEVEL_SIZE,
   OLKey,
   DirtyFieldLib
@@ -66,36 +66,36 @@ contract MgvHasOffers is MgvCommon {
     uint tickSpacing,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
-    TickTreeIndex bestTickTreeIndex,
+    Bin bestBin,
     bool shouldUpdateBranch
   ) internal returns (MgvStructs.LocalPacked, bool) {
     unchecked {
       Leaf leaf;
-      TickTreeIndex offerTickTreeIndex = offer.tickTreeIndex(tickSpacing);
+      Bin offerBin = offer.bin(tickSpacing);
       // save stack space
       {
         uint prevId = offer.prev();
         uint nextId = offer.next();
         if (prevId == 0 || nextId == 0) {
-          leaf = offerList.leafs[offerTickTreeIndex.leafIndex()].clean();
+          leaf = offerList.leafs[offerBin.leafIndex()].clean();
         }
 
-        // if current tickTreeIndex is not strictly better,
+        // if current bin is not strictly better,
         // time to look for a new current tick
-        // NOTE: I used to name this var "shouldUpdateTickTreeIndex" and add "&& (prevId == 0 && nextId == 0)" because tickTreeIndex has not changed if you are not removing the last offer of a tickTreeIndex. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
+        // NOTE: I used to name this var "shouldUpdateBin" and add "&& (prevId == 0 && nextId == 0)" because bin has not changed if you are not removing the last offer of a bin. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
         // note: adding offerId as an arg would let us replace
-        // prevId == 0 && !local.tickTreeIndex.strictlyBetter(offerTickTreeIndex)
+        // prevId == 0 && !local.bin.strictlyBetter(offerBin)
         // with
         // offerId == local.best() (but best will maybe go away in the future)
 
         // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
-        // if local.tickTreeIndex < offerTickTreeIndex then a better branch is already cached. note that local.tickTreeIndex >= offerTickTreeIndex implies local.tickTreeIndex = offerTick
+        // if local.bin < offerBin then a better branch is already cached. note that local.bin >= offerBin implies local.bin = offerTick
         // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-        shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestTickTreeIndex.strictlyBetter(offerTickTreeIndex);
+        shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestBin.strictlyBetter(offerBin);
 
         if (prevId == 0) {
           // offer was tick's first. new first offer is offer.next (may be 0)
-          leaf = leaf.setTickTreeIndexFirst(offerTickTreeIndex, nextId);
+          leaf = leaf.setBinFirst(offerBin, nextId);
         } else {
           // offer.prev's next becomes offer.next
           OfferData storage prevOfferData = offerList.offerData[prevId];
@@ -104,7 +104,7 @@ contract MgvHasOffers is MgvCommon {
 
         if (nextId == 0) {
           // offer was tick's last. new last offer is offer.prev (may be 0)
-          leaf = leaf.setTickTreeIndexLast(offerTickTreeIndex, prevId);
+          leaf = leaf.setBinLast(offerBin, prevId);
         } else {
           // offer.next's prev becomes offer.prev
           OfferData storage nextOfferData = offerList.offerData[nextId];
@@ -115,14 +115,14 @@ contract MgvHasOffers is MgvCommon {
         }
       }
 
-      // offer.tickTreeIndex's first or last offer changed, must update leaf
-      offerList.leafs[offerTickTreeIndex.leafIndex()] = leaf.dirty();
+      // offer.bin's first or last offer changed, must update leaf
+      offerList.leafs[offerBin.leafIndex()] = leaf.dirty();
       // if leaf now empty, flip ticks OFF up the tree
       if (leaf.isEmpty()) {
-        int index = offerTickTreeIndex.level0Index(); // level0Index or level1Index
+        int index = offerBin.level0Index(); // level0Index or level1Index
         Field field;
-        if (index == bestTickTreeIndex.level0Index()) {
-          field = local.level0().flipBitAtLevel0(offerTickTreeIndex);
+        if (index == bestBin.level0Index()) {
+          field = local.level0().flipBitAtLevel0(offerBin);
           local = local.level0(field);
           if (shouldUpdateBranch && field.isEmpty()) {
             if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
@@ -131,13 +131,13 @@ contract MgvHasOffers is MgvCommon {
           }
         } else {
           // note: useless dirty/clean cycle here
-          field = offerList.level0[index].clean().flipBitAtLevel0(offerTickTreeIndex);
+          field = offerList.level0[index].clean().flipBitAtLevel0(offerBin);
           offerList.level0[index] = field.dirty();
         }
         if (field.isEmpty()) {
-          index = offerTickTreeIndex.level1Index(); // level0Index or level1Index
-          if (index == bestTickTreeIndex.level1Index()) {
-            field = local.level1().flipBitAtLevel1(offerTickTreeIndex);
+          index = offerBin.level1Index(); // level0Index or level1Index
+          if (index == bestBin.level1Index()) {
+            field = local.level1().flipBitAtLevel1(offerBin);
             local = local.level1(field);
             if (shouldUpdateBranch && field.isEmpty()) {
               if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
@@ -146,13 +146,13 @@ contract MgvHasOffers is MgvCommon {
             }
           } else {
             // note: useless dirty/clean cycle here
-            field = offerList.level1[index].clean().flipBitAtLevel1(offerTickTreeIndex);
+            field = offerList.level1[index].clean().flipBitAtLevel1(offerBin);
             offerList.level1[index] = field.dirty();
           }
           if (field.isEmpty()) {
-            index = offerTickTreeIndex.level2Index(); // level0Index or level1Index
-            if (index == bestTickTreeIndex.level2Index()) {
-              field = local.level2().flipBitAtLevel2(offerTickTreeIndex);
+            index = offerBin.level2Index(); // level0Index or level1Index
+            if (index == bestBin.level2Index()) {
+              field = local.level2().flipBitAtLevel2(offerBin);
               local = local.level2(field);
               if (shouldUpdateBranch && field.isEmpty()) {
                 // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
@@ -160,11 +160,11 @@ contract MgvHasOffers is MgvCommon {
               }
             } else {
               // note: useless dirty/clean cycle here
-              field = offerList.level2[index].clean().flipBitAtLevel2(offerTickTreeIndex);
+              field = offerList.level2[index].clean().flipBitAtLevel2(offerBin);
               offerList.level2[index] = field.dirty();
             }
             if (field.isEmpty()) {
-              field = local.root().flipBitAtRoot(offerTickTreeIndex);
+              field = local.root().flipBitAtRoot(offerBin);
               local = local.root(field);
 
               if (field.isEmpty()) {
@@ -193,7 +193,7 @@ contract MgvHasOffers is MgvCommon {
         }
       }
       if (shouldUpdateBranch) {
-        local = local.tickTreeIndexPosInLeaf(leaf.firstOfferPosition());
+        local = local.binPosInLeaf(leaf.firstOfferPosition());
       }
     }
     return (local, shouldUpdateBranch);

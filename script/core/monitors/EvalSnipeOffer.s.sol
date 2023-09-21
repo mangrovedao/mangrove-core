@@ -6,7 +6,7 @@ import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
-import {TickTreeIndex} from "mgv_lib/TickTreeIndexLib.sol";
+import {Bin} from "mgv_lib/BinLib.sol";
 
 /**
  * Script simulates a series of snipes on the offer at coordinate (TKN_OUT, TKN_IN, OFFER_ID)

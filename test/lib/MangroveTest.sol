@@ -27,10 +27,10 @@ import {
   MgvStructs,
   Leaf,
   Field,
-  TickTreeIndex,
+  Bin,
   LeafLib,
   FieldLib,
-  TickTreeIndexLib,
+  BinLib,
   OLKey
 } from "mgv_src/MgvLib.sol";
 
@@ -58,7 +58,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
-    uint defaultTickTreeIndexScale;
+    uint defaultBinScale;
     uint gasprice;
     uint gasbase;
     uint gasmax;
@@ -77,7 +77,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
-    defaultTickTreeIndexScale: 1,
+    defaultBinScale: 1,
     gasprice: 40,
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
@@ -104,8 +104,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
-    olKey = OLKey($(base), $(quote), options.defaultTickTreeIndexScale);
-    lo = OLKey($(quote), $(base), options.defaultTickTreeIndexScale);
+    olKey = OLKey($(base), $(quote), options.defaultBinScale);
+    lo = OLKey($(quote), $(base), options.defaultBinScale);
 
     mgv = setupMangrove(olKey, options.invertedMangrove);
     reader = new MgvReader($(mgv));
@@ -443,16 +443,16 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
-  function assertEq(TickTreeIndex a, TickTreeIndex b) internal {
+  function assertEq(Bin a, Bin b) internal {
     if (!a.eq(b)) {
-      emit log("Error: a == b not satisfied [TickTreeIndex]");
+      emit log("Error: a == b not satisfied [Bin]");
       emit log_named_string("      Left", toString(a));
       emit log_named_string("     Right", toString(b));
       fail();
     }
   }
 
-  function assertEq(TickTreeIndex a, TickTreeIndex b, string memory err) internal {
+  function assertEq(Bin a, Bin b, string memory err) internal {
     if (!a.eq(b)) {
       emit log_named_string("Error", err);
       assertEq(a, b);
@@ -497,15 +497,15 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
-    console.log("--------CURRENT tickTreeIndex TREE BRANCH--------");
+    console.log("--------CURRENT bin TREE BRANCH--------");
     MgvStructs.LocalPacked _local = _mgv.local(_ol);
-    TickTreeIndex tickTreeIndex = _local.bestTickTreeIndex();
-    console.log("Current tickTreeIndex %s", toString(tickTreeIndex));
-    console.log("Current posInLeaf %s", tickTreeIndex.posInLeaf());
-    int leafIndex = tickTreeIndex.leafIndex();
+    Bin bin = _local.bestBin();
+    console.log("Current bin %s", toString(bin));
+    console.log("Current posInLeaf %s", bin.posInLeaf());
+    int leafIndex = bin.leafIndex();
     console.log("Current leaf %s (index %s)", toString(_mgv.leafs(_ol, leafIndex)), vm.toString(leafIndex));
-    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tickTreeIndex.level0Index()));
-    int level1Index = tickTreeIndex.level1Index();
+    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(bin.level0Index()));
+    int level1Index = bin.level1Index();
     console.log("Current level 1 %s (index %s)", toString(_mgv.level1(_ol, level1Index)), vm.toString(level1Index));
     console.log("Current level 2 %s", toString(_local.level2()));
     console.log("----------------------------------------");

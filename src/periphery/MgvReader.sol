@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs, TickTreeIndex, Leaf, Field, TickLib, OLKey} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, Bin, Leaf, Field, TickLib, OLKey} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {TickConversionLib} from "mgv_lib/TickConversionLib.sol";
 
@@ -237,27 +237,27 @@ contract MgvReader {
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    TickTreeIndex offerTickTreeIndex = offer.tickTreeIndex(olKey.tickSpacing);
+    Bin offerBin = offer.bin(olKey.tickSpacing);
     uint nextId = offer.next();
     if (nextId == 0) {
-      int index = offerTickTreeIndex.leafIndex();
+      int index = offerBin.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseToTickTreeIndex(offerTickTreeIndex);
+      leaf = leaf.eraseToBin(offerBin);
       if (leaf.isEmpty()) {
-        index = offerTickTreeIndex.level0Index();
+        index = offerBin.level0Index();
         Field field = MGV.level0(olKey, index);
-        field = field.eraseToTickTreeIndex0(offerTickTreeIndex);
+        field = field.eraseToBin0(offerBin);
         if (field.isEmpty()) {
-          index = offerTickTreeIndex.level1Index();
+          index = offerBin.level1Index();
           field = MGV.level1(olKey, index);
-          field = field.eraseToTickTreeIndex1(offerTickTreeIndex);
+          field = field.eraseToBin1(offerBin);
           if (field.isEmpty()) {
-            index = offerTickTreeIndex.level2Index();
+            index = offerBin.level2Index();
             field = MGV.level2(olKey, index);
-            field = field.eraseToTickTreeIndex2(offerTickTreeIndex);
+            field = field.eraseToBin2(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseToTickTreeIndex3(offerTickTreeIndex);
+              field = field.eraseToBin3(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }
@@ -289,27 +289,27 @@ contract MgvReader {
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    TickTreeIndex offerTickTreeIndex = offer.tickTreeIndex(olKey.tickSpacing);
+    Bin offerBin = offer.bin(olKey.tickSpacing);
     uint prevId = offer.prev();
     if (prevId == 0) {
-      int index = offerTickTreeIndex.leafIndex();
+      int index = offerBin.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseFromTickTreeIndex(offerTickTreeIndex);
+      leaf = leaf.eraseFromBin(offerBin);
       if (leaf.isEmpty()) {
-        index = offerTickTreeIndex.level0Index();
+        index = offerBin.level0Index();
         Field field = MGV.level0(olKey, index);
-        field = field.eraseFromTickTreeIndex0(offerTickTreeIndex);
+        field = field.eraseFromBin0(offerBin);
         if (field.isEmpty()) {
-          index = offerTickTreeIndex.level1Index();
+          index = offerBin.level1Index();
           field = MGV.level1(olKey, index);
-          field = field.eraseFromTickTreeIndex1(offerTickTreeIndex);
+          field = field.eraseFromBin1(offerBin);
           if (field.isEmpty()) {
-            index = offerTickTreeIndex.level2Index();
+            index = offerBin.level2Index();
             field = MGV.level2(olKey, index);
-            field = field.eraseFromTickTreeIndex2(offerTickTreeIndex);
+            field = field.eraseFromBin2(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseFromTickTreeIndex3(offerTickTreeIndex);
+              field = field.eraseFromBin3(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }

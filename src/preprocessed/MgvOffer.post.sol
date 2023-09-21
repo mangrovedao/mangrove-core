@@ -26,7 +26,7 @@ type OfferPacked is uint;
 using Library for OfferPacked global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-import "mgv_lib/TickTreeIndexLib.sol";
+import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 import "mgv_lib/TickConversionLib.sol";
 
@@ -48,9 +48,9 @@ library OfferPackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tickTreeIndex(OfferPacked offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
+  function bin(OfferPacked offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return TickTreeIndexLib.fromTickTreeIndexAlignedTick(offer.tick(), tickSpacing);
+    return BinLib.fromBinAlignedTick(offer.tick(), tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -73,9 +73,9 @@ library OfferUnpackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tickTreeIndex(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (TickTreeIndex) {
+  function bin(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return TickTreeIndexLib.fromTickTreeIndexAlignedTick(offer.tick, tickSpacing);
+    return BinLib.fromBinAlignedTick(offer.tick, tickSpacing);
   }
 
 }

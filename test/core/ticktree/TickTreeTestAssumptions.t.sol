@@ -10,8 +10,8 @@ import "mgv_lib/Debug.sol";
 contract TickTreeTestAssumptionsTest is TickTreeTest {
   // Checks that the ticks used in these tests have the expected locations at various levels.
   function test_ticks_are_at_expected_locations() public {
-    assertTickTreeIndexAssumptions({
-      tickTreeIndex: TICK_TREE_INDEX_MIN_ROOT_MAX_OTHERS,
+    assertBinAssumptions({
+      bin: BIN_MIN_ROOT_MAX_OTHERS,
       posInRoot: MIN_ROOT_POS,
       posInLevel2: MAX_LEVEL_POS,
       posInLevel1: MAX_LEVEL_POS,
@@ -19,8 +19,8 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
       posInLeaf: MAX_LEAF_POS
     });
 
-    assertTickTreeIndexAssumptions({
-      tickTreeIndex: TICK_TREE_INDEX_MAX_ROOT_MIN_OTHERS,
+    assertBinAssumptions({
+      bin: BIN_MAX_ROOT_MIN_OTHERS,
       posInRoot: MAX_ROOT_POS,
       posInLevel2: MIN_LEVEL_POS,
       posInLevel1: MIN_LEVEL_POS,
@@ -28,8 +28,8 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
       posInLeaf: MIN_LEAF_POS
     });
 
-    assertTickTreeIndexAssumptions({
-      tickTreeIndex: TICK_TREE_INDEX_MIDDLE,
+    assertBinAssumptions({
+      bin: BIN_MIDDLE,
       posInRoot: MID_ROOT_POS,
       posInLevel2: MID_LEVEL_POS,
       posInLevel1: MID_LEVEL_POS,

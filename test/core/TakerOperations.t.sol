@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Constants.sol";
-import "mgv_lib/TickTreeIndexLib.sol";
+import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 import "mgv_lib/TickConversionLib.sol";
 
@@ -93,8 +93,8 @@ contract TakerOperationsTest is MangroveTest {
   function test_taker_cannot_drain_maker() public {
     mgv.setDensity96X32(olKey, 0);
     quote.approve($(mgv), 1 ether);
-    int tickTreeIndex = -7000; // ratio slightly < 1/2
-    mkr.newOfferByTick(tickTreeIndex, 10, 100_000, 0);
+    int bin = -7000; // ratio slightly < 1/2
+    mkr.newOfferByTick(bin, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
     mgv.marketOrderByTick(olKey, MAX_LOG_PRICE, 1, true);
     uint newBal = quote.balanceOf($(this));
@@ -1046,32 +1046,32 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_unconsumed_tick_leaves_correct_leaf_start_at_tick_leave_one_only(
-    int24 _tickTreeIndex,
-    bool crossTickTreeIndex,
+    int24 _bin,
+    bool crossBin,
     bool leaveOneOnly
   ) public {
     quote.approve($(mgv), 10_000 ether);
-    _tickTreeIndex = int24(bound(_tickTreeIndex, -100, 100));
-    int24 _firstPostedTickTreeIndex = crossTickTreeIndex ? _tickTreeIndex - 1 : _tickTreeIndex;
-    mkr.newOfferByTick(_firstPostedTickTreeIndex, 1 ether, 100_000);
-    mkr.newOfferByTick(_tickTreeIndex, 1 ether, 100_000);
-    uint ofr3 = mkr.newOfferByTick(_tickTreeIndex, 1 ether, 100_000);
-    uint ofr4 = mkr.newOfferByTick(_tickTreeIndex, 1 ether, 100_000);
+    _bin = int24(bound(_bin, -100, 100));
+    int24 _firstPostedBin = crossBin ? _bin - 1 : _bin;
+    mkr.newOfferByTick(_firstPostedBin, 1 ether, 100_000);
+    mkr.newOfferByTick(_bin, 1 ether, 100_000);
+    uint ofr3 = mkr.newOfferByTick(_bin, 1 ether, 100_000);
+    uint ofr4 = mkr.newOfferByTick(_bin, 1 ether, 100_000);
     uint volume = leaveOneOnly ? 3 ether : 2 ether;
-    mgv.marketOrderByTick(olKey, _tickTreeIndex, volume, true);
+    mgv.marketOrderByTick(olKey, _bin, volume, true);
 
-    TickTreeIndex tickTreeIndex = TickTreeIndex.wrap(_tickTreeIndex);
+    Bin bin = Bin.wrap(_bin);
 
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
     MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);
-    Leaf leaf = mgv.leafs(olKey, best.tickTreeIndex(olKey.tickSpacing).leafIndex());
-    assertEq(leaf.firstOfPos(tickTreeIndex.posInLeaf()), bestId, "wrong first of tick");
-    assertEq(leaf.lastOfPos(tickTreeIndex.posInLeaf()), ofr4, "wrong last of tick");
+    Leaf leaf = mgv.leafs(olKey, best.bin(olKey.tickSpacing).leafIndex());
+    assertEq(leaf.firstOfPos(bin.posInLeaf()), bestId, "wrong first of tick");
+    assertEq(leaf.lastOfPos(bin.posInLeaf()), ofr4, "wrong last of tick");
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
-    assertEq(local.tickTreeIndexPosInLeaf(), tickTreeIndex.posInLeaf(), "wrong local.tickTreeIndexPosInLeaf");
+    assertEq(local.binPosInLeaf(), bin.posInLeaf(), "wrong local.binPosInLeaf");
     assertEq(best.prev(), 0, "best.prev should be 0");
-    Leaf emptyLeaf = leaf.setTickTreeIndexFirst(tickTreeIndex, 0).setTickTreeIndexLast(tickTreeIndex, 0);
-    assertTrue(emptyLeaf.isEmpty(), "leaf should not have other tickTreeIndex used");
+    Leaf emptyLeaf = leaf.setBinFirst(bin, 0).setBinLast(bin, 0);
+    assertTrue(emptyLeaf.isEmpty(), "leaf should not have other bin used");
   }
 
   /* 

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, MAX_TICK_TREE_INDEX, MIN_TICK_TREE_INDEX, TickLib, TickConversionLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MAX_BIN, MIN_BIN, TickLib, TickConversionLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/Constants.sol";
 
@@ -591,12 +591,12 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGasmax(10_000_000);
     uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
     MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
-    TickTreeIndex nextTickTreeIndex = TickTreeIndex.wrap(TickTreeIndex.unwrap(ofr.tickTreeIndex(olKey.tickSpacing)) + 1);
-    uint gives = TickLib.outboundFromInbound(TickLib.fromTickTreeIndex(nextTickTreeIndex, olKey.tickSpacing), 5 ether);
+    Bin nextBin = Bin.wrap(Bin.unwrap(ofr.bin(olKey.tickSpacing)) + 1);
+    uint gives = TickLib.outboundFromInbound(TickLib.fromBin(nextBin, olKey.tickSpacing), 5 ether);
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(mgv.leafs(olKey, ofr.tickTreeIndex(olKey.tickSpacing).leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(olKey, ofr.bin(olKey.tickSpacing).leafIndex()).getNextOfferId(), id2);
     // high-level check
     assertTrue(mgv.best(olKey) == id2, "2nd market order must have emptied mgv");
   }
@@ -608,13 +608,13 @@ contract GatekeepingTest is MangroveTest {
     uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
     // store some information in another level0 (a worse one)
     uint ofr1 = mgv.newOfferByVolume(olKey, 0.02 ether, 0.05 ether, 1000000, 0);
-    TickTreeIndex tick1 = mgv.offers(olKey, ofr1).tickTreeIndex(olKey.tickSpacing);
+    Bin tick1 = mgv.offers(olKey, ofr1).bin(olKey.tickSpacing);
     int index1 = tick1.level0Index();
     // make ofr1 the best offer (ofr1.level0 is now cached, but it also lives in its slot)
     mgv.retractOffer(olKey, ofr0, true);
     // make an offer worse than ofr1
     uint ofr2 = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 1000000, 0);
-    TickTreeIndex tick2 = mgv.offers(olKey, ofr2).tickTreeIndex(olKey.tickSpacing);
+    Bin tick2 = mgv.offers(olKey, ofr2).bin(olKey.tickSpacing);
     int index2 = tick2.level0Index();
 
     // ofr2 is now best again. ofr1.level0 is not cached anymore.

@@ -6,7 +6,7 @@ import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs, MgvLib, OLKey, DensityLib} from "mgv_src/MgvLib.sol";
-import {TickTreeIndex} from "mgv_lib/TickTreeIndexLib.sol";
+import {Bin} from "mgv_lib/BinLib.sol";
 
 /**
  * @notice Script to obtain data about a given mangrove offer list. Data is outputted to terminal as space separated values.

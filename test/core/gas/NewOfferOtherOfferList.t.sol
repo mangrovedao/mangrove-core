@@ -50,7 +50,7 @@ contract ExternalNewOfferOtherOfferList_WithOtherOfferGasTest is TickTreeBoundar
   }
 }
 
-contract ExternalNewOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
+contract ExternalNewOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest is
   ExternalNewOfferOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {

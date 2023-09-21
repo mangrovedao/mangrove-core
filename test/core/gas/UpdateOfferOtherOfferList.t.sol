@@ -41,7 +41,7 @@ contract ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest is TickTreeBoun
   }
 }
 
-contract ExternalUpdateOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeIndexGasTest is
+contract ExternalUpdateOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest is
   ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {

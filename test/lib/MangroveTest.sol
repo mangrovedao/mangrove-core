@@ -15,7 +15,7 @@ import {MgvOfferTakingWithPermit} from "mgv_src/MgvOfferTakingWithPermit.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
-import {LogPriceLib} from "mgv_lib/LogPriceLib.sol";
+import {TickLib} from "mgv_lib/TickLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {
   IERC20,
@@ -27,10 +27,10 @@ import {
   MgvStructs,
   Leaf,
   Field,
-  Tick,
+  Bin,
   LeafLib,
   FieldLib,
-  TickLib,
+  BinLib,
   OLKey
 } from "mgv_src/MgvLib.sol";
 
@@ -58,7 +58,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
-    uint defaultTickScale;
+    uint defaultBinScale;
     uint gasprice;
     uint gasbase;
     uint gasmax;
@@ -77,7 +77,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
-    defaultTickScale: 1,
+    defaultBinScale: 1,
     gasprice: 40,
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
@@ -104,8 +104,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
-    olKey = OLKey($(base), $(quote), options.defaultTickScale);
-    lo = OLKey($(quote), $(base), options.defaultTickScale);
+    olKey = OLKey($(base), $(quote), options.defaultBinScale);
+    lo = OLKey($(quote), $(base), options.defaultBinScale);
 
     mgv = setupMangrove(olKey, options.invertedMangrove);
     reader = new MgvReader($(mgv));
@@ -177,7 +177,7 @@ contract MangroveTest is Test2, HasMgvEvents {
           string.concat(toFixed(ofr.wants(), req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
           string.concat(toFixed(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
-          string.concat(" (", vm.toString(ofr.logPrice), ") "),
+          string.concat(" (", vm.toString(ofr.tick), ") "),
           vm.toString(detail.maker)
         )
       );
@@ -285,48 +285,48 @@ contract MangroveTest is Test2, HasMgvEvents {
     return tt;
   }
 
-  function mockCompleteFillBuyOrder(uint takerWants, int logPrice) public view returns (MgvLib.SingleOrder memory sor) {
+  function mockCompleteFillBuyOrder(uint takerWants, int tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = olKey;
     // complete fill (prev and next are bogus)
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
     sor.takerWants = sor.offer.gives();
     sor.takerGives = sor.offer.wants();
   }
 
   function mockPartialFillBuyOrder(
     uint takerWants,
-    int logPrice,
+    int tick,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
   ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
     sor.olKey = _olBaseQuote;
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants * partialFill});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
-    sor.takerGives = LogPriceLib.inboundFromOutboundUp(logPrice, takerWants);
+    sor.takerGives = TickLib.inboundFromOutboundUp(tick, takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }
 
-  function mockCompleteFillSellOrder(uint takerWants, int logPrice) public view returns (MgvLib.SingleOrder memory sor) {
+  function mockCompleteFillSellOrder(uint takerWants, int tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = lo;
     // complete fill (prev and next are bogus)
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
     sor.takerWants = sor.offer.gives();
     sor.takerGives = sor.offer.wants();
   }
 
   function mockPartialFillSellOrder(
     uint takerWants,
-    int logPrice,
+    int tick,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
   ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
     sor.olKey = _olBaseQuote.flipped();
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants * partialFill});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
-    sor.takerGives = LogPriceLib.inboundFromOutboundUp(logPrice, takerWants);
+    sor.takerGives = TickLib.inboundFromOutboundUp(tick, takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }
@@ -419,15 +419,15 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
-  /// creates `fold` offers in the (outbound, inbound) market with the same `logPrice`, `gives` and `gasreq` and with `caller` as maker
-  function densify(OLKey memory _ol, int logPrice, uint gives, uint gasreq, uint fold, address caller) internal {
+  /// creates `fold` offers in the (outbound, inbound) market with the same `tick`, `gives` and `gasreq` and with `caller` as maker
+  function densify(OLKey memory _ol, int tick, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
     uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOfferByLogPrice{value: prov}(_ol, logPrice, gives, gasreq, 0);
+      mgv.newOfferByTick{value: prov}(_ol, tick, gives, gasreq, 0);
       fold--;
     }
   }
@@ -437,22 +437,22 @@ contract MangroveTest is Test2, HasMgvEvents {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
-      densify(_ol, offer.logPrice(), offer.gives(), detail.gasreq(), fold, caller);
+      densify(_ol, offer.tick(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(_ol, offer);
     }
   }
 
-  function assertEq(Tick a, Tick b) internal {
+  function assertEq(Bin a, Bin b) internal {
     if (!a.eq(b)) {
-      emit log("Error: a == b not satisfied [Tick]");
+      emit log("Error: a == b not satisfied [Bin]");
       emit log_named_string("      Left", toString(a));
       emit log_named_string("     Right", toString(b));
       fail();
     }
   }
 
-  function assertEq(Tick a, Tick b, string memory err) internal {
+  function assertEq(Bin a, Bin b, string memory err) internal {
     if (!a.eq(b)) {
       emit log_named_string("Error", err);
       assertEq(a, b);
@@ -497,17 +497,19 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
-    console.log("--------CURRENT TICK TREE BRANCH--------");
+    console.log("--------CURRENT tick tree BRANCH--------");
     MgvStructs.LocalPacked _local = _mgv.local(_ol);
-    Tick tick = _local.bestTick();
-    console.log("Current tick %s", toString(tick));
-    console.log("Current posInLeaf %s", tick.posInLeaf());
-    int leafIndex = tick.leafIndex();
+    Bin bin = _local.bestBin();
+    console.log("Current bin %s", toString(bin));
+    console.log("Current posInLeaf %s", bin.posInLeaf());
+    int leafIndex = bin.leafIndex();
     console.log("Current leaf %s (index %s)", toString(_mgv.leafs(_ol, leafIndex)), vm.toString(leafIndex));
-    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
-    int level1Index = tick.level1Index();
-    console.log("Current level 1 %s (index %s)", toString(_mgv.level1(_ol, level1Index)), vm.toString(level1Index));
-    console.log("Current level 2 %s", toString(_local.level2()));
+    console.log("Current level 3 %s (index %s)", toString(_local.level3()), vm.toString(bin.level3Index()));
+    console.log(
+      "Current level 2 %s (index %s)", toString(_mgv.level2(_ol, bin.level2Index())), vm.toString(bin.level2Index())
+    );
+    console.log("Current level 1 %s (index %s)", toString(_local.level1()), vm.toString(bin.level1Index()));
+    console.log("Current root %s", toString(_local.root()));
     console.log("----------------------------------------");
   }
 }

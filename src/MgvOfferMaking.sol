@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field, LogPriceLib, OLKey} from "./MgvLib.sol";
+import {IMaker, HasMgvEvents, MgvStructs, Bin, BinLib, Leaf, Field, TickLib, OLKey} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
+import {TickConversionLib} from "mgv_lib/TickConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
@@ -38,7 +38,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   An offer cannot be inserted in a closed market, nor when a reentrancy lock for `outbound_tkn`,`inbound_tkn` is on.
 
-  No more than $2^{32}-1$ offers can ever be created for one `outbound_tkn`,`inbound_tkn`, `tickScale` offerList.
+  No more than $2^{32}-1$ offers can ever be created for one `outbound_tkn`,`inbound_tkn`, `tickSpacing` offerList.
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`.
   */
@@ -48,17 +48,17 @@ contract MgvOfferMaking is MgvHasOffers {
     returns (uint offerId)
   {
     unchecked {
-      return newOfferByLogPrice(olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
+      return newOfferByTick(olKey, TickConversionLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice);
     }
   }
 
-  function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
+  function newOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice)
     public
     payable
     returns (uint offerId)
   {
     unchecked {
-      /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn`, `tickScale` offerList configuration, check for reentrancy and market liveness, fill the `OfferPack` struct and increment the offerList's `last`. */
+      /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn`, `tickSpacing` offerList configuration, check for reentrancy and market liveness, fill the `OfferPack` struct and increment the offerList's `last`. */
       OfferPack memory ofp;
       OfferList storage offerList;
       (ofp.global, ofp.local, offerList) = _config(olKey);
@@ -78,7 +78,7 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.gasprice = gasprice;
 
       /* The second parameter to writeOffer indicates that we are creating a new offer, not updating an existing one. */
-      writeOffer(offerList, ofp, logPrice, false);
+      writeOffer(offerList, ofp, tick, false);
 
       /* Since we locally modified a field of the local configuration (`last`), we save the change to storage. Note that `writeOffer` may have further modified the local configuration by updating the current `best` offer. */
       offerList.local = ofp.local;
@@ -104,13 +104,11 @@ contract MgvOfferMaking is MgvHasOffers {
     payable
   {
     unchecked {
-      updateOfferByLogPrice(
-        olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId
-      );
+      updateOfferByTick(olKey, TickConversionLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
     }
   }
 
-  function updateOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId)
+  function updateOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice, uint offerId)
     public
     payable
   {
@@ -133,7 +131,7 @@ contract MgvOfferMaking is MgvHasOffers {
       MgvStructs.LocalPacked oldLocal = ofp.local;
       // ofp.tickleaf = tickleafs[outbound_tkn][inbound_tkn][ofp.tick];
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
-      writeOffer(offerList, ofp, logPrice, true);
+      writeOffer(offerList, ofp, tick, true);
       /* We saved the current offerList's configuration before calling `writeOffer`, since that function may update the current `best` offer. We now check for any change to the configuration and update it if needed. */
       if (!oldLocal.eq(ofp.local)) {
         offerList.local = ofp.local;
@@ -156,7 +154,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (offer.isLive()) {
         MgvStructs.LocalPacked oldLocal = local;
-        (local,) = dislodgeOffer(offerList, olKey.tickScale, offer, local, local.bestTick(), true);
+        (local,) = dislodgeOffer(offerList, olKey.tickSpacing, offer, local, local.bestBin(), true);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           offerList.local = local;
@@ -220,7 +218,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   /* ## Write Offer */
 
-  function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionLogPrice, bool update) internal {
+  function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionTick, bool update) internal {
     unchecked {
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(MgvStructs.Global.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
@@ -242,15 +240,15 @@ contract MgvOfferMaking is MgvHasOffers {
       /* The following checks are for the maker's convenience only. */
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
 
-      uint tickScale = ofp.olKey.tickScale;
-      // normalize logPrice to tickScale
-      Tick insertionTick = TickLib.nearestHigherTickToLogPrice(insertionLogPrice, tickScale);
-      insertionLogPrice = LogPriceLib.fromTick(insertionTick, tickScale);
-      require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
+      uint tickSpacing = ofp.olKey.tickSpacing;
+      // normalize tick to tickSpacing
+      Bin insertionBin = BinLib.tickToNearestHigherBin(insertionTick, tickSpacing);
+      insertionTick = TickLib.fromBin(insertionBin, tickSpacing);
+      require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;
-      emit OfferWrite(ofp.olKey.hash(), msg.sender, insertionLogPrice, ofp.gives, ofp.gasprice, ofp.gasreq, ofrId);
+      emit OfferWrite(ofp.olKey.hash(), msg.sender, insertionTick, ofp.gives, ofp.gasprice, ofp.gasreq, ofrId);
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       {
@@ -285,150 +283,150 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
-      // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
-      Tick cachedLocalTick;
+      // must cache bin because branch will be modified and bin information will be lost (in case an offer will be removed)
+      Bin cachedLocalBin;
       // force control flow through gas saving path if offer list is empty
-      if (ofp.local.level0().isEmpty()) {
-        cachedLocalTick = insertionTick;
+      if (ofp.local.level3().isEmpty()) {
+        cachedLocalBin = insertionBin;
       } else {
-        cachedLocalTick = ofp.local.bestTick();
+        cachedLocalBin = ofp.local.bestBin();
         // remove offer from previous position
         if (ofp.oldOffer.isLive()) {
           // may modify ofp.local
           // At this point only the in-memory local has the new best?
-          /* When to update local.best/tick:
-            - If removing this offer does not move tick: no
-            - Otherwise, if new tick < insertion tick, yes
-            - Otherwise, if new tick = insertion tick, yes because the inserted offer will be inserted at the end
-            - Otherwise, if new tick > insertion tick, no 
-            I cannot know new tick before checking it out. But it is >= current tick.
+          /* When to update local.best/bin:
+            - If removing this offer does not move bin: no
+            - Otherwise, if new bin < insertion bin, yes
+            - Otherwise, if new bin = insertion bin, yes because the inserted offer will be inserted at the end
+            - Otherwise, if new bin > insertion bin, no 
+            I cannot know new bin before checking it out. But it is >= current bin.
             So:
-            - If current tick > insertion tick: no
-            - Otherwise yes because maybe current tick = insertion tick
+            - If current bin > insertion bin: no
+            - Otherwise yes because maybe current bin = insertion tick
           */
-          // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
-          bool shouldUpdateBranch = !insertionTick.strictlyBetter(cachedLocalTick);
+          // bool updateLocal = bin.strictlyBetter(ofp.local.bestBin().strictlyBetter(bin)
+          bool shouldUpdateBranch = !insertionBin.strictlyBetter(cachedLocalBin);
 
           (ofp.local, shouldUpdateBranch) =
-            dislodgeOffer(offerList, tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
-          // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
+            dislodgeOffer(offerList, tickSpacing, ofp.oldOffer, ofp.local, cachedLocalBin, shouldUpdateBranch);
+          // If !shouldUpdateBranch, then ofp.local.level3, ofp.local.level2, and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the bin by reading those fields. If shouldUpdateBranch, then the new bin must be inferred from the new info in local.
           if (shouldUpdateBranch) {
             // force control flow through gas-saving path if retraction emptied the offer list
-            if (ofp.local.level0().isEmpty()) {
-              cachedLocalTick = insertionTick;
+            if (ofp.local.level3().isEmpty()) {
+              cachedLocalBin = insertionBin;
             } else {
-              cachedLocalTick = ofp.local.bestTick();
+              cachedLocalBin = ofp.local.bestBin();
             }
           }
         }
       }
-      if (!cachedLocalTick.strictlyBetter(insertionTick)) {
-        ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
+      if (!cachedLocalBin.strictlyBetter(insertionBin)) {
+        ofp.local = ofp.local.binPosInLeaf(insertionBin.posInLeaf());
       }
 
       // insertion
-      Leaf leaf = offerList.leafs[insertionTick.leafIndex()].clean();
-      // if leaf was empty flip tick on at level0
+      Leaf leaf = offerList.leafs[insertionBin.leafIndex()].clean();
+      // if leaf was empty flip bin on at level3
       if (leaf.isEmpty()) {
         Field field;
-        int insertionIndex = insertionTick.level0Index();
-        int currentIndex = cachedLocalTick.level0Index();
-        // Get insertion level0
+        int insertionIndex = insertionBin.level3Index();
+        int currentIndex = cachedLocalBin.level3Index();
+        // Get insertion level3
         if (insertionIndex != currentIndex) {
-          field = offerList.level0[insertionIndex].clean();
-          // Save current level0
+          field = offerList.level3[insertionIndex].clean();
+          // Save current level3
           if (insertionIndex < currentIndex) {
-            Field localLevel0 = ofp.local.level0();
-            bool shouldSaveLevel0 = !localLevel0.isEmpty();
-            if (!shouldSaveLevel0) {
-              shouldSaveLevel0 = !offerList.level0[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
+            Field localLevel3 = ofp.local.level3();
+            bool shouldSaveLevel3 = !localLevel3.isEmpty();
+            if (!shouldSaveLevel3) {
+              shouldSaveLevel3 = !offerList.level3[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
             }
-            if (shouldSaveLevel0) {
-              offerList.level0[currentIndex] = localLevel0.dirty();
+            if (shouldSaveLevel3) {
+              offerList.level3[currentIndex] = localLevel3.dirty();
             }
           }
         } else {
-          field = ofp.local.level0();
+          field = ofp.local.level3();
         }
 
-        // Write insertion level0
+        // Write insertion level3
         if (insertionIndex <= currentIndex) {
-          ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionTick));
+          ofp.local = ofp.local.level3(field.flipBitAtLevel3(insertionBin));
         } else {
-          offerList.level0[insertionIndex] = field.flipBitAtLevel0(insertionTick).dirty();
+          offerList.level3[insertionIndex] = field.flipBitAtLevel3(insertionBin).dirty();
         }
 
         if (field.isEmpty()) {
-          insertionIndex = insertionTick.level1Index();
-          currentIndex = cachedLocalTick.level1Index();
+          insertionIndex = insertionBin.level2Index();
+          currentIndex = cachedLocalBin.level2Index();
 
           if (insertionIndex != currentIndex) {
-            field = offerList.level1[insertionIndex].clean();
+            field = offerList.level2[insertionIndex].clean();
             if (insertionIndex < currentIndex) {
-              Field localLevel1 = ofp.local.level1();
-              bool shouldSaveLevel1 = !localLevel1.isEmpty();
-              if (!shouldSaveLevel1) {
-                shouldSaveLevel1 = !offerList.level1[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
+              Field localLevel2 = ofp.local.level2();
+              bool shouldSaveLevel2 = !localLevel2.isEmpty();
+              if (!shouldSaveLevel2) {
+                shouldSaveLevel2 = !offerList.level2[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
               }
-              if (shouldSaveLevel1) {
-                offerList.level1[currentIndex] = localLevel1.dirty();
+              if (shouldSaveLevel2) {
+                offerList.level2[currentIndex] = localLevel2.dirty();
               }
             }
           } else {
-            field = ofp.local.level1();
+            field = ofp.local.level2();
           }
 
           if (insertionIndex <= currentIndex) {
-            ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionTick));
+            ofp.local = ofp.local.level2(field.flipBitAtLevel2(insertionBin));
           } else {
-            offerList.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick).dirty();
+            offerList.level2[insertionIndex] = field.flipBitAtLevel2(insertionBin).dirty();
           }
-          // if level1 was empty, flip tick on at level2
+          // if level2 was empty, flip bin on at level1
           if (field.isEmpty()) {
-            insertionIndex = insertionTick.level2Index();
-            currentIndex = cachedLocalTick.level2Index();
+            insertionIndex = insertionBin.level1Index();
+            currentIndex = cachedLocalBin.level1Index();
 
             if (insertionIndex != currentIndex) {
-              field = offerList.level2[insertionIndex].clean();
+              field = offerList.level1[insertionIndex].clean();
               if (insertionIndex < currentIndex) {
-                // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
-                offerList.level2[currentIndex] = ofp.local.level2().dirty();
+                // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
+                offerList.level1[currentIndex] = ofp.local.level1().dirty();
               }
             } else {
-              field = ofp.local.level2();
+              field = ofp.local.level1();
             }
 
             if (insertionIndex <= currentIndex) {
-              ofp.local = ofp.local.level2(field.flipBitAtLevel2(insertionTick));
+              ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionBin));
             } else {
-              offerList.level2[insertionIndex] = field.flipBitAtLevel2(insertionTick).dirty();
+              offerList.level1[insertionIndex] = field.flipBitAtLevel1(insertionBin).dirty();
             }
-            // if level2 was empty, flip tick on at root
+            // if level1 was empty, flip bin on at root
             if (field.isEmpty()) {
-              ofp.local = ofp.local.root(ofp.local.root().flipBitAtRoot(insertionTick));
+              ofp.local = ofp.local.root(ofp.local.root().flipBitAtRoot(insertionBin));
             }
           }
         }
       }
       // invariant
-      // tick empty -> firstId=lastId=0
-      // tick has 1 offer -> firstId=lastId!=0
+      // bin empty -> firstId=lastId=0
+      // bin has 1 offer -> firstId=lastId!=0
       // otherwise 0 != firstId != lastId != 0
-      uint lastId = leaf.lastOfTick(insertionTick);
+      uint lastId = leaf.lastOfBin(insertionBin);
       if (lastId == 0) {
-        leaf = leaf.setTickFirst(insertionTick, ofrId);
+        leaf = leaf.setBinFirst(insertionBin, ofrId);
       } else {
         OfferData storage offerData = offerList.offerData[lastId];
         offerData.offer = offerData.offer.next(ofrId);
       }
 
       // store offer at the end of the tick
-      leaf = leaf.setTickLast(insertionTick, ofrId);
-      offerList.leafs[insertionTick.leafIndex()] = leaf.dirty();
+      leaf = leaf.setBinLast(insertionBin, ofrId);
+      offerList.leafs[insertionBin.leafIndex()] = leaf.dirty();
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =
-        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __logPrice: insertionLogPrice, __gives: ofp.gives});
+        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
       offerList.offerData[ofrId].offer = ofr;
     }
   }

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvLib, MgvStructs, DensityLib, LogPriceLib} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, DensityLib, TickLib} from "mgv_src/MgvLib.sol";
 
 contract MonitorTest is MangroveTest {
   TestMaker mkr;
@@ -93,7 +93,7 @@ contract MonitorTest is MangroveTest {
     uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofrId);
 
-    int logPrice = offer.logPrice();
+    int tick = offer.tick();
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config(olKey);
     _local = _local.lock(true);
@@ -103,7 +103,7 @@ contract MonitorTest is MangroveTest {
       offerId: ofrId,
       offer: offer,
       takerWants: 0.04 ether,
-      takerGives: 0.04 ether, // price is 1
+      takerGives: 0.04 ether, // ratio is 1
       offerDetail: mgv.offerDetails(olKey, ofrId),
       global: _global,
       local: _local
@@ -111,7 +111,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))), bytes(""));
 
-    (uint got,,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0.04 ether, true);
+    (uint got,,,) = mgv.marketOrderByTick(olKey, tick, 0.04 ether, true);
     assertTrue(got > 0, "order should succeed");
   }
 
@@ -123,7 +123,7 @@ contract MonitorTest is MangroveTest {
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofrId);
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, ofrId);
 
-    int logPrice = offer.logPrice();
+    int tick = offer.tick();
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config(olKey);
     // config sent during maker callback has stale best and, is locked
@@ -134,7 +134,7 @@ contract MonitorTest is MangroveTest {
       offerId: ofrId,
       offer: offer,
       takerWants: 0.04 ether,
-      takerGives: 0.04 ether, // price is 1
+      takerGives: 0.04 ether, // ratio is 1
       offerDetail: offerDetail, // gasprice logged will still be as before failure
       global: _global,
       local: _local
@@ -142,7 +142,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))), bytes(""));
 
-    (uint got,,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0.04 ether, true);
+    (uint got,,,) = mgv.marketOrderByTick(olKey, tick, 0.04 ether, true);
     assertTrue(got == 0, "order should fail");
   }
 

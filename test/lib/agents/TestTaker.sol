@@ -55,36 +55,32 @@ contract TestTaker is ITaker, Script2 {
     public
     returns (uint bounty)
   {
-    int logPrice = _mgv.offers(_olKey, offerId).logPrice();
-    return cleanByLogPriceWithInfo(_mgv, _olKey, offerId, logPrice, takerWants, gasreq);
+    int tick = _mgv.offers(_olKey, offerId).tick();
+    return cleanByTickWithInfo(_mgv, _olKey, offerId, tick, takerWants, gasreq);
   }
 
-  function cleanByLogPrice(uint offerId, int logPrice, uint takerWants, uint gasreq) public returns (bool success) {
-    return this.cleanByLogPrice(mgv, olKey, offerId, logPrice, takerWants, gasreq);
+  function cleanByTick(uint offerId, int tick, uint takerWants, uint gasreq) public returns (bool success) {
+    return this.cleanByTick(mgv, olKey, offerId, tick, takerWants, gasreq);
   }
 
-  function cleanByLogPrice(
-    IMangrove _mgv,
-    OLKey memory _olKey,
-    uint offerId,
-    int logPrice,
-    uint takerWants,
-    uint gasreq
-  ) public returns (bool success) {
-    uint bounty = this.cleanByLogPriceWithInfo(_mgv, _olKey, offerId, logPrice, takerWants, gasreq);
+  function cleanByTick(IMangrove _mgv, OLKey memory _olKey, uint offerId, int tick, uint takerWants, uint gasreq)
+    public
+    returns (bool success)
+  {
+    uint bounty = this.cleanByTickWithInfo(_mgv, _olKey, offerId, tick, takerWants, gasreq);
     return bounty > 0;
   }
 
-  function cleanByLogPriceWithInfo(
+  function cleanByTickWithInfo(
     IMangrove _mgv,
     OLKey memory _olKey,
     uint offerId,
-    int logPrice,
+    int tick,
     uint takerWants,
     uint gasreq
   ) public returns (uint bounty) {
     (, bounty) = _mgv.cleanByImpersonation(
-      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, logPrice, gasreq, takerWants)), address(this)
+      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, tick, gasreq, takerWants)), address(this)
     );
     return bounty;
   }

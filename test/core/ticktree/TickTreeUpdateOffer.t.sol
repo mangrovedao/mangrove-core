@@ -10,16 +10,16 @@ import "mgv_lib/Debug.sol";
 //
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
-//   - the offer to be updated's tick (the offer itself may not be live)
-//   - a higher tick
-//   - a lower tick
+//   - the offer to be updated's bin (the offer itself may not be live)
+//   - a higher bin
+//   - a lower bin
 // 2. we take a snapshot of Mangrove's tick tree
 // 3. we update the offer in both Mangrove and in the snapshot tick tree
 // 4. we check that Mangrove's tick tree matches the test tick tree.
 //
 // The scenarios we want to test are:
-// - starting offer tick
-//   - tick is a *tick of interest* (ToI) as listed in TickTreeTest
+// - starting offer bin
+//   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //   - list:
 //     1. offer is not live
 //     2. is singleton
@@ -29,191 +29,183 @@ import "mgv_lib/Debug.sol";
 //     - This is encoded as:
 //       - list length
 //       - offer pos
-// - higher tick list
-//   - tick has higher position in same leaf or level0-3 as ToI
-//     - if feasible, given retraction tick
+// - higher bin list
+//   - bin has higher position in same leaf or level1-3 as BoI
+//     - if feasible, given retraction bin
 //   - list:
 //     1. is empty
 //     2. is non-empty
-// - lower tick list
-//   - tick has lower position in same leaf or level0-3 as ToI
-//     - if feasible, given retraction tick
+// - lower bin list
+//   - bin has lower position in same leaf or level1-3 as BoI
+//     - if feasible, given retraction bin
 //   - list:
 //     1. is empty
 //     2. is non-empty
-// - new offer tick
-//   1. same tick
-//   2. the lower tick
-//   3. the higher tick
+// - new offer bin
+//   1. same bin
+//   2. the lower bin
+//   3. the higher bin
 contract TickTreeUpdateOfferTest is TickTreeTest {
   struct UpdateOfferScenario {
-    TickScenario tickScenario;
-    Tick newTick;
-    uint offerTickListSize; // 0 -> offer is not live
+    BinScenario binScenario;
+    Bin newBin;
+    uint offerBinListSize; // 0 -> offer is not live
     uint offerPos;
   }
 
   // (list size, offer pos)
-  uint[2][] tickListScenarios = [[0, 0], [1, 0], [2, 0], [2, 1], [3, 1]];
-  // size of {lower,higher}TickList
-  uint[] emptyTickListSizeScenarios = [0];
-  uint[] singletonTickListSizeScenarios = [1];
+  uint[2][] binListScenarios = [[0, 0], [1, 0], [2, 0], [2, 1], [3, 1]];
+  // size of {lower,higher}BinList
+  uint[] emptyBinListSizeScenarios = [0];
+  uint[] singletonBinListSizeScenarios = [1];
 
   // NB: We ran into this memory issue when running through too many scenarios in one test: https://github.com/foundry-rs/foundry/issues/3971
 
-  // Foundry will run this test way more than the needed 4 times for each tick due to bools being passed as uints.
+  // Foundry will run this test way more than the needed 4 times for each bin due to bools being passed as uints.
   // This variant therefore takes too much time to run:
   //
-  // function test_update_offer_for_tick_0(int24 tick, bool higherIsEmpty, bool lowerIsEmpty) public {
-  //   vm.assume(Tick.wrap(tick).inRange());
-  //   run_update_offer_scenarios_for_tick(
-  //     tick,
-  //     higherIsEmpty ? emptyTickListSizeScenarios : singletonTickListSizeScenarios,
-  //     lowerIsEmpty ? emptyTickListSizeScenarios : singletonTickListSizeScenarios);
+  // function test_update_offer_for_bin_0(int24 bin, bool higherIsEmpty, bool lowerIsEmpty) public {
+  //   vm.assume(Bin.wrap(bin).inRange());
+  //   run_update_offer_scenarios_for_bin(
+  //     bin,
+  //     higherIsEmpty ? emptyBinListSizeScenarios : singletonBinListSizeScenarios,
+  //     lowerIsEmpty ? emptyBinListSizeScenarios : singletonBinListSizeScenarios);
   // }
   //
   // Instead we make a test case for each combination of higherIsEmpty and lowerIsEmpty.
   //
-  // NB: Fuzzing these tests for just the tick is super slow and also runs out of memory.
+  // NB: Fuzzing these tests for just the bin is super slow and also runs out of memory.
   //
-  // function test_update_offer_for_tick_where_higher_is_empty_and_lower_is_empty(int24 tick) public {
-  //   vm.assume(Tick.wrap(tick).inRange());
-  //   run_update_offer_scenarios_for_tick(tick, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // function test_update_offer_for_bin_where_higher_is_empty_and_lower_is_empty(int24 bin) public {
+  //   vm.assume(Bin.wrap(bin).inRange());
+  //   run_update_offer_scenarios_for_bin(bin, emptyBinListSizeScenarios, emptyBinListSizeScenarios);
   // }
   //
   // We therefore restrict the ticks we test to the ToI
 
-  // TICK_MIN_ROOT_MAX_OTHERS tests
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios
+  // BIN_MIN_ROOT_MAX_OTHERS tests
+  function test_update_offer_for_BIN_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIN_ROOT_MAX_OTHERS, emptyBinListSizeScenarios, emptyBinListSizeScenarios);
+  }
+
+  function test_update_offer_for_BIN_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(
+      BIN_MIN_ROOT_MAX_OTHERS, emptyBinListSizeScenarios, singletonBinListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+  function test_update_offer_for_BIN_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(
+      BIN_MIN_ROOT_MAX_OTHERS, singletonBinListSizeScenarios, emptyBinListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+  function test_update_offer_for_BIN_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(
+      BIN_MIN_ROOT_MAX_OTHERS, singletonBinListSizeScenarios, singletonBinListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MIN_ROOT_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MIN_ROOT_MAX_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+  // BIN_MAX_ROOT_MIN_OTHERS tests
+  function test_update_offer_for_BIN_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MAX_ROOT_MIN_OTHERS, emptyBinListSizeScenarios, emptyBinListSizeScenarios);
+  }
+
+  function test_update_offer_for_BIN_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(
+      BIN_MAX_ROOT_MIN_OTHERS, emptyBinListSizeScenarios, singletonBinListSizeScenarios
     );
   }
 
-  // TICK_MAX_ROOT_MIN_OTHERS tests
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios
+  function test_update_offer_for_BIN_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(
+      BIN_MAX_ROOT_MIN_OTHERS, singletonBinListSizeScenarios, emptyBinListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+  function test_update_offer_for_BIN_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(
+      BIN_MAX_ROOT_MIN_OTHERS, singletonBinListSizeScenarios, singletonBinListSizeScenarios
     );
   }
 
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
-    );
+  // BIN_MIDDLE tests
+  function test_update_offer_for_BIN_MIDDLE_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIDDLE, emptyBinListSizeScenarios, emptyBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MAX_ROOT_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MAX_ROOT_MIN_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
-    );
+  function test_update_offer_for_BIN_MIDDLE_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIDDLE, emptyBinListSizeScenarios, singletonBinListSizeScenarios);
   }
 
-  // TICK_MIDDLE tests
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  function test_update_offer_for_BIN_MIDDLE_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIDDLE, singletonBinListSizeScenarios, emptyBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_BIN_MIDDLE_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIDDLE, singletonBinListSizeScenarios, singletonBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // BIN_MIN_ALLOWED tests
+  function test_update_offer_for_BIN_MIN_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIN_ALLOWED, emptyBinListSizeScenarios, emptyBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MIDDLE_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIDDLE, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_BIN_MIN_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIN_ALLOWED, emptyBinListSizeScenarios, singletonBinListSizeScenarios);
   }
 
-  // TICK_MIN_ALLOWED tests
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  function test_update_offer_for_BIN_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIN_ALLOWED, singletonBinListSizeScenarios, emptyBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_BIN_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MIN_ALLOWED, singletonBinListSizeScenarios, singletonBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // BIN_MAX_ALLOWED tests
+  function test_update_offer_for_BIN_MAX_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MAX_ALLOWED, emptyBinListSizeScenarios, emptyBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MIN_ALLOWED, singletonTickListSizeScenarios, singletonTickListSizeScenarios
-    );
+  function test_update_offer_for_BIN_MAX_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MAX_ALLOWED, emptyBinListSizeScenarios, singletonBinListSizeScenarios);
   }
 
-  // TICK_MAX_ALLOWED tests
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  function test_update_offer_for_BIN_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MAX_ALLOWED, singletonBinListSizeScenarios, emptyBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_BIN_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_bin(BIN_MAX_ALLOWED, singletonBinListSizeScenarios, singletonBinListSizeScenarios);
   }
 
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(
-      TICK_MAX_ALLOWED, singletonTickListSizeScenarios, singletonTickListSizeScenarios
-    );
-  }
-
-  function run_update_offer_scenarios_for_tick(
-    Tick tick,
-    uint[] storage higherTickListSizeScenarios,
-    uint[] storage lowerTickListSizeScenarios
+  function run_update_offer_scenarios_for_bin(
+    Bin bin,
+    uint[] storage higherBinListSizeScenarios,
+    uint[] storage lowerBinListSizeScenarios
   ) internal {
     vm.pauseGasMetering();
-    runTickScenarios(tick, higherTickListSizeScenarios, lowerTickListSizeScenarios);
+    runBinScenarios(bin, higherBinListSizeScenarios, lowerBinListSizeScenarios);
     vm.resumeGasMetering();
   }
 
-  function runTickScenario(TickScenario memory tickScenario) internal override {
+  function runBinScenario(BinScenario memory binScenario) internal override {
     UpdateOfferScenario memory scenario;
-    scenario.tickScenario = tickScenario;
-    for (uint j = 0; j < tickListScenarios.length; ++j) {
-      uint[2] storage tickListScenario = tickListScenarios[j];
-      scenario.offerTickListSize = tickListScenario[0];
-      scenario.offerPos = tickListScenario[1];
+    scenario.binScenario = binScenario;
+    for (uint j = 0; j < binListScenarios.length; ++j) {
+      uint[2] storage binListScenario = binListScenarios[j];
+      scenario.offerBinListSize = binListScenario[0];
+      scenario.offerPos = binListScenario[1];
 
-      scenario.newTick = tickScenario.tick;
+      scenario.newBin = binScenario.bin;
       run_update_offer_scenario(scenario, false);
-      if (tickScenario.hasHigherTick) {
-        scenario.newTick = tickScenario.higherTick;
+      if (binScenario.hasHigherBin) {
+        scenario.newBin = binScenario.higherBin;
         run_update_offer_scenario(scenario, false);
       }
-      if (tickScenario.hasLowerTick) {
-        scenario.newTick = tickScenario.lowerTick;
+      if (binScenario.hasLowerBin) {
+        scenario.newBin = binScenario.lowerBin;
         run_update_offer_scenario(scenario, false);
       }
     }
@@ -223,18 +215,18 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   function test_single_update_offer_scenario() public {
     run_update_offer_scenario(
       UpdateOfferScenario({
-        tickScenario: TickScenario({
-          tick: Tick.wrap(0),
-          hasHigherTick: true,
-          higherTick: Tick.wrap(524287),
-          higherTickListSize: 1,
-          hasLowerTick: true,
-          lowerTick: Tick.wrap(-16384),
-          lowerTickListSize: 0
+        binScenario: BinScenario({
+          bin: Bin.wrap(0),
+          hasHigherBin: true,
+          higherBin: Bin.wrap(524287),
+          higherBinListSize: 1,
+          hasLowerBin: true,
+          lowerBin: Bin.wrap(-16384),
+          lowerBinListSize: 0
         }),
-        offerTickListSize: 1,
+        offerBinListSize: 1,
         offerPos: 0,
-        newTick: Tick.wrap(-16384)
+        newBin: Bin.wrap(-16384)
       }),
       true
     );
@@ -246,17 +238,17 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
 
     if (printToConsole) {
       console.log("update offer scenario");
-      console.log("  oldTick: %s", toString(scenario.tickScenario.tick));
-      console.log("  newTick: %s", toString(scenario.newTick));
-      console.log("  offerTickListSize: %s", scenario.offerTickListSize);
+      console.log("  oldBin: %s", toString(scenario.binScenario.bin));
+      console.log("  newBin: %s", toString(scenario.newBin));
+      console.log("  offerBinListSize: %s", scenario.offerBinListSize);
       console.log("  offerPos: %s", scenario.offerPos);
-      if (scenario.tickScenario.hasHigherTick) {
-        console.log("  higherTick: %s", toString(scenario.tickScenario.higherTick));
-        console.log("  higherTickListSize: %s", vm.toString(scenario.tickScenario.higherTickListSize));
+      if (scenario.binScenario.hasHigherBin) {
+        console.log("  higherBin: %s", toString(scenario.binScenario.higherBin));
+        console.log("  higherBinListSize: %s", vm.toString(scenario.binScenario.higherBinListSize));
       }
-      if (scenario.tickScenario.hasLowerTick) {
-        console.log("  lowerTick: %s", toString(scenario.tickScenario.lowerTick));
-        console.log("  lowerTickListSize: %s", vm.toString(scenario.tickScenario.lowerTickListSize));
+      if (scenario.binScenario.hasLowerBin) {
+        console.log("  lowerBin: %s", toString(scenario.binScenario.lowerBin));
+        console.log("  lowerBinListSize: %s", vm.toString(scenario.binScenario.lowerBinListSize));
       }
     }
 
@@ -265,17 +257,17 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
 
     // 2. Create scenario
     (uint[] memory offerIds,) =
-      add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize == 0 ? 1 : scenario.offerTickListSize);
+      add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize == 0 ? 1 : scenario.offerBinListSize);
     uint offerId = offerIds[scenario.offerPos];
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, offerId);
-    if (scenario.offerTickListSize == 0) {
+    if (scenario.offerBinListSize == 0) {
       mkr.retractOffer(offerIds[0]);
     }
-    if (scenario.tickScenario.hasHigherTick) {
-      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
+    if (scenario.binScenario.hasHigherBin) {
+      add_n_offers_to_bin(scenario.binScenario.higherBin, scenario.binScenario.higherBinListSize);
     }
-    if (scenario.tickScenario.hasLowerTick) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
+    if (scenario.binScenario.hasLowerBin) {
+      add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
     // 3. Snapshot tick tree
@@ -289,12 +281,12 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     }
 
     // 4. Update the offer
-    Tick newTick = scenario.newTick;
-    uint newGives = getAcceptableGivesForTick(newTick, offerDetail.gasreq());
-    mkr.updateOfferByLogPrice(
-      LogPriceLib.fromTick(newTick, olKey.tickScale), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
+    Bin newBin = scenario.newBin;
+    uint newGives = getAcceptableGivesForBin(newBin, offerDetail.gasreq());
+    mkr.updateOfferByTick(
+      TickLib.fromBin(newBin, olKey.tickSpacing), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
     );
-    tickTree.updateOffer(offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
+    tickTree.updateOffer(offerId, newBin, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
     if (printToConsole) {
       console.log("");
       console.log("after update");

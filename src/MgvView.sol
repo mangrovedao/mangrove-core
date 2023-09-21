@@ -50,30 +50,16 @@ contract MgvView is MgvCommon {
     }
   }
 
-  function level0(OLKey memory olKey, int index) external view returns (Field) {
+  function level3(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
 
-      if (_local.bestTick().level0Index() == index) {
-        return _local.level0();
+      if (_local.bestBin().level3Index() == index) {
+        return _local.level3();
       } else {
-        return offerList.level0[index].clean();
-      }
-    }
-  }
-
-  function level1(OLKey memory olKey, int index) external view returns (Field) {
-    unchecked {
-      OfferList storage offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = offerList.local;
-      unlockedMarketOnly(_local);
-
-      if (_local.bestTick().level1Index() == index) {
-        return _local.level1();
-      } else {
-        return offerList.level1[index].clean();
+        return offerList.level3[index].clean();
       }
     }
   }
@@ -84,10 +70,24 @@ contract MgvView is MgvCommon {
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
 
-      if (_local.bestTick().level2Index() == index) {
+      if (_local.bestBin().level2Index() == index) {
         return _local.level2();
       } else {
         return offerList.level2[index].clean();
+      }
+    }
+  }
+
+  function level1(OLKey memory olKey, int index) external view returns (Field) {
+    unchecked {
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked _local = offerList.local;
+      unlockedMarketOnly(_local);
+
+      if (_local.bestBin().level1Index() == index) {
+        return _local.level1();
+      } else {
+        return offerList.level1[index].clean();
       }
     }
   }
@@ -116,7 +116,7 @@ contract MgvView is MgvCommon {
       OfferList storage offerList = offerLists[olKey.hash()];
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
-      return offerList.leafs[_local.bestTick().leafIndex()].clean().getNextOfferId();
+      return offerList.leafs[_local.bestBin().leafIndex()].clean().getNextOfferId();
     }
   }
 

@@ -3,13 +3,13 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, MAX_TICK, MIN_TICK, MAX_TICK_ALLOWED, MIN_TICK_ALLOWED, LogPriceLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MAX_BIN, MIN_BIN, MAX_BIN_ALLOWED, MIN_BIN_ALLOWED, TickLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import {stdError} from "forge-std/StdError.sol";
 import "mgv_lib/Constants.sol";
 
 // In these tests, the testing contract is the market maker.
-contract DynamicTicksTest is MangroveTest {
+contract DynamicBinsTest is MangroveTest {
   receive() external payable {}
 
   TestTaker tkr;
@@ -21,143 +21,137 @@ contract DynamicTicksTest is MangroveTest {
     super.setUp();
   }
 
-  function test_tick_to_logPrice(int24 _tick, uint16 tickScale) public {
-    vm.assume(tickScale != 0);
-    Tick tick = Tick.wrap(_tick);
-    assertEq(LogPriceLib.fromTick(tick, tickScale), int(_tick) * int(uint(tickScale)), "wrong tick -> logPrice");
+  function test_bin_to_tick(int24 _bin, uint16 tickSpacing) public {
+    vm.assume(tickSpacing != 0);
+    Bin bin = Bin.wrap(_bin);
+    assertEq(TickLib.fromBin(bin, tickSpacing), int(_bin) * int(uint(tickSpacing)), "wrong bin -> tick");
   }
 
-  function test_logPrice_to_nearest_tick(int96 logPrice, uint16 _tickScale) public {
-    vm.assume(_tickScale != 0);
-    Tick tick = TickLib.nearestHigherTickToLogPrice(logPrice, _tickScale);
-    assertGe(
-      LogPriceLib.fromTick(tick, _tickScale), logPrice, "logPrice -> tick -> logPrice must give same or lower logPrice"
-    );
+  function test_tick_to_nearest_bin(int96 tick, uint16 _tickSpacing) public {
+    vm.assume(_tickSpacing != 0);
+    Bin bin = BinLib.tickToNearestHigherBin(tick, _tickSpacing);
+    assertGe(TickLib.fromBin(bin, _tickSpacing), tick, "tick -> bin -> tick must give same or lower bin");
 
-    int tickScale = int(uint(_tickScale));
-    int expectedTick = logPrice / tickScale;
-    if (logPrice > 0 && logPrice % tickScale != 0) {
-      expectedTick = expectedTick + 1;
+    int tickSpacing = int(uint(_tickSpacing));
+    int expectedBin = tick / tickSpacing;
+    if (tick > 0 && tick % tickSpacing != 0) {
+      expectedBin = expectedBin + 1;
     }
-    assertEq(Tick.unwrap(tick), expectedTick, "wrong logPrice -> tick");
+    assertEq(Bin.unwrap(bin), expectedBin, "wrong tick -> bin");
   }
 
-  function test_aligned_logPrice_to_tick(int96 logPrice, uint _tickScale) public {
-    vm.assume(_tickScale != 0);
-    vm.assume(logPrice % int(uint(_tickScale)) == 0);
-    Tick tick = TickLib.fromTickAlignedLogPrice(logPrice, _tickScale);
-    assertEq(
-      LogPriceLib.fromTick(tick, _tickScale), logPrice, "aligned logPrice -> tick -> logPrice must give same logPrice"
-    );
+  function test_aligned_tick_to_bin(int96 tick, uint _tickSpacing) public {
+    vm.assume(_tickSpacing != 0);
+    vm.assume(tick % int(uint(_tickSpacing)) == 0);
+    Bin bin = BinLib.fromBinAlignedTick(tick, _tickSpacing);
+    assertEq(TickLib.fromBin(bin, _tickSpacing), tick, "aligned tick -> bin -> tick must give same tick");
   }
 
-  // get a valid logPrice from a random int24
-  function boundLogPrice(int24 logPrice) internal view returns (int24) {
-    return int24(bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE));
+  // get a valid tick from a random int24
+  function boundTick(int24 tick) internal view returns (int24) {
+    return int24(bound(tick, MIN_TICK, MAX_TICK));
   }
 
-  // different tickScales map to different storage slots
-  function test_newOffer_store_and_retrieve(uint16 tickScale, uint16 tickScale2, int24 logPrice) public {
-    vm.assume(tickScale != tickScale2);
-    vm.assume(tickScale != 0);
-    olKey.tickScale = tickScale;
-    OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickScale2);
+  // different tickSpacings map to different storage slots
+  function test_newOffer_store_and_retrieve(uint16 tickSpacing, uint16 tickSpacing2, int24 tick) public {
+    vm.assume(tickSpacing != tickSpacing2);
+    vm.assume(tickSpacing != 0);
+    olKey.tickSpacing = tickSpacing;
+    OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
     mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.activate(ol2, 0, 100 << 32, 0);
-    logPrice = boundLogPrice(logPrice);
+    tick = boundTick(tick);
     uint gives = 1 ether;
 
-    int insertionLogPrice =
-      int24(LogPriceLib.fromTick(TickLib.nearestHigherTickToLogPrice(logPrice, tickScale), tickScale));
+    int insertionTick = int24(TickLib.fromBin(BinLib.tickToNearestHigherBin(tick, tickSpacing), tickSpacing));
 
-    vm.assume(LogPriceLib.inRange(insertionLogPrice));
+    vm.assume(TickLib.inRange(insertionTick));
 
-    uint ofr = mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
-    assertTrue(mgv.offers(olKey, ofr).isLive(), "ofr created at tickScale but not found there");
-    assertFalse(mgv.offers(ol2, ofr).isLive(), "ofr created at tickScale but found at tickScale2");
-    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "ofr found at tickScale but with wrong price");
+    uint ofr = mgv.newOfferByTick(olKey, tick, gives, 100_000, 30);
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "ofr created at tickSpacing but not found there");
+    assertFalse(mgv.offers(ol2, ofr).isLive(), "ofr created at tickSpacing but found at tickSpacing2");
+    assertEq(mgv.offers(olKey, ofr).tick(), insertionTick, "ofr found at tickSpacing but with wrong ratio");
   }
 
-  // more "tickScales do not interfere with one another"
-  function test_updateOffer_store_and_retrieve(uint16 tickScale, uint16 tickScale2, int24 logPrice) public {
-    logPrice = boundLogPrice(logPrice);
-    vm.assume(tickScale != tickScale2);
-    vm.assume(tickScale != 0);
-    vm.assume(tickScale2 != 0);
-    olKey.tickScale = tickScale;
-    OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickScale2);
+  // more "tickSpacings do not interfere with one another"
+  function test_updateOffer_store_and_retrieve(uint16 tickSpacing, uint16 tickSpacing2, int24 tick) public {
+    tick = boundTick(tick);
+    vm.assume(tickSpacing != tickSpacing2);
+    vm.assume(tickSpacing != 0);
+    vm.assume(tickSpacing2 != 0);
+    olKey.tickSpacing = tickSpacing;
+    OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
     uint gives = 1 ether;
 
-    int insertionLogPrice =
-      int24(LogPriceLib.fromTick(TickLib.nearestHigherTickToLogPrice(logPrice, tickScale), tickScale));
-    vm.assume(LogPriceLib.inRange(insertionLogPrice));
+    int insertionTick = int24(TickLib.fromBin(BinLib.tickToNearestHigherBin(tick, tickSpacing), tickSpacing));
+    vm.assume(TickLib.inRange(insertionTick));
 
     mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.activate(ol2, 0, 100 << 32, 0);
-    uint ofr = mgv.newOfferByLogPrice(ol2, 0, gives, 100_000, 30);
-    assertTrue(mgv.offers(ol2, ofr).isLive(), "offer created at tickScale2 but not found there");
-    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer found at tickScale2 but with wrong price");
-    assertFalse(mgv.offers(olKey, ofr).isLive(), "offer created at tickScale2 but found at tickScale");
+    uint ofr = mgv.newOfferByTick(ol2, 0, gives, 100_000, 30);
+    assertTrue(mgv.offers(ol2, ofr).isLive(), "offer created at tickSpacing2 but not found there");
+    assertEq(mgv.offers(ol2, ofr).tick(), 0, "offer found at tickSpacing2 but with wrong ratio");
+    assertFalse(mgv.offers(olKey, ofr).isLive(), "offer created at tickSpacing2 but found at tickSpacing");
 
     // test fails if no existing offer
     vm.expectRevert("mgv/updateOffer/unauthorized");
-    mgv.updateOfferByLogPrice(olKey, logPrice, gives, 100_000, 30, ofr);
+    mgv.updateOfferByTick(olKey, tick, gives, 100_000, 30, ofr);
 
-    // test offers update does not touch another tickScale
-    uint ofr2 = mgv.newOfferByLogPrice(olKey, 1, gives, 100_000, 30);
-    assertEq(ofr, ofr2, "tickScale and tickScale2 seem to shares offer IDs");
-    mgv.updateOfferByLogPrice(olKey, logPrice, gives, 100_000, 30, ofr2);
+    // test offers update does not touch another tickSpacing
+    uint ofr2 = mgv.newOfferByTick(olKey, 1, gives, 100_000, 30);
+    assertEq(ofr, ofr2, "tickSpacing and tickSpacing2 seem to shares offer IDs");
+    mgv.updateOfferByTick(olKey, tick, gives, 100_000, 30, ofr2);
     assertTrue(
       mgv.offers(ol2, ofr).isLive(),
-      "creating offer with same ID as ofr in a different tickScale seems to have deleted ofr"
+      "creating offer with same ID as ofr in a different tickSpacing seems to have deleted ofr"
     );
-    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "creating offer with same ID as ofr seems to have changed its price");
-    assertTrue(mgv.offers(olKey, ofr).isLive(), "offer created at new tickScale but not found there");
-    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "offer found at new tickScale but with wrong price");
+    assertEq(mgv.offers(ol2, ofr).tick(), 0, "creating offer with same ID as ofr seems to have changed its ratio");
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "offer created at new tickSpacing but not found there");
+    assertEq(mgv.offers(olKey, ofr).tick(), insertionTick, "offer found at new tickSpacing but with wrong ratio");
   }
 
-  // the storage of offers depends on the chosen tickScale
-  function test_tickPlacement(uint16 tickScale, int24 logPrice) public {
-    olKey.tickScale = tickScale;
-    logPrice = boundLogPrice(logPrice);
-    vm.assume(tickScale != 0);
+  // the storage of offers depends on the chosen tickSpacing
+  function test_tickPlacement(uint16 tickSpacing, int24 tick) public {
+    olKey.tickSpacing = tickSpacing;
+    tick = boundTick(tick);
+    vm.assume(tickSpacing != 0);
     uint gives = 1 ether;
-    Tick insertionTick = TickLib.nearestHigherTickToLogPrice(logPrice, tickScale);
-    int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
-    vm.assume(LogPriceLib.inRange(insertionLogPrice));
+    Bin insertionBin = BinLib.tickToNearestHigherBin(tick, tickSpacing);
+    int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
+    vm.assume(TickLib.inRange(insertionTick));
 
     mgv.activate(olKey, 0, 100 << 32, 0);
-    mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
+    mgv.newOfferByTick(olKey, tick, gives, 100_000, 30);
     assertEq(
-      mgv.leafs(olKey, insertionTick.leafIndex()).firstOfferPosition(), insertionTick.posInLeaf(), "wrong pos in leaf"
+      mgv.leafs(olKey, insertionBin.leafIndex()).firstOfferPosition(), insertionBin.posInLeaf(), "wrong pos in leaf"
     );
     assertEq(
-      mgv.level0(olKey, insertionTick.level0Index()).firstOnePosition(),
-      insertionTick.posInLevel0(),
-      "wrong pos in level0"
+      mgv.level3(olKey, insertionBin.level3Index()).firstOnePosition(),
+      insertionBin.posInLevel3(),
+      "wrong pos in level3"
     );
     assertEq(
-      mgv.level1(olKey, insertionTick.level1Index()).firstOnePosition(),
-      insertionTick.posInLevel1(),
-      "wrong pos in level1"
-    );
-    assertEq(
-      mgv.level2(olKey, insertionTick.level2Index()).firstOnePosition(),
-      insertionTick.posInLevel2(),
+      mgv.level2(olKey, insertionBin.level2Index()).firstOnePosition(),
+      insertionBin.posInLevel2(),
       "wrong pos in level2"
     );
-    assertEq(mgv.root(olKey).firstOnePosition(), insertionTick.posInRoot(), "wrong pos in root");
+    assertEq(
+      mgv.level1(olKey, insertionBin.level1Index()).firstOnePosition(),
+      insertionBin.posInLevel1(),
+      "wrong pos in level1"
+    );
+    assertEq(mgv.root(olKey).firstOnePosition(), insertionBin.posInRoot(), "wrong pos in root");
   }
 
-  // creating offer at zero tickScale is impossible
-  function test_noOfferAtZeroTickScale(int24 logPrice, uint96 gives) public {
+  // creating offer at zero tickSpacing is impossible
+  function test_noOfferAtZeroTickSpacing(int24 tick, uint96 gives) public {
     vm.assume(gives > 0);
-    logPrice = boundLogPrice(logPrice);
-    olKey.tickScale = 0;
+    tick = boundTick(tick);
+    olKey.tickSpacing = 0;
     mgv.activate(olKey, 0, 0, 0);
 
     vm.expectRevert(stdError.divisionError);
-    mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_00, 30);
+    mgv.newOfferByTick(olKey, tick, gives, 100_00, 30);
   }
 
   function test_id_is_correct(OLKey memory olKey) public {
@@ -168,26 +162,24 @@ contract DynamicTicksTest is MangroveTest {
     OLKey memory flipped = olKey.flipped();
     assertEq(flipped.inbound, olKey.outbound, "flipped() is incorrect");
     assertEq(flipped.outbound, olKey.inbound, "flipped() is incorrect");
-    assertEq(flipped.tickScale, olKey.tickScale, "flipped() is incorrect");
+    assertEq(flipped.tickSpacing, olKey.tickSpacing, "flipped() is incorrect");
   }
 
-  // logPrice given by maker is normalized and aligned to chosen tickScale
-  function test_insertionLogPrice_normalization(int24 logPrice, uint16 tickScale) public {
-    vm.assume(tickScale != 0);
-    vm.assume(int(logPrice) % int(uint(tickScale)) != 0);
-    logPrice = boundLogPrice(logPrice);
-    Tick insertionTick = TickLib.nearestHigherTickToLogPrice(logPrice, tickScale);
-    int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
-    vm.assume(LogPriceLib.inRange(insertionLogPrice));
-    olKey.tickScale = tickScale;
+  // tick given by maker is normalized and aligned to chosen tickSpacing
+  function test_insertionTick_normalization(int24 tick, uint16 tickSpacing) public {
+    vm.assume(tickSpacing != 0);
+    vm.assume(int(tick) % int(uint(tickSpacing)) != 0);
+    tick = boundTick(tick);
+    Bin insertionBin = BinLib.tickToNearestHigherBin(tick, tickSpacing);
+    int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
+    vm.assume(TickLib.inRange(insertionTick));
+    olKey.tickSpacing = tickSpacing;
 
     mgv.activate(olKey, 0, 100 << 32, 0);
-    uint id = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 100_00, 30);
-    assertEq(mgv.offers(olKey, id).logPrice(), insertionLogPrice, "recorded logPrice does not match nearest lower tick");
+    uint id = mgv.newOfferByTick(olKey, tick, 1 ether, 100_00, 30);
+    assertEq(mgv.offers(olKey, id).tick(), insertionTick, "recorded tick does not match nearest higher bin");
     assertEq(
-      int(mgv.offers(olKey, id).logPrice()) % int(uint(tickScale)),
-      0,
-      "recorded logPrice should be a multiple of tickScale"
+      int(mgv.offers(olKey, id).tick()) % int(uint(tickSpacing)), 0, "recorded tick should be a multiple of tickSpacing"
     );
   }
 }

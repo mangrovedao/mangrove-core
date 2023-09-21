@@ -10,82 +10,82 @@ import "mgv_lib/Debug.sol";
 //
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
-//   - the offer to be retracted's tick (including the offer itself)
-//   - a higher tick
-//   - a lower tick
+//   - the offer to be retracted's bin (including the offer itself)
+//   - a higher bin
+//   - a lower bin
 // 2. we take a snapshot of Mangrove's tick tree
 // 3. we retract the offer in both Mangrove and in the snapshot tick tree
 // 4. we check that Mangrove's tick tree matches the test tick tree.
 //
 // The scenarios we want to test are:
-// - retraction tick
-//   - tick is a *tick of interest* (ToI) as listed in TickTreeTest
+// - retraction bin
+//   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //   - list:
 //     1. the offer to be retracted is alone
 //     2. the offer to be retracted is first of two offers
 //     3. the offer to be retracted is last of two offers
 //     4. the offer to be retracted is middle of three offers
-// - higher tick list
-//   - tick has higher position in same leaf or level0-3 as ToI
-//     - if feasible, given retraction tick
+// - higher bin list
+//   - bin has higher position in same leaf or level1-3 as BoI
+//     - if feasible, given retraction bin
 //   - list:
 //     1. is empty
 //     2. is non-empty
-// - lower tick list
-//   - tick has lower position in same leaf or level0-3 as ToI
-//     - if feasible, given retraction tick
+// - lower bin list
+//   - bin has lower position in same leaf or level1-3 as BoI
+//     - if feasible, given retraction bin
 //   - list:
 //     1. is empty
 //     2. is non-empty
 contract TickTreeRetractOfferTest is TickTreeTest {
   struct RetractOfferScenario {
-    TickScenario tickScenario;
-    uint offerTickListSize;
+    BinScenario binScenario;
+    uint offerBinListSize;
     uint offerPos;
   }
 
   // (list size, offer pos)
-  uint[2][] tickListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
+  uint[2][] binListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per ToI instead.
 
-  function test_retract_offer_for_TICK_MIN_ROOT_MAX_OTHERS() public {
-    run_retract_offer_scenarios_for_tick(TICK_MIN_ROOT_MAX_OTHERS);
+  function test_retract_offer_for_BIN_MIN_ROOT_MAX_OTHERS() public {
+    run_retract_offer_scenarios_for_bin(BIN_MIN_ROOT_MAX_OTHERS);
   }
 
-  function test_retract_offer_for_TICK_MAX_ROOT_MIN_OTHERS() public {
-    run_retract_offer_scenarios_for_tick(TICK_MAX_ROOT_MIN_OTHERS);
+  function test_retract_offer_for_BIN_MAX_ROOT_MIN_OTHERS() public {
+    run_retract_offer_scenarios_for_bin(BIN_MAX_ROOT_MIN_OTHERS);
   }
 
-  function test_retract_offer_for_TICK_MIDDLE() public {
-    run_retract_offer_scenarios_for_tick(TICK_MIDDLE);
+  function test_retract_offer_for_BIN_MIDDLE() public {
+    run_retract_offer_scenarios_for_bin(BIN_MIDDLE);
   }
 
-  function test_retract_offer_for_TICK_MIN_ALLOWED() public {
-    run_retract_offer_scenarios_for_tick(TICK_MIN_ALLOWED);
+  function test_retract_offer_for_BIN_MIN_ALLOWED() public {
+    run_retract_offer_scenarios_for_bin(BIN_MIN_ALLOWED);
   }
 
-  function test_retract_offer_for_TICK_MAX_ALLOWED() public {
-    run_retract_offer_scenarios_for_tick(TICK_MAX_ALLOWED);
+  function test_retract_offer_for_BIN_MAX_ALLOWED() public {
+    run_retract_offer_scenarios_for_bin(BIN_MAX_ALLOWED);
   }
 
-  // size of {lower,higher}TickList if the tick is present in the scenario
-  uint[] otherTickListSizeScenarios = [1];
+  // size of {lower,higher}BinList if the bin is present in the scenario
+  uint[] otherBinListSizeScenarios = [1];
 
-  function run_retract_offer_scenarios_for_tick(Tick tick) internal {
+  function run_retract_offer_scenarios_for_bin(Bin bin) internal {
     vm.pauseGasMetering();
-    runTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
+    runBinScenarios(bin, otherBinListSizeScenarios, otherBinListSizeScenarios);
     vm.resumeGasMetering();
   }
 
-  function runTickScenario(TickScenario memory tickScenario) internal override {
+  function runBinScenario(BinScenario memory binScenario) internal override {
     RetractOfferScenario memory scenario;
-    scenario.tickScenario = tickScenario;
-    for (uint j = 0; j < tickListScenarios.length; ++j) {
-      uint[2] storage tickListScenario = tickListScenarios[j];
-      scenario.offerTickListSize = tickListScenario[0];
-      scenario.offerPos = tickListScenario[1];
+    scenario.binScenario = binScenario;
+    for (uint j = 0; j < binListScenarios.length; ++j) {
+      uint[2] storage binListScenario = binListScenarios[j];
+      scenario.offerBinListSize = binListScenario[0];
+      scenario.offerPos = binListScenario[1];
       run_retract_offer_scenario(scenario, false);
     }
   }
@@ -94,16 +94,16 @@ contract TickTreeRetractOfferTest is TickTreeTest {
   function test_single_retract_offer_scenario() public {
     run_retract_offer_scenario(
       RetractOfferScenario({
-        tickScenario: TickScenario({
-          tick: Tick.wrap(0),
-          hasHigherTick: true,
-          higherTick: Tick.wrap(4),
-          higherTickListSize: 1,
-          hasLowerTick: false,
-          lowerTick: Tick.wrap(0),
-          lowerTickListSize: 0
+        binScenario: BinScenario({
+          bin: Bin.wrap(0),
+          hasHigherBin: true,
+          higherBin: Bin.wrap(4),
+          higherBinListSize: 1,
+          hasLowerBin: false,
+          lowerBin: Bin.wrap(0),
+          lowerBinListSize: 0
         }),
-        offerTickListSize: 1,
+        offerBinListSize: 1,
         offerPos: 0
       }),
       true
@@ -111,18 +111,18 @@ contract TickTreeRetractOfferTest is TickTreeTest {
   }
 
   function run_retract_offer_scenario(RetractOfferScenario memory scenario, bool printToConsole) internal {
-    Tick tick = scenario.tickScenario.tick;
+    Bin bin = scenario.binScenario.bin;
     if (printToConsole) {
       console.log("retract offer scenario");
-      console.log("  retractionTick: %s", toString(tick));
-      console.log("  offerTickListSize: %s", scenario.offerTickListSize);
+      console.log("  retractionBin: %s", toString(bin));
+      console.log("  offerBinListSize: %s", scenario.offerBinListSize);
       console.log("  offerPos: %s", scenario.offerPos);
-      if (scenario.tickScenario.hasHigherTick) {
-        Tick higherTick = scenario.tickScenario.higherTick;
-        console.log("  higherTick: %s", toString(higherTick));
+      if (scenario.binScenario.hasHigherBin) {
+        Bin higherBin = scenario.binScenario.higherBin;
+        console.log("  higherBin: %s", toString(higherBin));
       }
-      if (scenario.tickScenario.hasLowerTick) {
-        console.log("  lowerTick: %s", toString(scenario.tickScenario.lowerTick));
+      if (scenario.binScenario.hasLowerBin) {
+        console.log("  lowerBin: %s", toString(scenario.binScenario.lowerBin));
       }
     }
 
@@ -130,12 +130,12 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     uint vmSnapshotId = vm.snapshot();
 
     // 2. Create scenario
-    (uint[] memory offerIds,) = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize);
-    if (scenario.tickScenario.hasHigherTick) {
-      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
+    (uint[] memory offerIds,) = add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize);
+    if (scenario.binScenario.hasHigherBin) {
+      add_n_offers_to_bin(scenario.binScenario.higherBin, scenario.binScenario.higherBinListSize);
     }
-    if (scenario.tickScenario.hasLowerTick) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
+    if (scenario.binScenario.hasLowerBin) {
+      add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
     // 3. Snapshot tick tree

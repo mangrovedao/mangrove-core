@@ -6,7 +6,7 @@ import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs, MgvLib, OLKey, DensityLib} from "mgv_src/MgvLib.sol";
-import {Tick} from "mgv_lib/TickLib.sol";
+import {Bin} from "mgv_lib/BinLib.sol";
 
 /**
  * @notice Script to obtain data about a given mangrove offer list. Data is outputted to terminal as space separated values.
@@ -17,7 +17,7 @@ import {Tick} from "mgv_lib/TickLib.sol";
  *   "failingIds": [ // the id of the offers that were failing at this block
  *     <offerID>, ...
  *   ],
- *   "gas_used_for_volume": <number>, // the total gas cost for a market order of "Total volume" (arbitrary price)
+ *   "gas_used_for_volume": <number>, // the total gas cost for a market order of "Total volume" (arbitrary ratio)
  *   "data_1": ...
  *   ...
  *   "data_i": { // data_i is a market order consumming i offers of the book
@@ -60,7 +60,7 @@ contract MarketHealth is Test2, Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICK_SCALE")),
+      olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICK_SPACING")),
       outboundTknVolume: vm.envUint("VOLUME"),
       densityOverrides: densityOverrides
     });
@@ -133,9 +133,9 @@ contract MarketHealth is Test2, Deployer {
       vars.takerWants =
         vars.offer.gives + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives;
       // FIXME: This is no longer possible with the new clean function
-      // offering a better price than what the offer requires
+      // offering a better ratio than what the offer requires
       vars.targets =
-        wrap_dynamic(MgvLib.CleanTarget(vars.best, vars.offer.logPrice, vars.offerDetail.gasreq, vars.takerWants));
+        wrap_dynamic(MgvLib.CleanTarget(vars.best, vars.offer.tick, vars.offerDetail.gasreq, vars.takerWants));
       _gas();
       (vars.snipesSuccesses, vars.snipesBounty) = mgv.cleanByImpersonation(olKey, vars.targets, address(this));
       vars.g = gas_(true);

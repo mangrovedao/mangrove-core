@@ -6,9 +6,9 @@ To list gas usage for all scenarios run `./gas-measurement.sh`. This generates `
 
 To get a diff in gas measurements (eg with different optimization settings or different code versions) first run `./gas-measurement.sh` in the before setup, and then run `./gas-measurement.sh --diff` in the after setup. This will generate `out/gas-measurement-diff.{json,csv}` files with the gas measurements before and after as well as the delta for each test.
 
-We test gas usage for various scenarios. This can be used to determine gas usage for a strat's `makerExecute` or `makerPosthook` functions. The absolute values are rarely used, instead a strat builder should verify their gas usage in some specific scenario (e.g. with posthook updating the same offer list as its taken on, where the offer list has other offers on the same tick as a new offer is created on) and then compare deltas to other scenarios tested here and use it to set a `gasreq` for their strat which covers the desired worst-case scenarios. The gas measurements are for the inner-most operation.
+We test gas usage for various scenarios. This can be used to determine gas usage for a strat's `makerExecute` or `makerPosthook` functions. The absolute values are rarely used, instead a strat builder should verify their gas usage in some specific scenario (e.g. with posthook updating the same offer list as its taken on, where the offer list has other offers on the same bin as a new offer is created on) and then compare deltas to other scenarios tested here and use it to set a `gasreq` for their strat which covers the desired worst-case scenarios. The gas measurements are for the inner-most operation.
 
-The measured functions often take a `logPrice` argument, but the gas differences are related to differences in the `tick` structures. So the actual `logPrice` is not important, it is the resulting `tick` that is important for gas estimates.
+The measured functions often take a `logPrice` argument, but the gas differences are related to differences in the `bin` structures. So the actual `logPrice` is not important, it is the resulting `bin` that is important for gas estimates.
 
 ## Scenarios
 
@@ -39,18 +39,18 @@ Additionally, the state of the offer lists affect execution:
 
 - always empty (completely new)
 - now empty (out of liquidity)
-- with offer on same tick as operation. That is: same price.
+- with offer on same bin as operation. That is: same price.
 - with offer on same leaf as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE)`
-- with offer on same level0 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL0_SIZE)`
-- with offer on same level1 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE)`
-- with offer on same level2 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE)`
-- with offer on same root as operation. Can be any difference up to max tick.
+- with offer on same level1 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL1_SIZE)`
+- with offer on same level2 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL1_SIZE * LEVEL2_SIZE)`
+- with offer on same level3 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL1_SIZE * LEVEL2_SIZE * LEVEL3_SIZE)`
+- with offer on same root as operation. Can be any difference up to max bin.
 
-The non-empty ones are referred to as "various tick-distances".
+The non-empty ones are referred to as "various bin-distances".
 
-Also, the offer can be better or worse than current best offer (affecting whether to update `local`). This is captured in the helper `TickBoundariesGasTest`.
+Also, the offer can be better or worse than current best offer (affecting whether to update `local`). This is captured in the helper `TickTreeBoundariesGasTest`.
 
-From `makerPosthook` on the same offer list, then the gas cost is also affected by how warm the affected branch is which depends on where the taken offer is relative to the operation's offer (again: same tick, leaf, level0, level1, level2, root).
+From `makerPosthook` on the same offer list, then the gas cost is also affected by how warm the affected branch is which depends on where the taken offer is relative to the operation's offer (again: same bin, leaf, level1, level2, level3, root).
 
 For each of the main functions this leads to the scenarios listed in the next sections.
 
@@ -59,9 +59,9 @@ For each of the main functions this leads to the scenarios listed in the next se
 - `makerPosthook`
   - on offer success
     - now empty offer list (out of liquidity): `PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest`
-    - offer exists on offer list with new offer at various tick-distances: `PosthookSuccessNewOfferSameList_WithOtherOfferGasTest`
-    - offer also exists on same tick as new offer price (only higher ticks tested): `PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameTickGasTest`
-    - two offers posted, one at same tick as taken offer, gas measured of second at various tick-distances: `PosthookSuccessNewOfferSameList_WithPriorNewOfferAndNoOtherOffersGasTest`
+    - offer exists on offer list with new offer at various bin-distances: `PosthookSuccessNewOfferSameList_WithOtherOfferGasTest`
+    - offer also exists on same bin as new offer price (only higher bins tested): `PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameTickTreeBoundariesGasTest`
+    - two offers posted, one at same bin as taken offer, gas measured of second at various bin-distances: `PosthookSuccessNewOfferSameList_WithPriorNewOfferAndNoOtherOffersGasTest`
   - on offer failure
     - same as offer success: Named `PosthookFailureNewOfferSameList_*` instead of `PosthookSuccessNewOfferSameList_*`. (has exact same gas costs)
 - `external`
@@ -84,9 +84,9 @@ The `makerPosthook`->on offer success tests all update the taken offer. See the 
   - similar scenarios as `makerPosthook`->on offer success. Named `ExternalUpdateOfferOtherOfferList_*` instead of `PosthookSuccessNewOfferSameList_*` and adapted to update over new.
 
     - now empty offer list (out of liquidity) - simply a repost of a taken (dead) offer with same `gasreq` and no `deprovision` since offer was successfully taken.
-    - offer exists on offer list with new offer at various tick-distances - the updated offer is initially live at same tick as other offer.
-    - offer also exists on same tick as new offer price
-    - two offers posted at middle, both updated - first to same tick, second at various tick-distances with gas measured.
+    - offer exists on offer list with new offer at various bin-distances - the updated offer is initially live at same bin as other offer.
+    - offer also exists on same bin as new offer price
+    - two offers posted at middle, both updated - first to same bin, second at various bin-distances with gas measured.
 
   - live vs dead vs gas
     - update dead deprovisioned offer to far away price: `ExternalUpdateOfferOtherOfferList_DeadDeprovisioned`
@@ -100,14 +100,14 @@ Retracting offers is different from new and updated offers in that the retractio
 - `makerPosthook`
 
   - on offer success
-    - retract offer at various tick-distances from taken offer: `PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest`
+    - retract offer at various bin-distances from taken offer: `PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest`
     - retract offer after already retracting another offer near taken offer: `PosthookSuccessRetractOfferSameList_WithPriorRetractOfferAndOtherOffersGasTest`
 
 - `external`
   - retract last offer from offer list - with and without deprovision: `ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest`
-  - retracting an offer when another offer exists at various tick-distances to the offer's price: `ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_*`
-  - retracting an offer when another offer exists at various tick-distances to the offer price but also on the same tick: `ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_*`
-  - retracting a second offer at various tick-distances after retracting an offer at MIDDLE_LOG_PRICE: `ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffersGasTest`
+  - retracting an offer when another offer exists at various bin-distances to the offer's price: `ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_*`
+  - retracting an offer when another offer exists at various bin-distances to the offer price but also on the same bin: `ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickTreeBoundariesGasTest_*`
+  - retracting a second offer at various bin-distances after retracting an offer at MIDDLE_LOG_PRICE: `ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffersGasTest`
 
 ### `marketOrder`
 
@@ -115,9 +115,9 @@ We do not consider usage from maker contracts since it is unbounded, so only ext
 
 - `external`
   - Taking the last offer so offer list becomes empty in various cases: `ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest`
-  - Taking an offer, moving the price further and further through ticks to next available offer: `ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest`
-  - Taking multiple offers with increasing number of offers on same tick: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick`
-  - Taking some offers, moving the price further and further through ticks: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks`
+  - Taking an offer, moving the price further and further through bins to next available offer: `ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest`
+  - Taking multiple offers with increasing number of offers on same bin: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin`
+  - Taking some offers, moving the price further and further through bins: `ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyBins`
 
 ### `offer_gasbase`
 

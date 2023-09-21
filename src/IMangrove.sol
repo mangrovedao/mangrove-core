@@ -45,7 +45,7 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
+  function marketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
@@ -53,7 +53,7 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
+  function marketOrderForByTick(OLKey memory olKey, int tick, uint fillVolume, bool fillWants, address taker)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
@@ -80,7 +80,7 @@ interface IMangrove is HasMgvEvents {
     payable
     returns (uint offerId);
 
-  function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
+  function newOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice)
     external
     payable
     returns (uint offerId);
@@ -89,13 +89,13 @@ interface IMangrove is HasMgvEvents {
     external
     payable;
 
-  function updateOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId)
+  function updateOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice, uint offerId)
     external
     payable;
 
-  function marketOrderByLogPrice(
+  function marketOrderByTick(
     OLKey memory olKey,
-    int maxLogPrice,
+    int maxTick,
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
@@ -174,11 +174,11 @@ interface IMangrove is HasMgvEvents {
 
   function leafs(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Leaf);
 
-  function level0(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
-
-  function level1(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
+  function level3(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
 
   function level2(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
+
+  function level1(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
 
   function root(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
 
@@ -189,7 +189,7 @@ interface IMangrove is HasMgvEvents {
   function internalCleanByImpersonation(
     OLKey memory olKey,
     uint offerId,
-    int logPrice,
+    int tick,
     uint gasreq,
     uint takerWants,
     address taker

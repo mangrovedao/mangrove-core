@@ -5,33 +5,33 @@ pragma solidity ^0.8.18;
 import {
   SingleGasTestBase,
   GasTestBase,
-  MIDDLE_LOG_PRICE,
-  LEAF_LOWER_LOG_PRICE,
-  LEAF_HIGHER_LOG_PRICE,
-  LEVEL0_LOWER_LOG_PRICE,
-  LEVEL0_HIGHER_LOG_PRICE,
-  LEVEL1_LOWER_LOG_PRICE,
-  LEVEL1_HIGHER_LOG_PRICE,
-  LEVEL2_LOWER_LOG_PRICE,
-  LEVEL2_HIGHER_LOG_PRICE,
-  ROOT_LOWER_LOG_PRICE,
-  ROOT_HIGHER_LOG_PRICE
+  MIDDLE_BIN,
+  LEAF_LOWER_BIN,
+  LEAF_HIGHER_BIN,
+  LEVEL3_LOWER_BIN,
+  LEVEL3_HIGHER_BIN,
+  LEVEL2_LOWER_BIN,
+  LEVEL2_HIGHER_BIN,
+  LEVEL1_LOWER_BIN,
+  LEVEL1_HIGHER_BIN,
+  ROOT_LOWER_BIN,
+  ROOT_HIGHER_BIN
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
-import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
+import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 
 contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBase {
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
     description =
       "Worst case scenario if strat retracts an offer from an offer list which has now become empty - with and without deprovision";
   }
 
-  function setUpLogPrice(int _logPrice) public virtual {
-    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 0.00001 ether, 100_000, 0);
-    description = "Retracting an offer when another offer exists at various tick-distances to the offer's price";
+  function setUpTick(int _tick) public virtual {
+    _offerId = mgv.newOfferByTick(olKey, _tick, 0.00001 ether, 100_000, 0);
+    description = "Retracting an offer when another offer exists at various tick-distances to the offer's ratio";
   }
 
   function test_retract_offer_deprovision() public {
@@ -53,260 +53,260 @@ contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestB
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_MIDDLE_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_MIDDLE_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(MIDDLE_LOG_PRICE);
-    description = string.concat(description, " - Case: MIDDLE_LOG_PRICE");
+    setUpTick(MIDDLE_BIN);
+    description = string.concat(description, " - Case: MIDDLE_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEAF_LOWER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEAF_LOWER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEAF_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEAF_LOWER_LOG_PRICE");
+    setUpTick(LEAF_LOWER_BIN);
+    description = string.concat(description, " - Case: LEAF_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEAF_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEAF_HIGHER_LOG_PRICE");
+    setUpTick(LEAF_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEAF_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL0_LOWER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_LOWER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL0_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL0_LOWER_LOG_PRICE");
+    setUpTick(LEVEL3_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL0_HIGHER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL0_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_LOG_PRICE");
+    setUpTick(LEVEL3_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_LOWER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_LOWER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL1_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL1_LOWER_LOG_PRICE");
+    setUpTick(LEVEL2_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL1_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL1_HIGHER_LOG_PRICE");
+    setUpTick(LEVEL2_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_LOWER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_LOWER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL2_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL2_LOWER_LOG_PRICE");
+    setUpTick(LEVEL1_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL2_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL2_HIGHER_LOG_PRICE");
+    setUpTick(LEVEL1_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_ROOT_LOWER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_ROOT_LOWER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(ROOT_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: ROOT_LOWER_LOG_PRICE");
+    setUpTick(ROOT_LOWER_BIN);
+    description = string.concat(description, " - Case: ROOT_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_LOG_PRICE is
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_ROOT_HIGHER_BIN is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(ROOT_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: ROOT_HIGHER_LOG_PRICE");
+    setUpTick(ROOT_HIGHER_BIN);
+    description = string.concat(description, " - Case: ROOT_HIGHER_BIN");
   }
 }
 
 ///
-abstract contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest is
+abstract contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    this.newOfferOnAllTestPrices();
+    this.newOfferOnAllTestRatios();
   }
 
-  function setUpLogPrice(int _logPrice) public virtual override {
-    _logPrice; // silence irrelevant warning for override
+  function setUpTick(int _tick) public virtual override {
+    _tick; // silence irrelevant warning for override
     description =
-      "Retracting an offer when another offer exists at various tick-distances to the offer price but also on the same tick";
+      "Retracting an offer when another offer exists at various tick-distances to the offer ratio but also on the same tick";
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_MIDDLE_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_MIDDLE_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(MIDDLE_LOG_PRICE);
-    description = string.concat(description, " - Case: MIDDLE_LOG_PRICE");
+    setUpTick(MIDDLE_BIN);
+    description = string.concat(description, " - Case: MIDDLE_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEAF_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEAF_LOWER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEAF_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEAF_LOWER_LOG_PRICE");
+    setUpTick(LEAF_LOWER_BIN);
+    description = string.concat(description, " - Case: LEAF_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEAF_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEAF_HIGHER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEAF_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEAF_HIGHER_LOG_PRICE");
+    setUpTick(LEAF_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEAF_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL0_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_LOWER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL0_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL0_LOWER_LOG_PRICE");
+    setUpTick(LEVEL3_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL0_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_HIGHER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL0_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_LOG_PRICE");
+    setUpTick(LEVEL3_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL1_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_LOWER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL1_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL1_LOWER_LOG_PRICE");
+    setUpTick(LEVEL2_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL1_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_HIGHER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL1_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL1_HIGHER_LOG_PRICE");
+    setUpTick(LEVEL2_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL2_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL2_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL1_LOWER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL2_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL2_LOWER_LOG_PRICE");
+    setUpTick(LEVEL1_LOWER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_LEVEL2_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL1_HIGHER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(LEVEL2_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: LEVEL2_HIGHER_LOG_PRICE");
+    setUpTick(LEVEL1_HIGHER_BIN);
+    description = string.concat(description, " - Case: LEVEL1_HIGHER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_ROOT_LOWER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_ROOT_LOWER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(ROOT_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: ROOT_LOWER_LOG_PRICE");
+    setUpTick(ROOT_LOWER_BIN);
+    description = string.concat(description, " - Case: ROOT_LOWER_BIN");
   }
 }
 
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_ROOT_HIGHER_LOG_PRICE is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_ROOT_HIGHER_BIN is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpLogPrice(ROOT_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: ROOT_HIGHER_LOG_PRICE");
+    setUpTick(ROOT_HIGHER_BIN);
+    description = string.concat(description, " - Case: ROOT_HIGHER_BIN");
   }
 }
 
 contract ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffersGasTest is
-  TickBoundariesGasTest,
+  TickTreeBoundariesGasTest,
   GasTestBase
 {
   uint internal offerId2;
 
   function setUp() public virtual override {
     super.setUp();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
-    logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
-    this.newOfferOnAllTestPrices();
-    offerId2 = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 0.00001 ether, 100_000, 0);
-    description = "Retracting a second offer at various tick-distances after retracting an offer at MIDDLE_LOG_PRICE";
+    _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
+    tickOfferIds[MIDDLE_BIN] = _offerId;
+    this.newOfferOnAllTestRatios();
+    offerId2 = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 100_000, 0);
+    description = "Retracting a second offer at various tick-distances after retracting an offer at MIDDLE_BIN";
   }
 
-  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _logPrice) internal override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _tick) internal override {
     mgv.retractOffer(_olKey, offerId2, false);
-    uint offerId = logPriceOfferIds[_logPrice];
+    uint offerId = tickOfferIds[_tick];
     _gas();
     mgv.retractOffer(_olKey, offerId, false);
     gas_();

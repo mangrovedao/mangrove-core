@@ -28,8 +28,8 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(fork.get("MgvOracle"), address(mgvDeployer.oracle()));
   }
 
-  function test_contracts_instantiated_correctly(uint tickScale) public {
-    OLKey memory olKey = OLKey(freshAddress("oubtound_tkn"), freshAddress("inbound_tkn"), tickScale);
+  function test_contracts_instantiated_correctly(uint tickSpacing) public {
+    OLKey memory olKey = OLKey(freshAddress("oubtound_tkn"), freshAddress("inbound_tkn"), tickSpacing);
 
     // Oracle - verify expected values have been passed in. We read from storage slots - alternatively, we should poke admin methods to verify correct setup.
     MgvOracle oracle = mgvDeployer.oracle();

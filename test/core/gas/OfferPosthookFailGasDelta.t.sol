@@ -7,7 +7,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
+import {MIDDLE_BIN} from "./GasTestBase.t.sol";
 import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {AbstractMangrove, TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
@@ -98,8 +98,8 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
     base = _base;
     quote = _quote;
 
-    olKey = OLKey($(base), $(quote), options.defaultTickScale);
-    lo = OLKey($(quote), $(base), options.defaultTickScale);
+    olKey = OLKey($(base), $(quote), options.defaultBinScale);
+    lo = OLKey($(quote), $(base), options.defaultBinScale);
 
     setupMarket(olKey);
     setupMarket(lo);
@@ -129,25 +129,25 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_BIN, offerGivesOl, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
+    mgv.newOfferByTick(lo, MIDDLE_BIN, offerGivesLo, 10000, 0);
 
     // Do not approve maker - we will let offers fail since then penalty must be calculated, which costs gas.
     for (uint i; i < 19; i++) {
-      mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
-      mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
+      mgv.newOfferByTick(olKey, MIDDLE_BIN, offerGivesOl, 10000, 0);
+      mgv.newOfferByTick(lo, MIDDLE_BIN, offerGivesLo, 10000, 0);
     }
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
+    mgv.newOfferByTick(olKey, MIDDLE_BIN, offerGivesOl, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
+    mgv.newOfferByTick(lo, MIDDLE_BIN, offerGivesLo, 10000, 0);
   }
 
   function posthook_delta_deep_order(OLKey memory olKey) public {
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice({olKey: olKey, maxLogPrice: MIDDLE_LOG_PRICE, fillVolume: 1 ether, fillWants: false});
+    mgv.marketOrderByTick({olKey: olKey, maxTick: MIDDLE_BIN, fillVolume: 1 ether, fillWants: false});
   }
 }

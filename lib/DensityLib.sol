@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Tick,Field} from "mgv_lib/TickLib.sol";
-import {MIN_LOG_PRICE,ONES} from "mgv_lib/Constants.sol";
+import {Field} from "mgv_lib/BinLib.sol";
+import {ONES} from "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 
 /* Density

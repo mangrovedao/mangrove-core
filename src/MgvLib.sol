@@ -7,9 +7,9 @@ pragma solidity ^0.8.10;
 import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
 import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
+import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import "mgv_lib/LogPriceLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 
 using OLLib for OLKey global;
 // OLKey is OfferList
@@ -17,7 +17,7 @@ using OLLib for OLKey global;
 struct OLKey {
   address outbound;
   address inbound;
-  uint tickScale;
+  uint tickSpacing;
 }
 
 library OLLib {
@@ -30,9 +30,9 @@ library OLLib {
     }
   }
 
-  // Creates a flipped copy of the `olKey` with same `tickScale`.
+  // Creates a flipped copy of the `olKey` with same `tickSpacing`.
   function flipped(OLKey memory olKey) internal pure returns (OLKey memory) {
-    return OLKey(olKey.inbound, olKey.outbound, olKey.tickScale);
+    return OLKey(olKey.inbound, olKey.outbound, olKey.tickSpacing);
   }
 }
 
@@ -49,7 +49,7 @@ library MgvLib {
     OLKey olKey;
     uint offerId;
     MgvStructs.OfferPacked offer;
-    /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
+    /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's ratio and volume. */
     uint takerWants;
     uint takerGives;
     /* `offerDetail` is only populated when necessary. */
@@ -70,7 +70,7 @@ library MgvLib {
   /* `CleanTarget` holds data about an offer that should be cleaned, i.e. made to fail by executing it with the specified volume. */
   struct CleanTarget {
     uint offerId;
-    int logPrice;
+    int tick;
     uint gasreq;
     uint takerWants;
   }
@@ -146,7 +146,7 @@ interface HasMgvEvents {
   The `olKeyHash` and both token addresses are indexed, so that we can filter on it when doing RPC calls.
   */
   event SetActive(
-    bytes32 indexed olKeyHash, address indexed outbound_tkn, address indexed inbound_tkn, uint tickScale, bool value
+    bytes32 indexed olKeyHash, address indexed outbound_tkn, address indexed inbound_tkn, uint tickSpacing, bool value
   );
 
   /*
@@ -270,16 +270,16 @@ interface HasMgvEvents {
   /*
   This event is emitted when a market order is started on Mangrove.
 
-  It emits the `olKeyHash`, the `taker`, the `maxLogPrice`, `fillVolume` and `fillWants`.
+  It emits the `olKeyHash`, the `taker`, the `maxTick`, `fillVolume` and `fillWants`.
 
   The fields `olKeyHash` and `taker` are indexed, so that we can filter on them when doing RPC calls.
 
   By emitting this an indexer can keep track of what context the current market order is in. 
   E.g. if a user starts a market order and one of the offers taken also starts a market order, then we can in an indexer have a stack of started market orders and thereby know exactly what offerList the order is running on and the taker.
 
-  By emitting `maxLogPrice`, `fillVolume` and `fillWants`, we can now also know how much of the market order was filled and if it matches the price given. See OrderComplete for more.
+  By emitting `maxTick`, `fillVolume` and `fillWants`, we can now also know how much of the market order was filled and if it matches the ratio given. See OrderComplete for more.
   */
-  event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxLogPrice, uint fillVolume, bool fillWants);
+  event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxTick, uint fillVolume, bool fillWants);
 
   /*
   This event is emitted when a market order is finished.
@@ -363,7 +363,7 @@ interface HasMgvEvents {
   * After `permit` and `approve` 
     This is emitted when a user permits another address to use a certain amount of its funds to do market orders, or when a user revokes another address to use a certain amount of its funds.
 
-    Approvals are based on the pair of outbound and inbound token. Be aware that it is not offerList bases, as an offerList also holds the tickscale.
+    Approvals are based on the pair of outbound and inbound token. Be aware that it is not offerList bases, as an offerList also holds the tickspacing.
 
     We emit `outbound` token, `inbound` token, `owner`, msg.sender (`spender`), `value`. Where `owner` is the one who owns the funds, `spender` is the one who is allowed to use the funds and `value` is the amount of funds that is allowed to be used.
 
@@ -379,14 +379,14 @@ interface HasMgvEvents {
   /* * An offer was created or updated.
   This event is emitted when an offer is posted on Mangrove.
 
-  It emits the `olKeyHash`, the `maker` address, the `logprice`, the `gives`, the `gasprice`, `gasreq` and the offers `id`.
+  It emits the `olKeyHash`, the `maker` address, the `tick`, the `gives`, the `gasprice`, `gasreq` and the offers `id`.
 
-  By emitting the `olKeyHash` and `id`, an indexer will be able to keep track of each offer, because offerList and id together create a unique id for the offer. By emitting the `maker` address, we are able to keep track of who has posted what offer. The `logprice` and `gives`, enables an indexer to know exactly how much an offer is willing to give and at what price, this could for example be used to calculate a return. The `gasprice` and `gasreq`, enables an indexer to calculate how much provision is locked by the offer, see `Credit` for more information.
+  By emitting the `olKeyHash` and `id`, an indexer will be able to keep track of each offer, because offerList and id together create a unique id for the offer. By emitting the `maker` address, we are able to keep track of who has posted what offer. The `tick` and `gives`, enables an indexer to know exactly how much an offer is willing to give and at what ratio, this could for example be used to calculate a return. The `gasprice` and `gasreq`, enables an indexer to calculate how much provision is locked by the offer, see `Credit` for more information.
 
   The fields `olKeyHash` and `maker` are indexed, so that we can filter on them when doing RPC calls.
   */
   event OfferWrite(
-    bytes32 indexed olKeyHash, address indexed maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
+    bytes32 indexed olKeyHash, address indexed maker, int tick, uint gives, uint gasprice, uint gasreq, uint id
   );
 
   /*

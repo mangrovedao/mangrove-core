@@ -12,9 +12,9 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
+import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import "mgv_lib/LogPriceLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -26,7 +26,7 @@ function toString(OfferPacked __packed) pure returns (string memory) {
 }
 
 function toString(OfferUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "logPrice: ", vm.toString(__unpacked.logPrice), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
+  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "tick: ", vm.toString(__unpacked.tick), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
 }
 
 import {OfferDetailPacked, OfferDetailUnpacked} from "mgv_src/preprocessed/MgvOfferDetail.post.sol";
@@ -53,31 +53,31 @@ function toString(LocalPacked __packed) pure returns (string memory) {
 }
 
 function toString(LocalUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tickPosInLeaf: ", vm.toString(__unpacked.tickPosInLeaf), ", ", "level0: ", toString(__unpacked.level0), ", ", "level1: ", toString(__unpacked.level1), ", ", "level2: ", toString(__unpacked.level2), ", ", "root: ", toString(__unpacked.root), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
+  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "binPosInLeaf: ", vm.toString(__unpacked.binPosInLeaf), ", ", "level3: ", toString(__unpacked.level3), ", ", "level2: ", toString(__unpacked.level2), ", ", "level1: ", toString(__unpacked.level1), ", ", "root: ", toString(__unpacked.root), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
 }
 
-function tickBranchToString(Tick tick) pure returns (string memory) {
-  return string.concat(vm.toString(tick.posInRoot()), "->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
+function binBranchToString(Bin tick) pure returns (string memory) {
+  return string.concat(vm.toString(tick.posInRoot()), "->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLevel3()), "[", vm.toString(tick.level3Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
 }
 
-function toString(Tick tick) pure returns (string memory ret) {
+function toString(Bin tick) pure returns (string memory ret) {
   string memory suffix;
-  if (MIN_TICK > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK) {
+  if (MIN_BIN > Bin.unwrap(tick) || Bin.unwrap(tick) > MAX_BIN) {
     suffix = "out of range";
-  } else if (MIN_TICK_ALLOWED > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK_ALLOWED) {
-    suffix = "out of logPrice range";
+  } else if (MIN_BIN_ALLOWED > Bin.unwrap(tick) || Bin.unwrap(tick) > MAX_BIN_ALLOWED) {
+    suffix = "out of tick range";
   } else {
-    suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
+    suffix = tickToString(TickLib.fromBin(tick,1));
   }
 
-  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickBranchToString(tick), "}", unicode"」");
+  ret = string.concat(unicode"「", vm.toString(Bin.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", binBranchToString(tick), "}", unicode"」");
 }
 
-function logPriceToString(int logPrice) pure returns (string memory ret) {
-  (uint man, uint exp)  = LogPriceConversionLib.priceFromLogPrice(logPrice);
+function tickToString(int tick) pure returns (string memory ret) {
+  (uint man, uint exp)  = TickConversionLib.ratioFromTick(tick);
   string memory str = toFixed(man,exp);
 
-  ret = string.concat(unicode"⦗ ",vm.toString(logPrice),"|", str,unicode":1 ⦘");
+  ret = string.concat(unicode"⦗ ",vm.toString(tick),"|", str,unicode":1 ⦘");
 }
 
 function toString(Leaf leaf) pure returns (string memory ret) {
@@ -107,7 +107,7 @@ function toString(DirtyField field) pure returns (string memory ret) {
 }
 
 function toString(OLKey memory olKey) pure returns (string memory res) {
-  res = string.concat("OLKey{out: ",vm.toString(olKey.outbound),", in: ",vm.toString(olKey.inbound)," sc: ",vm.toString(olKey.tickScale),"}");
+  res = string.concat("OLKey{out: ",vm.toString(olKey.outbound),", in: ",vm.toString(olKey.inbound)," sc: ",vm.toString(olKey.tickSpacing),"}");
 }
 
 /* *** Unit conversion *** */

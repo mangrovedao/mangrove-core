@@ -95,7 +95,7 @@ const id_field = (name: string) => {
 
 /* ## `Offer` */
 //+clear+
-/* `Offer`s hold the doubly-linked list pointers as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
+/* `Offer`s hold the doubly-linked list pointers as well as ratio and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
 //+clear+
 const struct_defs = {
   offer: {
@@ -105,15 +105,15 @@ const struct_defs = {
       id_field("prev"),
       /* * `next` points to the immediately worse offer. The worst offer's `next` is 0. _32 bits wide_. */
       id_field("next"),
-      {name:"logPrice",bits:24,type:"int"},
+      {name:"tick",bits:24,type:"int"},
       /* * `gives` is the amount of `outbound_tkn` the offer will give if successfully executed.
       _96 bits wide_, so assuming the usual 18 decimals, amounts can only go up to
       10 billions. */
       fields.gives,
     ],
-    additionalDefinitions: `import "mgv_lib/TickLib.sol";
-import "mgv_lib/LogPriceLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+    additionalDefinitions: `import "mgv_lib/BinLib.sol";
+import "mgv_lib/TickLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -124,7 +124,7 @@ uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(prev_mask_inv | next_mask_inv);
 library OfferPackedExtra {
   // Compute wants from tick and gives
   function wants(OfferPacked offer) internal pure returns (uint) {
-    return LogPriceLib.inboundFromOutbound(offer.logPrice(),offer.gives());
+    return TickLib.inboundFromOutbound(offer.tick(),offer.gives());
   }
   // Sugar to test offer liveness
   function isLive(OfferPacked offer) internal pure returns (bool resp) {
@@ -133,9 +133,9 @@ library OfferPackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
-    // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickLib.fromTickAlignedLogPrice(offer.logPrice(), tickScale);
+  function bin(OfferPacked offer, uint tickSpacing) internal pure returns (Bin) {
+    // Offers are always stored with a tick that corresponds exactly to a tick
+    return BinLib.fromBinAlignedTick(offer.tick(), tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -149,7 +149,7 @@ library OfferPackedExtra {
 library OfferUnpackedExtra {
   // Compute wants from tick and gives
   function wants(OfferUnpacked memory offer) internal pure returns (uint) {
-    return LogPriceLib.inboundFromOutbound(offer.logPrice,offer.gives);
+    return TickLib.inboundFromOutbound(offer.tick,offer.gives);
   }
   // Sugar to test offer liveness
   function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {
@@ -158,9 +158,9 @@ library OfferUnpackedExtra {
       resp := iszero(iszero(gives))
     }
   }
-  function tick(OfferUnpacked memory offer, uint tickScale) internal pure returns (Tick) {
-    // Offers are always stored with a logPrice that corresponds exactly to a tick
-    return TickLib.fromTickAlignedLogPrice(offer.logPrice, tickScale);
+  function bin(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (Bin) {
+    // Offers are always stored with a tick that corresponds exactly to a tick
+    return BinLib.fromBinAlignedTick(offer.tick, tickSpacing);
   }
 
 }
@@ -190,7 +190,7 @@ They have the following fields: */
 
     If an offer fails, `gasprice` wei is taken from the
     provision per unit of gas used. `gasprice` should approximate the average gas
-    price at offer creation time.
+    ratio at offer creation time.
 
     `kilo_offer_gasbase` is the actual field name, and is _9 bits wide_ and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
 
@@ -215,7 +215,7 @@ They have the following fields: */
 
       */
       fields.kilo_offer_gasbase,
-      /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gsprice`. */
+      /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
       fields.gasprice,
     ],
     additionalDefinitions: (struct) => `
@@ -281,10 +281,10 @@ library OfferDetailUnpackedExtra {
       
       */
       { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
-      { name: "tickPosInLeaf", bits: 2, type: "uint" },
-      { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
-      { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
+      { name: "binPosInLeaf", bits: 2, type: "uint" },
+      { name: "level3", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
+      { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "root", bits: 2, type: "Field", underlyingType: "uint" },
       /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to a pair, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.kilo_offer_gasbase,
@@ -304,14 +304,14 @@ library OfferDetailUnpackedExtra {
       id_field("last"),
     ],
     additionalDefinitions: (struct) => `
-import {Tick,TickLib,Field} from "mgv_lib/TickLib.sol";
+import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 
 using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | root_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(binPosInLeaf_mask_inv | level3_mask_inv | level2_mask_inv | level1_mask_inv | root_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
   function densityFrom96X32(LocalPacked local, uint density96X32) internal pure returns (LocalPacked) { unchecked {
@@ -323,8 +323,8 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
-  function bestTick(LocalPacked local) internal pure returns (Tick) {
-    return TickLib.bestTickFromLocal(local);
+  function bestBin(LocalPacked local) internal pure returns (Bin) {
+    return BinLib.bestBinFromLocal(local);
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -345,8 +345,8 @@ library LocalUnpackedExtra {
   function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
     local.kilo_offer_gasbase = val/1e3;
   }}
-  function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
-    return TickLib.bestTickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2,local.root);
+  function bestBin(LocalUnpacked memory local) internal pure returns (Bin) {
+    return BinLib.bestBinFromBranch(local.binPosInLeaf,local.level3,local.level2,local.level1,local.root);
   }
 }
 `,

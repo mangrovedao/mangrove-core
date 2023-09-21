@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, Tick, LogPriceLib, OLKey} from "./MgvLib.sol";
+import {HasMgvEvents, Bin, TickLib, OLKey} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
-import {TickLib} from "mgv_lib/TickLib.sol";
-import "mgv_lib/LogPriceConversionLib.sol";
+import {BinLib} from "mgv_lib/BinLib.sol";
+import "mgv_lib/TickConversionLib.sol";
 import {MgvStructs} from "./MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -78,17 +78,17 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
-      int logPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
-      return marketOrderForByLogPrice(olKey, logPrice, fillVolume, fillWants, taker);
+      int tick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+      return marketOrderForByTick(olKey, tick, fillVolume, fillWants, taker);
     }
   }
 
-  function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
+  function marketOrderForByTick(OLKey memory olKey, int tick, uint fillVolume, bool fillWants, address taker)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
-      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, logPrice, fillVolume, fillWants, taker, 0);
+      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, tick, fillVolume, fillWants, taker, 0);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(olKey.outbound, olKey.inbound, taker, takerGave);
     }

@@ -8,7 +8,7 @@ import {
   MgvStructs,
   Field,
   Leaf,
-  Tick,
+  Bin,
   LEVEL_SIZE,
   OLKey,
   DirtyFieldLib
@@ -63,39 +63,39 @@ contract MgvHasOffers is MgvCommon {
   // shouldUpdateBest is true if we may want to update best, false if there is no way we want to update it (eg if we know we are about to reinsert the offer anyway and will update best then?)
   function dislodgeOffer(
     OfferList storage offerList,
-    uint tickScale,
+    uint tickSpacing,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
-    Tick bestTick,
+    Bin bestBin,
     bool shouldUpdateBranch
   ) internal returns (MgvStructs.LocalPacked, bool) {
     unchecked {
       Leaf leaf;
-      Tick offerTick = offer.tick(tickScale);
+      Bin offerBin = offer.bin(tickSpacing);
       // save stack space
       {
         uint prevId = offer.prev();
         uint nextId = offer.next();
         if (prevId == 0 || nextId == 0) {
-          leaf = offerList.leafs[offerTick.leafIndex()].clean();
+          leaf = offerList.leafs[offerBin.leafIndex()].clean();
         }
 
-        // if current tick is not strictly better,
+        // if current bin is not strictly better,
         // time to look for a new current tick
-        // NOTE: I used to name this var "shouldUpdateTick" and add "&& (prevId == 0 && nextId == 0)" because tick has not changed if you are not removing the last offer of a tick. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
+        // NOTE: I used to name this var "shouldUpdateBin" and add "&& (prevId == 0 && nextId == 0)" because bin has not changed if you are not removing the last offer of a bin. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
         // note: adding offerId as an arg would let us replace
-        // prevId == 0 && !local.tick.strictlyBetter(offerTick)
+        // prevId == 0 && !local.bin.strictlyBetter(offerBin)
         // with
         // offerId == local.best() (but best will maybe go away in the future)
 
         // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
-        // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
+        // if local.bin < offerBin then a better branch is already cached. note that local.bin >= offerBin implies local.bin = offerTick
         // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-        shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestTick.strictlyBetter(offerTick);
+        shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestBin.strictlyBetter(offerBin);
 
         if (prevId == 0) {
           // offer was tick's first. new first offer is offer.next (may be 0)
-          leaf = leaf.setTickFirst(offerTick, nextId);
+          leaf = leaf.setBinFirst(offerBin, nextId);
         } else {
           // offer.prev's next becomes offer.next
           OfferData storage prevOfferData = offerList.offerData[prevId];
@@ -104,7 +104,7 @@ contract MgvHasOffers is MgvCommon {
 
         if (nextId == 0) {
           // offer was tick's last. new last offer is offer.prev (may be 0)
-          leaf = leaf.setTickLast(offerTick, prevId);
+          leaf = leaf.setBinLast(offerBin, prevId);
         } else {
           // offer.next's prev becomes offer.prev
           OfferData storage nextOfferData = offerList.offerData[nextId];
@@ -115,77 +115,77 @@ contract MgvHasOffers is MgvCommon {
         }
       }
 
-      // offer.tick's first or last offer changed, must update leaf
-      offerList.leafs[offerTick.leafIndex()] = leaf.dirty();
+      // offer.bin's first or last offer changed, must update leaf
+      offerList.leafs[offerBin.leafIndex()] = leaf.dirty();
       // if leaf now empty, flip ticks OFF up the tree
       if (leaf.isEmpty()) {
-        int index = offerTick.level0Index(); // level0Index or level1Index
+        int index = offerBin.level3Index(); // level3Index, level2Index, or  level1Index
         Field field;
-        if (index == bestTick.level0Index()) {
-          field = local.level0().flipBitAtLevel0(offerTick);
-          local = local.level0(field);
+        if (index == bestBin.level3Index()) {
+          field = local.level3().flipBitAtLevel3(offerBin);
+          local = local.level3(field);
           if (shouldUpdateBranch && field.isEmpty()) {
-            if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-              offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
+            if (!offerList.level3[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+              offerList.level3[index] = DirtyFieldLib.DIRTY_EMPTY;
             }
           }
         } else {
           // note: useless dirty/clean cycle here
-          field = offerList.level0[index].clean().flipBitAtLevel0(offerTick);
-          offerList.level0[index] = field.dirty();
+          field = offerList.level3[index].clean().flipBitAtLevel3(offerBin);
+          offerList.level3[index] = field.dirty();
         }
         if (field.isEmpty()) {
-          index = offerTick.level1Index(); // level0Index or level1Index
-          if (index == bestTick.level1Index()) {
-            field = local.level1().flipBitAtLevel1(offerTick);
-            local = local.level1(field);
+          index = offerBin.level2Index(); // level3Index or level2Index
+          if (index == bestBin.level2Index()) {
+            field = local.level2().flipBitAtLevel2(offerBin);
+            local = local.level2(field);
             if (shouldUpdateBranch && field.isEmpty()) {
-              if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-                offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
+              if (!offerList.level2[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+                offerList.level2[index] = DirtyFieldLib.DIRTY_EMPTY;
               }
             }
           } else {
             // note: useless dirty/clean cycle here
-            field = offerList.level1[index].clean().flipBitAtLevel1(offerTick);
-            offerList.level1[index] = field.dirty();
+            field = offerList.level2[index].clean().flipBitAtLevel2(offerBin);
+            offerList.level2[index] = field.dirty();
           }
           if (field.isEmpty()) {
-            index = offerTick.level2Index(); // level0Index or level1Index
-            if (index == bestTick.level2Index()) {
-              field = local.level2().flipBitAtLevel2(offerTick);
-              local = local.level2(field);
+            index = offerBin.level1Index(); // level3Index or level2Index
+            if (index == bestBin.level1Index()) {
+              field = local.level1().flipBitAtLevel1(offerBin);
+              local = local.level1(field);
               if (shouldUpdateBranch && field.isEmpty()) {
-                // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
-                offerList.level2[index] = field.dirty();
+                // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
+                offerList.level1[index] = field.dirty();
               }
             } else {
               // note: useless dirty/clean cycle here
-              field = offerList.level2[index].clean().flipBitAtLevel2(offerTick);
-              offerList.level2[index] = field.dirty();
+              field = offerList.level1[index].clean().flipBitAtLevel1(offerBin);
+              offerList.level1[index] = field.dirty();
             }
             if (field.isEmpty()) {
-              field = local.root().flipBitAtRoot(offerTick);
+              field = local.root().flipBitAtRoot(offerBin);
               local = local.root(field);
 
               if (field.isEmpty()) {
                 return (local, shouldUpdateBranch);
               }
               if (shouldUpdateBranch) {
-                index = field.firstLevel2Index();
-                field = offerList.level2[index].clean();
-                local = local.level2(field);
+                index = field.firstLevel1Index();
+                field = offerList.level1[index].clean();
+                local = local.level1(field);
               }
             }
             if (shouldUpdateBranch) {
-              index = field.firstLevel1Index(index);
-              field = offerList.level1[index].clean();
-              local = local.level1(field);
+              index = field.firstLevel2Index(index);
+              field = offerList.level2[index].clean();
+              local = local.level2(field);
             }
           }
           if (shouldUpdateBranch) {
-            index = field.firstLevel0Index(index);
-            field = offerList.level0[index].clean();
-            local = local.level0(field);
+            index = field.firstLevel3Index(index);
+            field = offerList.level3[index].clean();
+            local = local.level3(field);
           }
         }
         if (shouldUpdateBranch) {
@@ -193,7 +193,7 @@ contract MgvHasOffers is MgvCommon {
         }
       }
       if (shouldUpdateBranch) {
-        local = local.tickPosInLeaf(leaf.firstOfferPosition());
+        local = local.binPosInLeaf(leaf.firstOfferPosition());
       }
     }
     return (local, shouldUpdateBranch);

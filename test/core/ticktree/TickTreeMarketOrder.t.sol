@@ -10,9 +10,9 @@ import "mgv_lib/Debug.sol";
 //
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
-//   - a lower tick
-//   - a middle tick
-//   - a higher tick
+//   - a lower bin
+//   - a middle bin
+//   - a higher bin
 // 2. we take a snapshot of Mangrove's tick tree
 // 3. we remove the offers the market order should take from the snapshot tick tree
 // 4. we run a market order in Mangrove
@@ -20,24 +20,24 @@ import "mgv_lib/Debug.sol";
 //   - by doing this in the posthook, we ensure that the tick tree is updated when the first posthook runs.
 //
 // The scenarios we want to test are:
-// - lower tick list
-//   - tick is a *tick of interest* (ToI) as listed in TickTreeTest
-//     - if feasible, given middle tick
+// - lower bin list
+//   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
+//     - if feasible, given middle bin
 //   - list:
 //     1. is empty
 //     2. is fully taken
 //     3. is partially taken
 //     4. is not taken
-// - middle tick (in lower tick cases 1. and 2.)
-//   - tick has higher position in same leaf or level0-3 as ToI
+// - middle bin (in lower bin cases 1. and 2.)
+//   - bin has higher position in same leaf or level1-3 as BoI
 //   - list:
 //     1. is empty
 //     2. is fully taken
 //     3. is partially taken
 //     4. is not taken
-// - higher tick list (in middle tick cases 1. and 2.)
-//   - tick has lower position in same leaf or level0-3 as ToI
-//     - if feasible, given middle tick
+// - higher bin list (in middle bin cases 1. and 2.)
+//   - bin has lower position in same leaf or level1-3 as BoI
+//     - if feasible, given middle bin
 //   - list:
 //     1. is empty
 //     2. is fully taken
@@ -47,25 +47,25 @@ import "mgv_lib/Debug.sol";
 // We do not test failing offers or partial fills specifically,
 // as they are not handled specially wrt the tick tree.
 contract TickTreeMarketOrderTest is TickTreeTest {
-  // Tick list               size  offersToTake
+  // Bin list                size  offersToTake
   // 1. is empty                0  0
   // 2. is fully taken          2  2
   // 3. is partially taken      3  1
   // 4. is not taken            3  0
-  struct TickListScenario {
-    Tick tick;
+  struct BinListScenario {
+    Bin bin;
     uint size;
     uint offersToTake;
   }
 
   struct MarketOrderScenario {
-    TickListScenario lowerTick;
-    TickListScenario middleTick; // ignored if lowerTickListScenario.size == 3 (scenario 3. and 4.)
-    TickListScenario higherTick; // ignored if {lower,middle}TickListScenario.size == 3 (scenario 3. and 4.)
+    BinListScenario lowerBin;
+    BinListScenario middleBin; // ignored if lowerBinListScenario.size == 3 (scenario 3. and 4.)
+    BinListScenario higherBin; // ignored if {lower,middle}BinListScenario.size == 3 (scenario 3. and 4.)
   }
 
   // (list size, offers to take)
-  uint[2][] tickListScenarios = [[0, 0], [2, 2], [3, 1], [3, 0]];
+  uint[2][] binListScenarios = [[0, 0], [2, 2], [3, 1], [3, 0]];
 
   function setUp() public override {
     super.setUp();
@@ -76,82 +76,82 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per ToI instead.
 
-  function test_market_order_for_TICK_MIN_ROOT_MAX_OTHERS() public {
-    run_market_order_scenarios_for_tick(TICK_MIN_ROOT_MAX_OTHERS);
+  function test_market_order_for_BIN_MIN_ROOT_MAX_OTHERS() public {
+    run_market_order_scenarios_for_bin(BIN_MIN_ROOT_MAX_OTHERS);
   }
 
-  function test_market_order_for_TICK_MAX_ROOT_MIN_OTHERS() public {
-    run_market_order_scenarios_for_tick(TICK_MAX_ROOT_MIN_OTHERS);
+  function test_market_order_for_BIN_MAX_ROOT_MIN_OTHERS() public {
+    run_market_order_scenarios_for_bin(BIN_MAX_ROOT_MIN_OTHERS);
   }
 
-  function test_market_order_for_TICK_MIDDLE() public {
-    run_market_order_scenarios_for_tick(TICK_MIDDLE);
+  function test_market_order_for_BIN_MIDDLE() public {
+    run_market_order_scenarios_for_bin(BIN_MIDDLE);
   }
 
-  function test_market_order_for_TICK_MIN_ALLOWED() public {
-    run_market_order_scenarios_for_tick(TICK_MIN_ALLOWED);
+  function test_market_order_for_BIN_MIN_ALLOWED() public {
+    run_market_order_scenarios_for_bin(BIN_MIN_ALLOWED);
   }
 
-  function test_market_order_for_TICK_MAX_ALLOWED() public {
-    run_market_order_scenarios_for_tick(TICK_MAX_ALLOWED);
+  function test_market_order_for_BIN_MAX_ALLOWED() public {
+    run_market_order_scenarios_for_bin(BIN_MAX_ALLOWED);
   }
 
-  function run_market_order_scenarios_for_tick(Tick tick) internal {
+  function run_market_order_scenarios_for_bin(Bin bin) internal {
     vm.pauseGasMetering();
     bool printToConsole = false;
 
-    Tick[] memory higherTicks = generateHigherTickScenarios(tick);
-    Tick[] memory lowerTicks = generateLowerTickScenarios(tick);
+    Bin[] memory higherBins = generateHigherBinScenarios(bin);
+    Bin[] memory lowerBins = generateLowerBinScenarios(bin);
 
     MarketOrderScenario memory scenario = MarketOrderScenario({
-      lowerTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0}),
-      middleTick: TickListScenario({tick: tick, size: 0, offersToTake: 0}),
-      higherTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0})
+      lowerBin: BinListScenario({bin: Bin.wrap(0), size: 0, offersToTake: 0}),
+      middleBin: BinListScenario({bin: bin, size: 0, offersToTake: 0}),
+      higherBin: BinListScenario({bin: Bin.wrap(0), size: 0, offersToTake: 0})
     });
 
-    // Lower and higher tick are empty
+    // Lower and higher bin are empty
     {
-      for (uint ms = 0; ms < tickListScenarios.length; ++ms) {
-        scenario.middleTick.size = tickListScenarios[ms][0];
-        scenario.middleTick.offersToTake = tickListScenarios[ms][1];
+      for (uint ms = 0; ms < binListScenarios.length; ++ms) {
+        scenario.middleBin.size = binListScenarios[ms][0];
+        scenario.middleBin.offersToTake = binListScenarios[ms][1];
         run_market_order_scenario(scenario, printToConsole);
       }
     }
 
-    // Lower tick is non-empty
-    for (uint l = 0; l < lowerTicks.length; ++l) {
-      scenario.lowerTick.tick = lowerTicks[l];
-      for (uint ls = 1; ls < tickListScenarios.length; ++ls) {
-        scenario.lowerTick.size = tickListScenarios[ls][0];
-        scenario.lowerTick.offersToTake = tickListScenarios[ls][1];
-        if (scenario.lowerTick.size == 3) {
-          // Lower tick is not (fully) taken
-          scenario.middleTick.size = 0;
-          scenario.middleTick.offersToTake = 0;
-          scenario.higherTick.size = 0;
-          scenario.higherTick.offersToTake = 0;
+    // Lower bin is non-empty
+    for (uint l = 0; l < lowerBins.length; ++l) {
+      scenario.lowerBin.bin = lowerBins[l];
+      for (uint ls = 1; ls < binListScenarios.length; ++ls) {
+        scenario.lowerBin.size = binListScenarios[ls][0];
+        scenario.lowerBin.offersToTake = binListScenarios[ls][1];
+        if (scenario.lowerBin.size == 3) {
+          // Lower bin is not (fully) taken
+          scenario.middleBin.size = 0;
+          scenario.middleBin.offersToTake = 0;
+          scenario.higherBin.size = 0;
+          scenario.higherBin.offersToTake = 0;
           run_market_order_scenario(scenario, printToConsole);
         } else {
-          // Lower tick is fully taken
-          // Middle tick should be non-empty, otherwise the scenario is equivalent to the one where lower and higher are empty and middle tick is non-empty
-          for (uint ms = 1; ms < tickListScenarios.length; ++ms) {
-            scenario.middleTick.size = tickListScenarios[ms][0];
-            scenario.middleTick.offersToTake = tickListScenarios[ms][1];
-            scenario.higherTick.size = 0;
-            scenario.higherTick.offersToTake = 0;
-            if (scenario.middleTick.size == 3) {
-              // Middle tick is not (fully) taken
+          // Lower bin is fully taken
+          // Middle bin should be non-empty, otherwise the scenario is equivalent to the one where lower and higher are empty and middle bin is non-empty
+          for (uint ms = 1; ms < binListScenarios.length; ++ms) {
+            scenario.middleBin.size = binListScenarios[ms][0];
+            scenario.middleBin.offersToTake = binListScenarios[ms][1];
+            scenario.higherBin.size = 0;
+            scenario.higherBin.offersToTake = 0;
+            if (scenario.middleBin.size == 3) {
+              // Middle bin is not (fully) taken
               run_market_order_scenario(scenario, printToConsole);
             } else {
-              // Middle tick is fully taken
-              // Hight tick is empty
+              // Middle bin is fully taken
+              // Hight bin is empty
               run_market_order_scenario(scenario, printToConsole);
-              for (uint h = 0; h < higherTicks.length; ++h) {
-                scenario.higherTick.tick = higherTicks[h];
-                // Higher tick should be non-empty, empty is covered by the previous scenario
-                for (uint hs = 1; hs < tickListScenarios.length; ++hs) {
-                  scenario.higherTick.size = tickListScenarios[hs][0];
-                  scenario.higherTick.offersToTake = tickListScenarios[hs][1];
+              for (uint h = 0; h < higherBins.length; ++h) {
+                scenario.higherBin.bin = higherBins[h];
+                // Higher bin should be non-empty, empty is covered by the previous scenario
+                for (uint hs = 1; hs < binListScenarios.length; ++hs) {
+                  scenario.higherBin.size = binListScenarios[hs][0];
+                  scenario.higherBin.offersToTake = binListScenarios[hs][1];
                   run_market_order_scenario(scenario, printToConsole);
                 }
               }
@@ -168,22 +168,22 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   function test_single_market_order_scenario() public {
     run_market_order_scenario(
       MarketOrderScenario({
-        lowerTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0}),
-        middleTick: TickListScenario({tick: Tick.wrap(-1048575), size: 2, offersToTake: 2}),
-        higherTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0})
+        lowerBin: BinListScenario({bin: Bin.wrap(0), size: 0, offersToTake: 0}),
+        middleBin: BinListScenario({bin: Bin.wrap(-1048575), size: 2, offersToTake: 2}),
+        higherBin: BinListScenario({bin: Bin.wrap(0), size: 0, offersToTake: 0})
       }),
       true
     );
   }
 
-  function scenarioToString(TickListScenario memory scenario) internal pure returns (string memory) {
-    string memory tickListScenario = scenario.size == 0
+  function scenarioToString(BinListScenario memory scenario) internal pure returns (string memory) {
+    string memory binListScenario = scenario.size == 0
       ? "empty          "
       : scenario.size == 2 ? "fully taken    " : scenario.offersToTake == 1 ? "partially taken" : "not taken      ";
     return string.concat(
-      tickListScenario,
-      ", tick: ",
-      toString(scenario.tick),
+      binListScenario,
+      ", bin: ",
+      toString(scenario.bin),
       ", size: ",
       vm.toString(scenario.size),
       ", offersToTake: ",
@@ -195,7 +195,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   uint lastTakenOfferId;
   bool lastTakenOfferPosthookCalled;
 
-  function removeTakenOffers(TickListScenario memory scenario, uint[] memory offerIds) internal {
+  function removeTakenOffers(BinListScenario memory scenario, uint[] memory offerIds) internal {
     for (uint i = 0; i < scenario.offersToTake; ++i) {
       tickTree.removeOffer(offerIds[i]);
     }
@@ -207,12 +207,12 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     uint[] memory middleOfferIds,
     uint[] memory higherOfferIds
   ) internal pure returns (uint) {
-    if (scenario.higherTick.offersToTake > 0) {
-      return higherOfferIds[scenario.higherTick.offersToTake - 1];
-    } else if (scenario.middleTick.offersToTake > 0) {
-      return middleOfferIds[scenario.middleTick.offersToTake - 1];
-    } else if (scenario.lowerTick.offersToTake > 0) {
-      return lowerOfferIds[scenario.lowerTick.offersToTake - 1];
+    if (scenario.higherBin.offersToTake > 0) {
+      return higherOfferIds[scenario.higherBin.offersToTake - 1];
+    } else if (scenario.middleBin.offersToTake > 0) {
+      return middleOfferIds[scenario.middleBin.offersToTake - 1];
+    } else if (scenario.lowerBin.offersToTake > 0) {
+      return lowerOfferIds[scenario.lowerBin.offersToTake - 1];
     }
     return 0;
   }
@@ -227,9 +227,9 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   function run_market_order_scenario(MarketOrderScenario memory scenario, bool printToConsole) internal {
     if (printToConsole) {
       console.log("market order scenario");
-      console.log("  lower tick scenario:  ", scenarioToString(scenario.lowerTick));
-      console.log("  middle tick scenario: ", scenarioToString(scenario.middleTick));
-      console.log("  higher tick scenario: ", scenarioToString(scenario.higherTick));
+      console.log("  lower bin scenario:  ", scenarioToString(scenario.lowerBin));
+      console.log("  middle bin scenario: ", scenarioToString(scenario.middleBin));
+      console.log("  higher bin scenario: ", scenarioToString(scenario.higherBin));
     }
 
     // 1. Capture state before test
@@ -237,13 +237,13 @@ contract TickTreeMarketOrderTest is TickTreeTest {
 
     // 2. Create scenario
     (uint[] memory lowerOfferIds, uint lowerOffersGive) =
-      add_n_offers_to_tick(scenario.lowerTick.tick, scenario.lowerTick.size);
+      add_n_offers_to_bin(scenario.lowerBin.bin, scenario.lowerBin.size);
     (uint[] memory middleOfferIds, uint middleOffersGive) =
-      add_n_offers_to_tick(scenario.middleTick.tick, scenario.middleTick.size);
+      add_n_offers_to_bin(scenario.middleBin.bin, scenario.middleBin.size);
     (uint[] memory higherOfferIds, uint higherOffersGive) =
-      add_n_offers_to_tick(scenario.higherTick.tick, scenario.higherTick.size);
-    uint fillVolume = lowerOffersGive * scenario.lowerTick.offersToTake
-      + middleOffersGive * scenario.middleTick.offersToTake + higherOffersGive * scenario.higherTick.offersToTake;
+      add_n_offers_to_bin(scenario.higherBin.bin, scenario.higherBin.size);
+    uint fillVolume = lowerOffersGive * scenario.lowerBin.offersToTake
+      + middleOffersGive * scenario.middleBin.offersToTake + higherOffersGive * scenario.higherBin.offersToTake;
     lastTakenOfferId = getLastTakenOfferId(scenario, lowerOfferIds, middleOfferIds, higherOfferIds);
 
     // 3. Snapshot tick tree
@@ -253,10 +253,10 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     // The check of the tick tree is done in the posthook of the last taken offer
     // by the checkMgvTickTreeInLastOfferPosthook function.
     // We therefore must update the test tick tree before the market order is run.
-    removeTakenOffers(scenario.lowerTick, lowerOfferIds);
-    removeTakenOffers(scenario.middleTick, middleOfferIds);
-    removeTakenOffers(scenario.higherTick, higherOfferIds);
-    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, fillVolume, true);
+    removeTakenOffers(scenario.lowerBin, lowerOfferIds);
+    removeTakenOffers(scenario.middleBin, middleOfferIds);
+    removeTakenOffers(scenario.higherBin, higherOfferIds);
+    mgv.marketOrderByTick(olKey, MAX_TICK, fillVolume, true);
     assertTrue(lastTakenOfferId == 0 || lastTakenOfferPosthookCalled, "last taken offer posthook not called");
 
     // assertMgvTickTreeIsConsistent();

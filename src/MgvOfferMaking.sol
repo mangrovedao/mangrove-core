@@ -286,7 +286,7 @@ contract MgvOfferMaking is MgvHasOffers {
       // must cache bin because branch will be modified and bin information will be lost (in case an offer will be removed)
       Bin cachedLocalBin;
       // force control flow through gas saving path if offer list is empty
-      if (ofp.local.level0().isEmpty()) {
+      if (ofp.local.level2().isEmpty()) {
         cachedLocalBin = insertionBin;
       } else {
         cachedLocalBin = ofp.local.bestBin();
@@ -309,10 +309,10 @@ contract MgvOfferMaking is MgvHasOffers {
 
           (ofp.local, shouldUpdateBranch) =
             dislodgeOffer(offerList, tickSpacing, ofp.oldOffer, ofp.local, cachedLocalBin, shouldUpdateBranch);
-          // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the bin by reading those fields. If shouldUpdateBranch, then the new bin must be inferred from the new info in local.
+          // If !shouldUpdateBranch, then ofp.local.level2 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the bin by reading those fields. If shouldUpdateBranch, then the new bin must be inferred from the new info in local.
           if (shouldUpdateBranch) {
             // force control flow through gas-saving path if retraction emptied the offer list
-            if (ofp.local.level0().isEmpty()) {
+            if (ofp.local.level2().isEmpty()) {
               cachedLocalBin = insertionBin;
             } else {
               cachedLocalBin = ofp.local.bestBin();
@@ -326,34 +326,34 @@ contract MgvOfferMaking is MgvHasOffers {
 
       // insertion
       Leaf leaf = offerList.leafs[insertionBin.leafIndex()].clean();
-      // if leaf was empty flip bin on at level0
+      // if leaf was empty flip bin on at level2
       if (leaf.isEmpty()) {
         Field field;
-        int insertionIndex = insertionBin.level0Index();
-        int currentIndex = cachedLocalBin.level0Index();
-        // Get insertion level0
+        int insertionIndex = insertionBin.level2Index();
+        int currentIndex = cachedLocalBin.level2Index();
+        // Get insertion level2
         if (insertionIndex != currentIndex) {
-          field = offerList.level0[insertionIndex].clean();
-          // Save current level0
+          field = offerList.level2[insertionIndex].clean();
+          // Save current level2
           if (insertionIndex < currentIndex) {
-            Field localLevel0 = ofp.local.level0();
-            bool shouldSaveLevel0 = !localLevel0.isEmpty();
-            if (!shouldSaveLevel0) {
-              shouldSaveLevel0 = !offerList.level0[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
+            Field localLevel2 = ofp.local.level2();
+            bool shouldSaveLevel2 = !localLevel2.isEmpty();
+            if (!shouldSaveLevel2) {
+              shouldSaveLevel2 = !offerList.level2[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
             }
-            if (shouldSaveLevel0) {
-              offerList.level0[currentIndex] = localLevel0.dirty();
+            if (shouldSaveLevel2) {
+              offerList.level2[currentIndex] = localLevel2.dirty();
             }
           }
         } else {
-          field = ofp.local.level0();
+          field = ofp.local.level2();
         }
 
-        // Write insertion level0
+        // Write insertion level2
         if (insertionIndex <= currentIndex) {
-          ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionBin));
+          ofp.local = ofp.local.level2(field.flipBitAtLevel2(insertionBin));
         } else {
-          offerList.level0[insertionIndex] = field.flipBitAtLevel0(insertionBin).dirty();
+          offerList.level2[insertionIndex] = field.flipBitAtLevel2(insertionBin).dirty();
         }
 
         if (field.isEmpty()) {
@@ -381,27 +381,27 @@ contract MgvOfferMaking is MgvHasOffers {
           } else {
             offerList.level1[insertionIndex] = field.flipBitAtLevel1(insertionBin).dirty();
           }
-          // if level1 was empty, flip bin on at level2
+          // if level1 was empty, flip bin on at level0
           if (field.isEmpty()) {
-            insertionIndex = insertionBin.level2Index();
-            currentIndex = cachedLocalBin.level2Index();
+            insertionIndex = insertionBin.level0Index();
+            currentIndex = cachedLocalBin.level0Index();
 
             if (insertionIndex != currentIndex) {
-              field = offerList.level2[insertionIndex].clean();
+              field = offerList.level0[insertionIndex].clean();
               if (insertionIndex < currentIndex) {
-                // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
-                offerList.level2[currentIndex] = ofp.local.level2().dirty();
+                // unlike level2&1, level0 cannot be CLEAN_EMPTY (dirtied in active())
+                offerList.level0[currentIndex] = ofp.local.level0().dirty();
               }
             } else {
-              field = ofp.local.level2();
+              field = ofp.local.level0();
             }
 
             if (insertionIndex <= currentIndex) {
-              ofp.local = ofp.local.level2(field.flipBitAtLevel2(insertionBin));
+              ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionBin));
             } else {
-              offerList.level2[insertionIndex] = field.flipBitAtLevel2(insertionBin).dirty();
+              offerList.level0[insertionIndex] = field.flipBitAtLevel0(insertionBin).dirty();
             }
-            // if level2 was empty, flip bin on at root
+            // if level0 was empty, flip bin on at root
             if (field.isEmpty()) {
               ofp.local = ofp.local.root(ofp.local.root().flipBitAtRoot(insertionBin));
             }

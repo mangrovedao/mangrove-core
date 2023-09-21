@@ -7,12 +7,12 @@ import {
   MIDDLE_LOG_PRICE,
   LEAF_LOWER_LOG_PRICE,
   LEAF_HIGHER_LOG_PRICE,
-  LEVEL0_LOWER_LOG_PRICE,
-  LEVEL0_HIGHER_LOG_PRICE,
-  LEVEL1_LOWER_LOG_PRICE,
-  LEVEL1_HIGHER_LOG_PRICE,
   LEVEL2_LOWER_LOG_PRICE,
   LEVEL2_HIGHER_LOG_PRICE,
+  LEVEL1_LOWER_LOG_PRICE,
+  LEVEL1_HIGHER_LOG_PRICE,
+  LEVEL0_LOWER_LOG_PRICE,
+  LEVEL0_HIGHER_LOG_PRICE,
   ROOT_LOWER_LOG_PRICE,
   ROOT_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
@@ -53,15 +53,15 @@ abstract contract TickTreeBoundariesGasTest is GasTestBaseStored {
     printDescription();
   }
 
-  function test_NewLevel0HigherBin() public {
-    testTick(LEVEL0_HIGHER_LOG_PRICE);
-    description = string.concat(description, " - Case: New level0 higher tick");
+  function test_NewLevel2HigherBin() public {
+    testTick(LEVEL2_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: New level2 higher tick");
     printDescription();
   }
 
-  function test_NewLevel0LowerBin() public {
-    testTick(LEVEL0_LOWER_LOG_PRICE);
-    description = string.concat(description, " - Case: New level0 lower tick");
+  function test_NewLevel2LowerBin() public {
+    testTick(LEVEL2_LOWER_LOG_PRICE);
+    description = string.concat(description, " - Case: New level2 lower tick");
     printDescription();
   }
 
@@ -77,14 +77,14 @@ abstract contract TickTreeBoundariesGasTest is GasTestBaseStored {
     printDescription();
   }
 
-  function test_NewLevel2HigherBin() public {
-    testTick(LEVEL2_HIGHER_LOG_PRICE);
+  function test_NewLevel0HigherBin() public {
+    testTick(LEVEL0_HIGHER_LOG_PRICE);
     description = string.concat(description, " - Case: New level 2 higher tick");
     printDescription();
   }
 
-  function test_NewLevel2LowerBin() public {
-    testTick(LEVEL2_LOWER_LOG_PRICE);
+  function test_NewLevel0LowerBin() public {
+    testTick(LEVEL0_LOWER_LOG_PRICE);
     description = string.concat(description, " - Case: New level 2 lower tick");
     printDescription();
   }

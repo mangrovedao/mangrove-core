@@ -44,7 +44,7 @@ function toString(${s.Unpacked} memory __unpacked) pure returns (string memory) 
 })}
 
 function binBranchToString(Bin tick) pure returns (string memory) {
-  return string.concat(vm.toString(tick.posInRoot()), "->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
+  return string.concat(vm.toString(tick.posInRoot()), "->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
 }
 
 function toString(Bin tick) pure returns (string memory ret) {

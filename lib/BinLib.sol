@@ -204,11 +204,11 @@ library BinLib {
   }
 
   // Utility for tests&unpacked structs, less gas-optimal
-  // Must not be called with any of level0, level1, level2 or level3 empty
-  function bestBinFromBranch(uint binPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Bin) {
+  // Must not be called with any of level2, level1, level0 or level3 empty
+  function bestBinFromBranch(uint binPosInLeaf,Field level2, Field level1, Field level0, Field level3) internal pure returns (Bin) {
     unchecked {
       LocalPacked local;
-      local = local.binPosInLeaf(binPosInLeaf).level0(level0).level1(level1).level2(level2).root(level3);
+      local = local.binPosInLeaf(binPosInLeaf).level2(level2).level1(level1).level0(level0).root(level3);
       return bestBinFromLocal(local);
     }
   }
@@ -216,9 +216,9 @@ library BinLib {
   function bestBinFromLocal(LocalPacked local) internal pure returns (Bin) {
     unchecked {
       uint ubin = local.binPosInLeaf() |
-        ((BitLib.ctz64(Field.unwrap(local.level0())) |
+        ((BitLib.ctz64(Field.unwrap(local.level2())) |
           (BitLib.ctz64(Field.unwrap(local.level1())) |
-            (BitLib.ctz64(Field.unwrap(local.level2())) |
+            (BitLib.ctz64(Field.unwrap(local.level0())) |
               uint(
                 (int(BitLib.ctz64(Field.unwrap(local.root())))-ROOT_SIZE/2) << LEVEL_SIZE_BITS)) 
               << LEVEL_SIZE_BITS)
@@ -253,14 +253,14 @@ library BinLib {
     }
   }
 
-  function level0Index(Bin bin) internal pure returns (int) {
+  function level2Index(Bin bin) internal pure returns (int) {
     unchecked {
       return Bin.unwrap(bin) >> (LEAF_SIZE_BITS + LEVEL_SIZE_BITS);
     }
   }
 
   // see note posIn*
-  function posInLevel0(Bin bin) internal pure returns (uint) {
+  function posInLevel2(Bin bin) internal pure returns (uint) {
     unchecked {
       return uint(bin.leafIndex()) & LEVEL_SIZE_MASK;
     }
@@ -272,7 +272,7 @@ library BinLib {
     }
   }
 
-  function level2Index(Bin bin) internal pure returns (int) {
+  function level0Index(Bin bin) internal pure returns (int) {
     unchecked {
       return Bin.unwrap(bin) >> (LEAF_SIZE_BITS + 3 * LEVEL_SIZE_BITS);
     }
@@ -281,11 +281,11 @@ library BinLib {
   // see note posIn*
   function posInLevel1(Bin bin) internal pure returns (uint) {
     unchecked {
-      return uint(bin.level0Index()) & LEVEL_SIZE_MASK;
+      return uint(bin.level2Index()) & LEVEL_SIZE_MASK;
     }
   }
 
-  function posInLevel2(Bin bin) internal pure returns (uint) {
+  function posInLevel0(Bin bin) internal pure returns (uint) {
     unchecked {
       return uint(bin.level1Index()) & LEVEL_SIZE_MASK;
     }
@@ -296,12 +296,12 @@ library BinLib {
   //   level 3 single node
   // <--------------------->
   //  1                  0
-  //  ^initial level2
+  //  ^initial level0
   // so we can immediately add 32 to that
   // and there is no need to take a modulo
   function posInRoot(Bin bin) internal pure returns (uint) {
     unchecked {
-      return uint(bin.level2Index() + ROOT_SIZE / 2);
+      return uint(bin.level0Index() + ROOT_SIZE / 2);
     }
   }
 
@@ -374,11 +374,11 @@ library FieldLib {
     }
   }
 
-  function flipBitAtLevel0(Field level0, Bin bin) internal pure returns (Field) {
+  function flipBitAtLevel2(Field level2, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint pos = bin.posInLevel0();
-      level0 = Field.wrap(Field.unwrap(level0) ^ (1 << pos));
-      return level0;
+      uint pos = bin.posInLevel2();
+      level2 = Field.wrap(Field.unwrap(level2) ^ (1 << pos));
+      return level2;
     }
   }
 
@@ -390,11 +390,11 @@ library FieldLib {
     }
   }
 
-  function flipBitAtLevel2(Field level2, Bin bin) internal pure returns (Field) {
+  function flipBitAtLevel0(Field level0, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint pos = bin.posInLevel2();
-      level2 = Field.wrap(Field.unwrap(level2) ^ (1 << pos));
-      return level2;
+      uint pos = bin.posInLevel0();
+      level0 = Field.wrap(Field.unwrap(level0) ^ (1 << pos));
+      return level0;
     }
   }
 
@@ -409,14 +409,14 @@ library FieldLib {
   // utility fn
   function eraseToBin0(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ONES << (bin.posInLevel0() + 1);
+      uint mask = ONES << (bin.posInLevel2() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
   function eraseFromBin0(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ~(ONES << bin.posInLevel0());
+      uint mask = ~(ONES << bin.posInLevel2());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
@@ -439,14 +439,14 @@ library FieldLib {
   // utility fn
   function eraseToBin2(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ONES << (bin.posInLevel2() + 1);
+      uint mask = ONES << (bin.posInLevel0() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
   function eraseFromBin2(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ~(ONES << bin.posInLevel2());
+      uint mask = ~(ONES << bin.posInLevel0());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
@@ -481,44 +481,44 @@ library FieldLib {
   }
 
   // Get the index of the first level(i) of a level(i+1)
-  function firstLevel2Index(Field level3) internal pure returns (int) {
+  function firstLevel0Index(Field level3) internal pure returns (int) {
     unchecked {
       return int(level3.firstOnePosition()) - ROOT_SIZE / 2;
     }
   }
-  function lastLevel2Index(Field level3) internal pure returns (int) {
+  function lastLevel0Index(Field level3) internal pure returns (int) {
     unchecked {
       return int(level3.lastOnePosition()) - ROOT_SIZE / 2;
     }
   }
-  function firstLevel1Index(Field level2, int level2Index) internal pure returns (int) {
-    unchecked {
-      return level2Index * LEVEL_SIZE + int(level2.firstOnePosition());
-    }
-  }
-  function lastLevel1Index(Field level2, int level2Index) internal pure returns (int) {
-    unchecked {
-      return level2Index * LEVEL_SIZE + int(level2.lastOnePosition());
-    }
-  }
-  function firstLevel0Index(Field level1, int level1Index) internal pure returns (int) {
-    unchecked {
-      return level1Index * LEVEL_SIZE + int(level1.firstOnePosition());
-    }
-  }
-  function lastLevel0Index(Field level1, int level1Index) internal pure returns (int) {
-    unchecked {
-      return level1Index * LEVEL_SIZE + int(level1.lastOnePosition());
-    }
-  }
-  function firstLeafIndex(Field level0, int level0Index) internal pure returns (int) {
+  function firstLevel1Index(Field level0, int level0Index) internal pure returns (int) {
     unchecked {
       return level0Index * LEVEL_SIZE + int(level0.firstOnePosition());
     }
   }
-  function lastLeafIndex(Field level0, int level0Index) internal pure returns (int) {
+  function lastLevel1Index(Field level0, int level0Index) internal pure returns (int) {
     unchecked {
       return level0Index * LEVEL_SIZE + int(level0.lastOnePosition());
+    }
+  }
+  function firstLevel2Index(Field level1, int level1Index) internal pure returns (int) {
+    unchecked {
+      return level1Index * LEVEL_SIZE + int(level1.firstOnePosition());
+    }
+  }
+  function lastLevel2Index(Field level1, int level1Index) internal pure returns (int) {
+    unchecked {
+      return level1Index * LEVEL_SIZE + int(level1.lastOnePosition());
+    }
+  }
+  function firstLeafIndex(Field level2, int level2Index) internal pure returns (int) {
+    unchecked {
+      return level2Index * LEVEL_SIZE + int(level2.firstOnePosition());
+    }
+  }
+  function lastLeafIndex(Field level2, int level2Index) internal pure returns (int) {
+    unchecked {
+      return level2Index * LEVEL_SIZE + int(level2.lastOnePosition());
     }
   }
 

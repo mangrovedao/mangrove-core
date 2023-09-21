@@ -99,11 +99,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       leaf = leaf.setBinFirst(offerBin, 0).setBinLast(offerBin, 0);
       if (leaf.isEmpty()) {
         offerList.leafs[offerBin.leafIndex()] = leaf.dirty();
-        int index = offerBin.level0Index();
-        Field field = local.level0().flipBitAtLevel0(offerBin);
+        int index = offerBin.level2Index();
+        Field field = local.level2().flipBitAtLevel2(offerBin);
         if (field.isEmpty()) {
-          if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-            offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
+          if (!offerList.level2[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+            offerList.level2[index] = DirtyFieldLib.DIRTY_EMPTY;
           }
           index = offerBin.level1Index();
           field = local.level1().flipBitAtLevel1(offerBin);
@@ -111,34 +111,34 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
               offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
             }
-            index = offerBin.level2Index();
-            field = local.level2().flipBitAtLevel2(offerBin);
+            index = offerBin.level0Index();
+            field = local.level0().flipBitAtLevel0(offerBin);
             if (field.isEmpty()) {
-              // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
-              offerList.level2[index] = DirtyFieldLib.DIRTY_EMPTY;
+              // unlike level2&1, level0 cannot be CLEAN_EMPTY (dirtied in active())
+              offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
               field = local.root().flipBitAtRoot(offerBin);
               local = local.root(field);
               if (field.isEmpty()) {
-                local = local.level2(field);
-                local = local.level1(field);
                 local = local.level0(field);
+                local = local.level1(field);
+                local = local.level2(field);
                 mor.leaf = LeafLib.EMPTY;
                 return (0, local);
               }
-              index = field.firstLevel2Index();
-              field = offerList.level2[index].clean();
+              index = field.firstLevel0Index();
+              field = offerList.level0[index].clean();
             }
-            local = local.level2(field);
+            local = local.level0(field);
             index = field.firstLevel1Index(index);
             // Top bit cleaning will be done by level1(field) + field cannot be empty
             field = Field.wrap(DirtyField.unwrap(offerList.level1[index]));
           }
           local = local.level1(field);
-          index = field.firstLevel0Index(index);
-          // Top bit cleaning will be done by level0(field) + field cannot be empty
-          field = Field.wrap(DirtyField.unwrap(offerList.level0[index]));
+          index = field.firstLevel2Index(index);
+          // Top bit cleaning will be done by level2(field) + field cannot be empty
+          field = Field.wrap(DirtyField.unwrap(offerList.level2[index]));
         }
-        local = local.level0(field);
+        local = local.level2(field);
         leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
       }
       mor.leaf = leaf;
@@ -306,12 +306,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             mor.leaf = mor.leaf.setBinFirst(bin, sor.offerId);
           }
 
-          // no need to test whether level2 has been reached since by default its stored in local
+          // no need to test whether level0 has been reached since by default its stored in local
 
           sor.local = sor.local.binPosInLeaf(mor.leaf.firstOfferPosition());
-          // no need to test whether mor.level2 != offerList.level2 since update is ~free
-          // ! local.level0[sor.local.bestBin().level0Index()] is now wrong
-          // sor.local = sor.local.level0(mor.level0);
+          // no need to test whether mor.level0 != offerList.level0 since update is ~free
+          // ! local.level2[sor.local.bestBin().level2Index()] is now wrong
+          // sor.local = sor.local.level2(mor.level2);
 
           int index = bin.leafIndex();
           // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly

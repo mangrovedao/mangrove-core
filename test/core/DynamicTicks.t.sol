@@ -126,9 +126,9 @@ contract DynamicBinsTest is MangroveTest {
       mgv.leafs(olKey, insertionBin.leafIndex()).firstOfferPosition(), insertionBin.posInLeaf(), "wrong pos in leaf"
     );
     assertEq(
-      mgv.level0(olKey, insertionBin.level0Index()).firstOnePosition(),
-      insertionBin.posInLevel0(),
-      "wrong pos in level0"
+      mgv.level2(olKey, insertionBin.level2Index()).firstOnePosition(),
+      insertionBin.posInLevel2(),
+      "wrong pos in level2"
     );
     assertEq(
       mgv.level1(olKey, insertionBin.level1Index()).firstOnePosition(),
@@ -136,9 +136,9 @@ contract DynamicBinsTest is MangroveTest {
       "wrong pos in level1"
     );
     assertEq(
-      mgv.level2(olKey, insertionBin.level2Index()).firstOnePosition(),
-      insertionBin.posInLevel2(),
-      "wrong pos in level2"
+      mgv.level0(olKey, insertionBin.level0Index()).firstOnePosition(),
+      insertionBin.posInLevel0(),
+      "wrong pos in level0"
     );
     assertEq(mgv.root(olKey).firstOnePosition(), insertionBin.posInRoot(), "wrong pos in root");
   }

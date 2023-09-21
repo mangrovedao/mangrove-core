@@ -608,14 +608,14 @@ contract GatekeepingTest is MangroveTest {
     uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
     // store some information in another level3 (a worse one)
     uint ofr1 = mgv.newOfferByVolume(olKey, 0.02 ether, 0.05 ether, 1000000, 0);
-    Bin tick1 = mgv.offers(olKey, ofr1).bin(olKey.tickSpacing);
-    int index1 = tick1.level3Index();
+    Bin bin1 = mgv.offers(olKey, ofr1).bin(olKey.tickSpacing);
+    int index1 = bin1.level3Index();
     // make ofr1 the best offer (ofr1.level3 is now cached, but it also lives in its slot)
     mgv.retractOffer(olKey, ofr0, true);
     // make an offer worse than ofr1
     uint ofr2 = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 1000000, 0);
-    Bin tick2 = mgv.offers(olKey, ofr2).bin(olKey.tickSpacing);
-    int index2 = tick2.level3Index();
+    Bin bin2 = mgv.offers(olKey, ofr2).bin(olKey.tickSpacing);
+    int index2 = bin2.level3Index();
 
     // ofr2 is now best again. ofr1.level3 is not cached anymore.
     // the question is: is ofr1.level3 in storage updated or not?

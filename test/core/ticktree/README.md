@@ -26,13 +26,13 @@ For each Mangrove operation that modifies the tick tree, there is a separate con
 
 Mangrove's tick tree is quite complex due to the different levels each being stored separately as well as some things being stored in `local`. There are there many scenarios to test, e.g, updating an offer to another tick within the same `Leaf` is different than updating it to a tick below a different `level2` position.
 
-## TickTreeIndex scenarios
+## Bin scenarios
 
-### TickTreeIndex of interest, higher tick, and lower tick
+### Bins of interest, higher bin, and lower bin
 
-For all the tests, there's a notion of "tick of interest", a higher tick, and a lower tick. This allows us to capture the different scenarios where ticks are in the same/different leaf, level1, level2, and level3. `TickTreeTest` contains functions for generating all relevant higher and lower ticks for a given tick of interest. Combinations of three such ticks (including the absence of higher/lower) is captured by the `TickTreeIndexScenario` struct.
+For all the tests, there's a notion of "bin of interest", a higher bin, and a lower bin. This allows us to capture the different scenarios where bins are in the same/different leaf, level1, level2, and level3. `TickTreeTest` contains functions for generating all relevant higher and lower bins for a given bin of interest. Combinations of three such bins (including the absence of higher/lower) is captured by the `BinScenario` struct.
 
-For each test contract, these we define a `*Scenario` struct (eg `UpdateOfferScenario`) that defines what a scenario looks like and we describe how the `TickTreeIndexScenario` should be interpreted in these scenarios.
+For each test contract, these we define a `*Scenario` struct (eg `UpdateOfferScenario`) that defines what a scenario looks like and we describe how the `BinScenario` should be interpreted in these scenarios.
 
 ## Structure of test contracts
 
@@ -43,12 +43,12 @@ The tests contracts are therefore generally structured as follows:
 - This executes a single scenario.
 - As this function may be called multiple times within a single `test_*` function, it does a `vm.snapshot()` initially and a `vm.revertTo(vmSnapshotId)` at the end. This is super fragile and if a scenario fails, you may see other, totally unrelated tests fail...
 
-2. An execute scenarios for a specific tick (e.g, `run_update_offer_scenarios_for_tick`)
+2. An execute scenarios for a specific bin (e.g, `run_update_offer_scenarios_for_bin`)
 
-- This runs all scenarios for a particular tick of interest
+- This runs all scenarios for a particular bin of interest
 - The reason for running multiple scenarios in one function is to avoid having to manually write many `test_*` functions that enumerate all the scenarios.
 
-3. One or more `test_*` functions (e.g, `test_clean_offer_for_tick_0`)
+3. One or more `test_*` functions (e.g, `test_clean_offer_for_bin_0`)
 
 - This is the actual test function that `forge` will run.
 - The reason for having multiple `test*_` functions instead of running all scenarios in one test is that we run into limitations of `Foundry` when we do this.

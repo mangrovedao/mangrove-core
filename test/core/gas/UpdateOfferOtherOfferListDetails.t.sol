@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {SingleGasTestBase, GasTestBase, MIDDLE_TICK, LEVEL1_HIGHER_TICK} from "./GasTestBase.t.sol";
+import {SingleGasTestBase, GasTestBase, MIDDLE_TICK, LEVEL2_HIGHER_TICK} from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
@@ -17,7 +17,7 @@ contract ExternalUpdateOfferOtherOfferList_DeadDeprovisioned is SingleGasTestBas
 
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId) internal virtual override {
     _gas();
-    mgv.updateOfferByTick(_olKey, LEVEL1_HIGHER_TICK, 0.00001 ether, 100_000, 0, offerId);
+    mgv.updateOfferByTick(_olKey, LEVEL2_HIGHER_TICK, 0.00001 ether, 100_000, 0, offerId);
     gas_();
   }
 }
@@ -32,7 +32,7 @@ contract ExternalUpdateOfferOtherOfferList_DeadProvisioned is SingleGasTestBase 
 
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId) internal virtual override {
     _gas();
-    mgv.updateOfferByTick(_olKey, LEVEL1_HIGHER_TICK, 0.00001 ether, 100_000, 0, offerId);
+    mgv.updateOfferByTick(_olKey, LEVEL2_HIGHER_TICK, 0.00001 ether, 100_000, 0, offerId);
     gas_();
   }
 }
@@ -47,7 +47,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
   function test_live_far_away_same_gasreq() public {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
-    mgv.updateOfferByTick(_olKey, LEVEL1_HIGHER_TICK, 0.00001 ether, 100_000, 0, offerId);
+    mgv.updateOfferByTick(_olKey, LEVEL2_HIGHER_TICK, 0.00001 ether, 100_000, 0, offerId);
     gas_();
     description = string.concat(description, " - Case: same gasreq");
     printDescription();
@@ -56,7 +56,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
   function test_live_far_away_higher_gasreq() public {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
-    mgv.updateOfferByTick(_olKey, LEVEL1_HIGHER_TICK, 0.00001 ether, 1_000_000, 0, offerId);
+    mgv.updateOfferByTick(_olKey, LEVEL2_HIGHER_TICK, 0.00001 ether, 1_000_000, 0, offerId);
     gas_();
     description = string.concat(description, " - Case: higher gasreq");
     printDescription();
@@ -65,7 +65,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
   function test_live_far_away_lower_gasreq() public {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
-    mgv.updateOfferByTick(_olKey, LEVEL1_HIGHER_TICK, 0.00001 ether, 10_000, 0, offerId);
+    mgv.updateOfferByTick(_olKey, LEVEL2_HIGHER_TICK, 0.00001 ether, 10_000, 0, offerId);
     gas_();
     description = string.concat(description, " - Case: lower gasreq");
     printDescription();

@@ -9,12 +9,12 @@ import {
   MIDDLE_TICK,
   LEAF_LOWER_TICK,
   LEAF_HIGHER_TICK,
+  LEVEL3_LOWER_TICK,
+  LEVEL3_HIGHER_TICK,
   LEVEL2_LOWER_TICK,
   LEVEL2_HIGHER_TICK,
   LEVEL1_LOWER_TICK,
   LEVEL1_HIGHER_TICK,
-  LEVEL0_LOWER_TICK,
-  LEVEL0_HIGHER_TICK,
   ROOT_LOWER_TICK,
   ROOT_HIGHER_TICK
 } from "./GasTestBase.t.sol";
@@ -87,6 +87,26 @@ contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_TICK
   }
 }
 
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_LOWER_TICK is
+  ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_LOWER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_TICK");
+  }
+}
+
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_TICK is
+  ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_HIGHER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+  }
+}
+
 contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_LOWER_TICK is
   ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
 {
@@ -124,26 +144,6 @@ contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_TI
     super.setUp();
     setUpTick(LEVEL1_HIGHER_TICK);
     description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
-  }
-}
-
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL0_LOWER_TICK is
-  ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_LOWER_TICK");
-  }
-}
-
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferGasTest_LEVEL0_HIGHER_TICK is
-  ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_TICK");
   }
 }
 
@@ -212,6 +212,26 @@ contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
   }
 }
 
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_LOWER_TICK is
+  ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_LOWER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_TICK");
+  }
+}
+
+contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_HIGHER_TICK is
+  ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_HIGHER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+  }
+}
+
 contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_LOWER_TICK is
   ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
@@ -249,26 +269,6 @@ contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
     super.setUp();
     setUpTick(LEVEL1_HIGHER_TICK);
     description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
-  }
-}
-
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL0_LOWER_TICK is
-  ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_LOWER_TICK");
-  }
-}
-
-contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL0_HIGHER_TICK is
-  ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_TICK");
   }
 }
 

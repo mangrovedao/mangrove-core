@@ -192,22 +192,22 @@ contract TickTest is Test {
     assertEq(int(Bin.wrap(bin).posInLeaf()), tn % LEAF_SIZE);
   }
 
+  function test_posInLevel3_auto(int bin) public {
+    bin = bound(bin, MIN_BIN, MAX_BIN);
+    int tn = NUM_BINS / 2 + bin; // normalize to positive
+    assertEq(int(Bin.wrap(bin).posInLevel3()), tn / LEAF_SIZE % LEVEL_SIZE);
+  }
+
   function test_posInLevel2_auto(int bin) public {
     bin = bound(bin, MIN_BIN, MAX_BIN);
     int tn = NUM_BINS / 2 + bin; // normalize to positive
-    assertEq(int(Bin.wrap(bin).posInLevel2()), tn / LEAF_SIZE % LEVEL_SIZE);
+    assertEq(int(Bin.wrap(bin).posInLevel2()), tn / (LEAF_SIZE * LEVEL_SIZE) % LEVEL_SIZE);
   }
 
   function test_posInLevel1_auto(int bin) public {
     bin = bound(bin, MIN_BIN, MAX_BIN);
     int tn = NUM_BINS / 2 + bin; // normalize to positive
-    assertEq(int(Bin.wrap(bin).posInLevel1()), tn / (LEAF_SIZE * LEVEL_SIZE) % LEVEL_SIZE);
-  }
-
-  function test_posInLevel0_auto(int bin) public {
-    bin = bound(bin, MIN_BIN, MAX_BIN);
-    int tn = NUM_BINS / 2 + bin; // normalize to positive
-    assertEq(int(Bin.wrap(bin).posInLevel0()), tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) % LEVEL_SIZE, "wrong posInLevel0");
+    assertEq(int(Bin.wrap(bin).posInLevel1()), tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) % LEVEL_SIZE, "wrong posInLevel1");
   }
 
   // note that tick(p) is max {t | ratio(t) <= p}
@@ -280,43 +280,43 @@ contract TickTest is Test {
     assertEq(Bin.wrap(bin).leafIndex(), index);
   }
 
+  function test_level3Index_auto(int bin) public {
+    bin = bound(bin, MIN_BIN, MAX_BIN);
+    int tn = NUM_BINS / 2 + bin; // normalize to positive
+    int index = tn / (LEAF_SIZE * LEVEL_SIZE) - NUM_LEVEL3 / 2;
+    assertEq(Bin.wrap(bin).level3Index(), index);
+  }
+
   function test_level2Index_auto(int bin) public {
     bin = bound(bin, MIN_BIN, MAX_BIN);
     int tn = NUM_BINS / 2 + bin; // normalize to positive
-    int index = tn / (LEAF_SIZE * LEVEL_SIZE) - NUM_LEVEL2 / 2;
+    int index = tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) - NUM_LEVEL2 / 2;
     assertEq(Bin.wrap(bin).level2Index(), index);
-  }
-
-  function test_level1Index_auto(int bin) public {
-    bin = bound(bin, MIN_BIN, MAX_BIN);
-    int tn = NUM_BINS / 2 + bin; // normalize to positive
-    int index = tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) - NUM_LEVEL1 / 2;
-    assertEq(Bin.wrap(bin).level1Index(), index);
   }
 
   function test_bestBinFromBranch_matches_positions_accessor(
     uint binPosInLeaf,
+    uint _level3,
     uint _level2,
     uint _level1,
-    uint _level0,
     uint _root
   ) public {
     binPosInLeaf = bound(binPosInLeaf, 0, 3);
+    Field level3 = Field.wrap(bound(_level3, 1, uint(LEVEL_SIZE) - 1));
     Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL_SIZE) - 1));
     Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL_SIZE) - 1));
-    Field level0 = Field.wrap(bound(_level0, 1, uint(LEVEL_SIZE) - 1));
     Field root = Field.wrap(bound(_root, 1, uint(ROOT_SIZE) - 1));
     MgvStructs.LocalPacked local;
     local = local.binPosInLeaf(binPosInLeaf);
+    local = local.level3(level3);
     local = local.level2(level2);
     local = local.level1(level1);
-    local = local.level0(level0);
     local = local.root(root);
     Bin bin = BinLib.bestBinFromLocal(local);
     assertEq(bin.posInLeaf(), binPosInLeaf, "wrong pos in leaf");
+    assertEq(bin.posInLevel3(), BitLib.ctz64(Field.unwrap(level3)), "wrong pos in level3");
     assertEq(bin.posInLevel2(), BitLib.ctz64(Field.unwrap(level2)), "wrong pos in level2");
     assertEq(bin.posInLevel1(), BitLib.ctz64(Field.unwrap(level1)), "wrong pos in level1");
-    assertEq(bin.posInLevel0(), BitLib.ctz64(Field.unwrap(level0)), "wrong pos in level0");
     assertEq(bin.posInRoot(), BitLib.ctz64(Field.unwrap(root)), "wrong pos in root");
   }
 
@@ -332,7 +332,7 @@ contract FieldTest is Test {
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
     Bin bin = Bin.wrap(LEAF_SIZE * int(uint(posInLevel)));
-    Field flipped = base.flipBitAtLevel2(bin);
+    Field flipped = base.flipBitAtLevel3(bin);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
@@ -341,7 +341,7 @@ contract FieldTest is Test {
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
     Bin bin = Bin.wrap(LEAF_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
-    Field flipped = base.flipBitAtLevel1(bin);
+    Field flipped = base.flipBitAtLevel2(bin);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 
@@ -350,7 +350,7 @@ contract FieldTest is Test {
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
     Bin bin = Bin.wrap(LEAF_SIZE * LEVEL_SIZE * LEVEL_SIZE * int(uint(posInLevel)));
-    Field flipped = base.flipBitAtLevel0(bin);
+    Field flipped = base.flipBitAtLevel1(bin);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
 

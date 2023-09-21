@@ -41,16 +41,16 @@ Additionally, the state of the offer lists affect execution:
 - now empty (out of liquidity)
 - with offer on same tick as operation. That is: same price.
 - with offer on same leaf as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE)`
-- with offer on same level0 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL0_SIZE)`
-- with offer on same level1 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE)`
-- with offer on same level2 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE)`
+- with offer on same level1 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL1_SIZE)`
+- with offer on same level2 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL1_SIZE * LEVEL2_SIZE)`
+- with offer on same level3 as operation. Can be at most up to a price scale difference of `BP^(LEAF_SIZE * LEVEL1_SIZE * LEVEL2_SIZE * LEVEL3_SIZE)`
 - with offer on same root as operation. Can be any difference up to max tick.
 
 The non-empty ones are referred to as "various tick-distances".
 
 Also, the offer can be better or worse than current best offer (affecting whether to update `local`). This is captured in the helper `TickTreeBoundariesGasTest`.
 
-From `makerPosthook` on the same offer list, then the gas cost is also affected by how warm the affected branch is which depends on where the taken offer is relative to the operation's offer (again: same tick, leaf, level0, level1, level2, root).
+From `makerPosthook` on the same offer list, then the gas cost is also affected by how warm the affected branch is which depends on where the taken offer is relative to the operation's offer (again: same tick, leaf, level1, level2, level3, root).
 
 For each of the main functions this leads to the scenarios listed in the next sections.
 

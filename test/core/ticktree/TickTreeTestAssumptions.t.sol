@@ -13,27 +13,27 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
     assertBinAssumptions({
       bin: BIN_MIN_ROOT_MAX_OTHERS,
       posInRoot: MIN_ROOT_POS,
-      posInLevel0: MAX_LEVEL_POS,
       posInLevel1: MAX_LEVEL_POS,
       posInLevel2: MAX_LEVEL_POS,
+      posInLevel3: MAX_LEVEL_POS,
       posInLeaf: MAX_LEAF_POS
     });
 
     assertBinAssumptions({
       bin: BIN_MAX_ROOT_MIN_OTHERS,
       posInRoot: MAX_ROOT_POS,
-      posInLevel0: MIN_LEVEL_POS,
       posInLevel1: MIN_LEVEL_POS,
       posInLevel2: MIN_LEVEL_POS,
+      posInLevel3: MIN_LEVEL_POS,
       posInLeaf: MIN_LEAF_POS
     });
 
     assertBinAssumptions({
       bin: BIN_MIDDLE,
       posInRoot: MID_ROOT_POS,
-      posInLevel0: MID_LEVEL_POS,
       posInLevel1: MID_LEVEL_POS,
       posInLevel2: MID_LEVEL_POS,
+      posInLevel3: MID_LEVEL_POS,
       posInLeaf: MID_LEAF_POS
     });
   }

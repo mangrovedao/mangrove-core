@@ -602,27 +602,27 @@ contract GatekeepingTest is MangroveTest {
   }
 
   // not gatekeeping! move me.
-  // Check that un-caching a nonempty level2 works
-  function test_remove_with_new_best_saves_previous_level2() public {
-    // make a great offer so its level2 is cached
+  // Check that un-caching a nonempty level3 works
+  function test_remove_with_new_best_saves_previous_level3() public {
+    // make a great offer so its level3 is cached
     uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
-    // store some information in another level2 (a worse one)
+    // store some information in another level3 (a worse one)
     uint ofr1 = mgv.newOfferByVolume(olKey, 0.02 ether, 0.05 ether, 1000000, 0);
     Bin tick1 = mgv.offers(olKey, ofr1).bin(olKey.tickSpacing);
-    int index1 = tick1.level2Index();
-    // make ofr1 the best offer (ofr1.level2 is now cached, but it also lives in its slot)
+    int index1 = tick1.level3Index();
+    // make ofr1 the best offer (ofr1.level3 is now cached, but it also lives in its slot)
     mgv.retractOffer(olKey, ofr0, true);
     // make an offer worse than ofr1
     uint ofr2 = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 1000000, 0);
     Bin tick2 = mgv.offers(olKey, ofr2).bin(olKey.tickSpacing);
-    int index2 = tick2.level2Index();
+    int index2 = tick2.level3Index();
 
-    // ofr2 is now best again. ofr1.level2 is not cached anymore.
-    // the question is: is ofr1.level2 in storage updated or not?
+    // ofr2 is now best again. ofr1.level3 is not cached anymore.
+    // the question is: is ofr1.level3 in storage updated or not?
     // (if it had originally been empty, the test would always succeed)
     mgv.retractOffer(olKey, ofr1, true);
-    assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level2 nodes");
-    assertEq(mgv.level2(olKey, index1), FieldLib.EMPTY, "ofr1's level2 should be empty");
+    assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level3 nodes");
+    assertEq(mgv.level3(olKey, index1), FieldLib.EMPTY, "ofr1's level3 should be empty");
   }
 
   /* Clean failure */
@@ -689,11 +689,11 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.leafs(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
+    mgv.level3(olKey, 0);
+    vm.expectRevert("mgv/reentrancyLocked");
     mgv.level2(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.level1(olKey, 0);
-    vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level0(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.root(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
@@ -725,9 +725,9 @@ contract GatekeepingTest is MangroveTest {
     mgv.local(olKey);
     mgv.global();
     mgv.leafs(olKey, 0);
+    mgv.level3(olKey, 0);
     mgv.level2(olKey, 0);
     mgv.level1(olKey, 0);
-    mgv.level0(olKey, 0);
     mgv.root(olKey);
     mgv.best(olKey);
     mgv.offers(olKey, 0);

@@ -19,10 +19,10 @@ import "mgv_lib/Debug.sol";
 //
 // The reason for a having higher/lower ticks is to test Mangrove's handling of the levels that are stored in `local`.
 // - if there are offers at a lower bin, the new offer will not be inserted on the best branch.
-//   - But part of the branch may be shared -> we need to test the different cases of branch sharing: leaf, level2, level1, level0
+//   - But part of the branch may be shared -> we need to test the different cases of branch sharing: leaf, level3, level2, level1
 // - if there are offers at a higher bin, those offer will not be be best after the new offer is inserted.
 //   - If they were before, their path may need to be written to the mappings
-//   - But part of the branch may be shared with the new best offer -> we need to test the different cases of branch sharing: leaf, level2, level1, level0
+//   - But part of the branch may be shared with the new best offer -> we need to test the different cases of branch sharing: leaf, level3, level2, level1
 //
 // The scenarios we want to test are:
 // - empty book (this happens when lower, higher, and insertion ticks are empty)
@@ -33,13 +33,13 @@ import "mgv_lib/Debug.sol";
 //     2. has one offer
 //     3. has two offers
 // - higher bin list
-//   - bin has higher position in same leaf or level2-3 as ToI
+//   - bin has higher position in same leaf or level3-3 as ToI
 //     - if feasible, given insertion tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
-// - lower bin list (in {leaf, level2, level1, level0})
-//   - bin has lower position in same leaf or level2-3 as ToI
+// - lower bin list (in {leaf, level3, level2, level1})
+//   - bin has lower position in same leaf or level3-3 as ToI
 //     - if feasible, given insertion tick
 //   - list:
 //     1. is empty

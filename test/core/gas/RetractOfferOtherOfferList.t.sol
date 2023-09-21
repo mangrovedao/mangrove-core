@@ -8,12 +8,12 @@ import {
   MIDDLE_TICK,
   LEAF_LOWER_TICK,
   LEAF_HIGHER_TICK,
+  LEVEL3_LOWER_TICK,
+  LEVEL3_HIGHER_TICK,
   LEVEL2_LOWER_TICK,
   LEVEL2_HIGHER_TICK,
   LEVEL1_LOWER_TICK,
   LEVEL1_HIGHER_TICK,
-  LEVEL0_LOWER_TICK,
-  LEVEL0_HIGHER_TICK,
   ROOT_LOWER_TICK,
   ROOT_HIGHER_TICK
 } from "./GasTestBase.t.sol";
@@ -83,6 +83,26 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_TI
   }
 }
 
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_LOWER_TICK is
+  ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_LOWER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_TICK");
+  }
+}
+
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_TICK is
+  ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_HIGHER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+  }
+}
+
 contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL2_LOWER_TICK is
   ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
 {
@@ -120,26 +140,6 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_
     super.setUp();
     setUpTick(LEVEL1_HIGHER_TICK);
     description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
-  }
-}
-
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL0_LOWER_TICK is
-  ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_LOWER_TICK");
-  }
-}
-
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_LEVEL0_HIGHER_TICK is
-  ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_TICK");
   }
 }
 
@@ -209,6 +209,26 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTe
   }
 }
 
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_LOWER_TICK is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_LOWER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_LOWER_TICK");
+  }
+}
+
+contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL3_HIGHER_TICK is
+  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_HIGHER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+  }
+}
+
 contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL2_LOWER_TICK is
   ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
 {
@@ -246,26 +266,6 @@ contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTe
     super.setUp();
     setUpTick(LEVEL1_HIGHER_TICK);
     description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
-  }
-}
-
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL0_LOWER_TICK is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_LOWER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_LOWER_TICK");
-  }
-}
-
-contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest_LEVEL0_HIGHER_TICK is
-  ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_TICK");
   }
 }
 

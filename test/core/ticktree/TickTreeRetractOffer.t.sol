@@ -26,13 +26,13 @@ import "mgv_lib/Debug.sol";
 //     3. the offer to be retracted is last of two offers
 //     4. the offer to be retracted is middle of three offers
 // - higher bin list
-//   - bin has higher position in same leaf or level2-3 as ToI
+//   - bin has higher position in same leaf or level3-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower bin list
-//   - bin has lower position in same leaf or level2-3 as ToI
+//   - bin has lower position in same leaf or level3-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty

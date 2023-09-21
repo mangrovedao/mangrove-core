@@ -11,19 +11,19 @@ import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
 // forgefmt: disable-start
 int constant MIDDLE_TICK = 
   /* mid leaf */ LEAF_SIZE / 2 + 
-  /* mid level2 */ LEAF_SIZE * (LEVEL_SIZE / 2) +
+  /* mid level3 */ LEAF_SIZE * (LEVEL_SIZE / 2) +
   /* mid level 1 */ LEAF_SIZE * (LEVEL_SIZE**2)/2  +
   /* mid level 2 */ LEAF_SIZE * (LEVEL_SIZE ** 3)/4;
 // forgefmt: disable-end
 
 int constant LEAF_LOWER_TICK = MIDDLE_TICK - 1;
 int constant LEAF_HIGHER_TICK = MIDDLE_TICK + 1;
-int constant LEVEL2_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE;
-int constant LEVEL2_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE;
-int constant LEVEL1_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * LEVEL_SIZE;
-int constant LEVEL1_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * LEVEL_SIZE;
-int constant LEVEL0_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * (LEVEL_SIZE ** 2);
-int constant LEVEL0_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * (LEVEL_SIZE ** 2);
+int constant LEVEL3_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE;
+int constant LEVEL3_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE;
+int constant LEVEL2_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * LEVEL_SIZE;
+int constant LEVEL2_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * LEVEL_SIZE;
+int constant LEVEL1_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * (LEVEL_SIZE ** 2);
+int constant LEVEL1_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * (LEVEL_SIZE ** 2);
 // Not multiplying by full LEVEL_SIZE or ROOT_HIGHER_TICK goes out of tick range
 int constant ROOT_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
 int constant ROOT_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
@@ -47,18 +47,18 @@ abstract contract GasTestBaseStored {
   function newOfferOnAllLowerThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     tickOfferIds[LEAF_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEAF_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL3_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEVEL3_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
     tickOfferIds[LEVEL2_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEVEL2_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
     tickOfferIds[LEVEL1_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEVEL1_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL0_LOWER_TICK] = mgv.newOfferByTick(_olKey, LEVEL0_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
     tickOfferIds[ROOT_LOWER_TICK] = mgv.newOfferByTick(_olKey, ROOT_LOWER_TICK, 0.00001 ether, 1_000_000, 0);
   }
 
   function newOfferOnAllHigherThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     tickOfferIds[LEAF_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEAF_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
+    tickOfferIds[LEVEL3_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEVEL3_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
     tickOfferIds[LEVEL2_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEVEL2_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
     tickOfferIds[LEVEL1_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEVEL1_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL0_HIGHER_TICK] = mgv.newOfferByTick(_olKey, LEVEL0_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
     tickOfferIds[ROOT_HIGHER_TICK] = mgv.newOfferByTick(_olKey, ROOT_HIGHER_TICK, 0.00001 ether, 1_000_000, 0);
   }
 }

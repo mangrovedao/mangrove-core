@@ -244,16 +244,16 @@ contract MgvReader {
       Leaf leaf = MGV.leafs(olKey, index);
       leaf = leaf.eraseToBin(offerBin);
       if (leaf.isEmpty()) {
-        index = offerBin.level2Index();
-        Field field = MGV.level2(olKey, index);
+        index = offerBin.level3Index();
+        Field field = MGV.level3(olKey, index);
         field = field.eraseToBin0(offerBin);
         if (field.isEmpty()) {
-          index = offerBin.level1Index();
-          field = MGV.level1(olKey, index);
+          index = offerBin.level2Index();
+          field = MGV.level2(olKey, index);
           field = field.eraseToBin1(offerBin);
           if (field.isEmpty()) {
-            index = offerBin.level0Index();
-            field = MGV.level0(olKey, index);
+            index = offerBin.level1Index();
+            field = MGV.level1(olKey, index);
             field = field.eraseToBin2(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
@@ -261,14 +261,14 @@ contract MgvReader {
               if (field.isEmpty()) {
                 return 0;
               }
-              index = field.firstLevel0Index();
-              field = MGV.level0(olKey, index);
+              index = field.firstLevel1Index();
+              field = MGV.level1(olKey, index);
             }
-            index = field.firstLevel1Index(index);
-            field = MGV.level1(olKey, index);
+            index = field.firstLevel2Index(index);
+            field = MGV.level2(olKey, index);
           }
-          index = field.firstLevel2Index(index);
-          field = MGV.level2(olKey, index);
+          index = field.firstLevel3Index(index);
+          field = MGV.level3(olKey, index);
         }
         leaf = MGV.leafs(olKey, field.firstLeafIndex(index));
       }
@@ -296,16 +296,16 @@ contract MgvReader {
       Leaf leaf = MGV.leafs(olKey, index);
       leaf = leaf.eraseFromBin(offerBin);
       if (leaf.isEmpty()) {
-        index = offerBin.level2Index();
-        Field field = MGV.level2(olKey, index);
+        index = offerBin.level3Index();
+        Field field = MGV.level3(olKey, index);
         field = field.eraseFromBin0(offerBin);
         if (field.isEmpty()) {
-          index = offerBin.level1Index();
-          field = MGV.level1(olKey, index);
+          index = offerBin.level2Index();
+          field = MGV.level2(olKey, index);
           field = field.eraseFromBin1(offerBin);
           if (field.isEmpty()) {
-            index = offerBin.level0Index();
-            field = MGV.level0(olKey, index);
+            index = offerBin.level1Index();
+            field = MGV.level1(olKey, index);
             field = field.eraseFromBin2(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
@@ -313,14 +313,14 @@ contract MgvReader {
               if (field.isEmpty()) {
                 return 0;
               }
-              index = field.lastLevel0Index();
-              field = MGV.level0(olKey, index);
+              index = field.lastLevel1Index();
+              field = MGV.level1(olKey, index);
             }
-            index = field.lastLevel1Index(index);
-            field = MGV.level1(olKey, index);
+            index = field.lastLevel2Index(index);
+            field = MGV.level2(olKey, index);
           }
-          index = field.lastLevel2Index(index);
-          field = MGV.level2(olKey, index);
+          index = field.lastLevel3Index(index);
+          field = MGV.level3(olKey, index);
         }
         leaf = MGV.leafs(olKey, field.lastLeafIndex(index));
       }

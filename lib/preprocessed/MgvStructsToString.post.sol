@@ -43,5 +43,5 @@ import "../MiscToString.sol";
   }
 
   function toString(LocalUnpacked memory __unpacked) pure returns (string memory) {
-    return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "bin: ", toString(__unpacked.bin), ", ", "level2: ", toString(__unpacked.level2), ", ", "level0: ", toString(__unpacked.level0), ", ", "offer_gasbase: ", vm.toString(__unpacked.offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "best: ", vm.toString(__unpacked.best), ", ", "last: ", vm.toString(__unpacked.last),"}");
+    return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "bin: ", toString(__unpacked.bin), ", ", "level3: ", toString(__unpacked.level3), ", ", "level1: ", toString(__unpacked.level1), ", ", "offer_gasbase: ", vm.toString(__unpacked.offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "best: ", vm.toString(__unpacked.best), ", ", "last: ", vm.toString(__unpacked.last),"}");
   }

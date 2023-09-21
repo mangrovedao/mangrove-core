@@ -81,9 +81,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     // LocalPacked is partially filtered
     //   hidden
     assertEq(order.local.binPosInLeaf(), 0, "binPosInLeaf should be hidden");
+    assertEq(order.local.level3(), FieldLib.EMPTY, "level3 should be hidden");
     assertEq(order.local.level2(), FieldLib.EMPTY, "level2 should be hidden");
     assertEq(order.local.level1(), FieldLib.EMPTY, "level1 should be hidden");
-    assertEq(order.local.level0(), FieldLib.EMPTY, "level0 should be hidden");
     assertEq(order.local.last(), 0, "last should be hidden");
     //   not hidden
     assertTrue(order.local.active(), "active should not be hidden");
@@ -913,12 +913,32 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(posInLeaf, mgv.local(olKey).binPosInLeaf(), "posInLeaf should have been restored");
   }
 
+  function test_update_branch_on_retract_level3() public {
+    mkr.provisionMgv(10 ether);
+    mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
+    Field level3 = mgv.local(olKey).level3();
+    int level3Index = mgv.local(olKey).bestBin().level3Index();
+    uint ofr = mkr.newOfferByVolume(1 ether, 10 ether, 100_000, 0);
+    assertGt(
+      level3Index,
+      mgv.local(olKey).bestBin().level3Index(),
+      "test void if level3 does not change when second offer is created"
+    );
+    mkr.retractOffer(ofr);
+    assertEq(level3, mgv.local(olKey).level3(), "level3 should have been restored");
+  }
+
+  // function test_firstOffer_fuzz_ratio() public {
+  //   mkr.provisionMgv(10 ether);
+  //   uint ofr = mkr.newOfferByTick(300_000, 0.0001 ether, 100_000, 0);
+  // }
+
   function test_update_branch_on_retract_level2() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level2 = mgv.local(olKey).level2();
     int level2Index = mgv.local(olKey).bestBin().level2Index();
-    uint ofr = mkr.newOfferByVolume(1 ether, 10 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
     assertGt(
       level2Index,
       mgv.local(olKey).bestBin().level2Index(),
@@ -928,36 +948,16 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(level2, mgv.local(olKey).level2(), "level2 should have been restored");
   }
 
-  // function test_firstOffer_fuzz_ratio() public {
-  //   mkr.provisionMgv(10 ether);
-  //   uint ofr = mkr.newOfferByTick(300_000, 0.0001 ether, 100_000, 0);
-  // }
-
   function test_update_branch_on_retract_level1() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level1 = mgv.local(olKey).level1();
-    int level1Index = mgv.local(olKey).bestBin().level1Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
-    assertGt(
-      level1Index,
-      mgv.local(olKey).bestBin().level1Index(),
-      "test void if level1 does not change when second offer is created"
+    assertTrue(
+      !level1.eq(mgv.local(olKey).level1()), "test void if level1 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
     assertEq(level1, mgv.local(olKey).level1(), "level1 should have been restored");
-  }
-
-  function test_update_branch_on_retract_level0() public {
-    mkr.provisionMgv(10 ether);
-    mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    Field level0 = mgv.local(olKey).level0();
-    uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
-    assertTrue(
-      !level0.eq(mgv.local(olKey).level0()), "test void if level0 does not change when second offer is created"
-    );
-    mkr.retractOffer(ofr);
-    assertEq(level0, mgv.local(olKey).level0(), "level0 should have been restored");
   }
 
   function test_update_branch_on_insert_posInLeaf() public {
@@ -980,15 +980,15 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   `local.bestBin()` is deduced from branch stored in local, `local.bestBin()` becomes
   wrong (it becomes higher than it really is). So we must check that it gets
   cached, otherwise we will 
-    a) fail to flush the local level2/level1 to the right index
-    b) flush the local level2/level1 to the wrong current index
-  To really test a), we need to have some data already where level2/level1
+    a) fail to flush the local level3/level2 to the right index
+    b) flush the local level3/level2 to the wrong current index
+  To really test a), we need to have some data already where level3/level2
   should be flushed (to check if the flushing has an effect), so we write an
   offer there (at lowBin) before it's best, and then we make it best so it gets
   cached to local (but the original data is still in storage)
   */
 
-  function test_currentBin_is_cached_no_level21_erasure() public {
+  function test_currentBin_is_cached_no_level31_erasure() public {
     // Create a very low bin so that later the branch of lowBin will be both in storage and in cache
     Bin veryLowBin = Bin.wrap(-100000);
     uint ofr_veryLow = mgv.newOfferByTick(olKey, Bin.unwrap(veryLowBin), 1 ether, 10_000, 0);
@@ -999,10 +999,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     // Make sure very low bin uses a different branch
     assertTrue(
-      veryLowBin.level2Index() != lowBin.level2Index(), "test setup: [very]lowBin level2Index should be different"
+      veryLowBin.level3Index() != lowBin.level3Index(), "test setup: [very]lowBin level3Index should be different"
     );
     assertTrue(
-      veryLowBin.level1Index() != lowBin.level1Index(), "test setup: [very]lowBin level1Index should be different"
+      veryLowBin.level2Index() != lowBin.level2Index(), "test setup: [very]lowBin level2Index should be different"
     );
 
     // Remove veryLowBin. Now lowBin is the best, and its branch is in cache, but also in storage!
@@ -1010,33 +1010,33 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     // Derive a "bad" local from it
     MgvStructs.LocalPacked local = mgv.local(olKey);
-    // Derive a new level2, level1
-    uint leafPos = local.level2().firstOnePosition();
-    Field otherLevel2 = Field.wrap(1 << (leafPos + 1) % uint(LEVEL_SIZE));
-    uint level2Pos = local.level1().firstOnePosition();
-    Field otherLevel1 = Field.wrap(1 << (level2Pos + 1) % uint(LEVEL_SIZE));
-    MgvStructs.LocalPacked badLocal = local.level2(otherLevel2).level1(otherLevel1);
+    // Derive a new level3, level2
+    uint leafPos = local.level3().firstOnePosition();
+    Field otherLevel3 = Field.wrap(1 << (leafPos + 1) % uint(LEVEL_SIZE));
+    uint level3Pos = local.level2().firstOnePosition();
+    Field otherLevel2 = Field.wrap(1 << (level3Pos + 1) % uint(LEVEL_SIZE));
+    MgvStructs.LocalPacked badLocal = local.level3(otherLevel3).level2(otherLevel2);
     // Make sure we changed the implied bin of badLocal
     assertTrue(!badLocal.bestBin().eq(lowBin), "test setup: bad bin should not be original lowBin");
     // Make sure we have changed level indices
     assertTrue(
-      badLocal.bestBin().level2Index() != lowBin.level2Index(), "test setup: bad bin level2Index should be different"
+      badLocal.bestBin().level3Index() != lowBin.level3Index(), "test setup: bad bin level3Index should be different"
     );
     // Create a bin there
     mgv.newOfferByTick(olKey, Bin.unwrap(badLocal.bestBin()), 1 ether, 10_000, 0);
-    // Save level2, level1
-    Field highLevel2 = mgv.level2(olKey, badLocal.bestBin().level2Index());
+    // Save level3, level2
+    Field highLevel3 = mgv.level3(olKey, badLocal.bestBin().level3Index());
     // Update the new bin to an even better tick
     mgv.updateOfferByTick(olKey, Bin.unwrap(veryLowBin), 1 ether, 10_000, 0, ofr);
 
     // Make sure we the high offer's branch is still fine
     assertEq(
-      mgv.level2(olKey, badLocal.bestBin().level2Index()),
-      highLevel2,
-      "badLocal's tick's level2 should not have changed"
+      mgv.level3(olKey, badLocal.bestBin().level3Index()),
+      highLevel3,
+      "badLocal's tick's level3 should not have changed"
     );
     // Make sure the previously local offer's branch is now empty
-    assertEq(mgv.level2(olKey, lowBin.level2Index()), FieldLib.EMPTY, "lowBin's level2 should have been flushed");
+    assertEq(mgv.level3(olKey, lowBin.level3Index()), FieldLib.EMPTY, "lowBin's level3 should have been flushed");
   }
 
   function test_higher_tick() public {

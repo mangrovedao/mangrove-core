@@ -8,12 +8,12 @@ import {
   MIDDLE_TICK,
   LEAF_LOWER_TICK,
   LEAF_HIGHER_TICK,
+  LEVEL3_LOWER_TICK,
+  LEVEL3_HIGHER_TICK,
   LEVEL2_LOWER_TICK,
   LEVEL2_HIGHER_TICK,
   LEVEL1_LOWER_TICK,
   LEVEL1_HIGHER_TICK,
-  LEVEL0_LOWER_TICK,
-  LEVEL0_HIGHER_TICK,
   ROOT_LOWER_TICK,
   ROOT_HIGHER_TICK
 } from "./GasTestBase.t.sol";
@@ -146,6 +146,16 @@ contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_TIC
   }
 }
 
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL3_HIGHER_TICK is
+  ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpTick(LEVEL3_HIGHER_TICK);
+    description = string.concat(description, " - Case: LEVEL3_HIGHER_TICK");
+  }
+}
+
 contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_TICK is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
@@ -163,16 +173,6 @@ contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_T
     super.setUp();
     setUpTick(LEVEL1_HIGHER_TICK);
     description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
-  }
-}
-
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL0_HIGHER_TICK is
-  ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
-{
-  function setUp() public virtual override {
-    super.setUp();
-    setUpTick(LEVEL0_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_TICK");
   }
 }
 

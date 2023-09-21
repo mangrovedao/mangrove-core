@@ -29,14 +29,14 @@ import "mgv_lib/Debug.sol";
 //     3. is partially taken
 //     4. is not taken
 // - middle bin (in lower bin cases 1. and 2.)
-//   - bin has higher position in same leaf or level2-3 as ToI
+//   - bin has higher position in same leaf or level3-3 as ToI
 //   - list:
 //     1. is empty
 //     2. is fully taken
 //     3. is partially taken
 //     4. is not taken
 // - higher bin list (in middle bin cases 1. and 2.)
-//   - bin has lower position in same leaf or level2-3 as ToI
+//   - bin has lower position in same leaf or level3-3 as ToI
 //     - if feasible, given middle tick
 //   - list:
 //     1. is empty

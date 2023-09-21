@@ -204,11 +204,11 @@ library BinLib {
   }
 
   // Utility for tests&unpacked structs, less gas-optimal
-  // Must not be called with any of level2, level1, level0 or root empty
-  function bestBinFromBranch(uint binPosInLeaf,Field level2, Field level1, Field level0, Field root) internal pure returns (Bin) {
+  // Must not be called with any of level3, level2, level1 or root empty
+  function bestBinFromBranch(uint binPosInLeaf,Field level3, Field level2, Field level1, Field root) internal pure returns (Bin) {
     unchecked {
       LocalPacked local;
-      local = local.binPosInLeaf(binPosInLeaf).level2(level2).level1(level1).level0(level0).root(root);
+      local = local.binPosInLeaf(binPosInLeaf).level3(level3).level2(level2).level1(level1).root(root);
       return bestBinFromLocal(local);
     }
   }
@@ -216,9 +216,9 @@ library BinLib {
   function bestBinFromLocal(LocalPacked local) internal pure returns (Bin) {
     unchecked {
       uint ubin = local.binPosInLeaf() |
-        ((BitLib.ctz64(Field.unwrap(local.level2())) |
-          (BitLib.ctz64(Field.unwrap(local.level1())) |
-            (BitLib.ctz64(Field.unwrap(local.level0())) |
+        ((BitLib.ctz64(Field.unwrap(local.level3())) |
+          (BitLib.ctz64(Field.unwrap(local.level2())) |
+            (BitLib.ctz64(Field.unwrap(local.level1())) |
               uint(
                 (int(BitLib.ctz64(Field.unwrap(local.root())))-ROOT_SIZE/2) << LEVEL_SIZE_BITS)) 
               << LEVEL_SIZE_BITS)
@@ -253,41 +253,41 @@ library BinLib {
     }
   }
 
-  function level2Index(Bin bin) internal pure returns (int) {
+  function level3Index(Bin bin) internal pure returns (int) {
     unchecked {
       return Bin.unwrap(bin) >> (LEAF_SIZE_BITS + LEVEL_SIZE_BITS);
     }
   }
 
   // see note posIn*
-  function posInLevel2(Bin bin) internal pure returns (uint) {
+  function posInLevel3(Bin bin) internal pure returns (uint) {
     unchecked {
       return uint(bin.leafIndex()) & LEVEL_SIZE_MASK;
     }
   }
 
-  function level1Index(Bin bin) internal pure returns (int) {
+  function level2Index(Bin bin) internal pure returns (int) {
     unchecked {
       return Bin.unwrap(bin) >> (LEAF_SIZE_BITS + 2* LEVEL_SIZE_BITS);
     }
   }
 
-  function level0Index(Bin bin) internal pure returns (int) {
+  function level1Index(Bin bin) internal pure returns (int) {
     unchecked {
       return Bin.unwrap(bin) >> (LEAF_SIZE_BITS + 3 * LEVEL_SIZE_BITS);
     }
   }
 
   // see note posIn*
-  function posInLevel1(Bin bin) internal pure returns (uint) {
+  function posInLevel2(Bin bin) internal pure returns (uint) {
     unchecked {
-      return uint(bin.level2Index()) & LEVEL_SIZE_MASK;
+      return uint(bin.level3Index()) & LEVEL_SIZE_MASK;
     }
   }
 
-  function posInLevel0(Bin bin) internal pure returns (uint) {
+  function posInLevel1(Bin bin) internal pure returns (uint) {
     unchecked {
-      return uint(bin.level1Index()) & LEVEL_SIZE_MASK;
+      return uint(bin.level2Index()) & LEVEL_SIZE_MASK;
     }
   }
 
@@ -296,12 +296,12 @@ library BinLib {
   //   level 3 single node
   // <--------------------->
   //  1                  0
-  //  ^initial level0
+  //  ^initial level1
   // so we can immediately add 32 to that
   // and there is no need to take a modulo
   function posInRoot(Bin bin) internal pure returns (uint) {
     unchecked {
-      return uint(bin.level0Index() + ROOT_SIZE / 2);
+      return uint(bin.level1Index() + ROOT_SIZE / 2);
     }
   }
 
@@ -374,6 +374,14 @@ library FieldLib {
     }
   }
 
+  function flipBitAtLevel3(Field level3, Bin bin) internal pure returns (Field) {
+    unchecked {
+      uint pos = bin.posInLevel3();
+      level3 = Field.wrap(Field.unwrap(level3) ^ (1 << pos));
+      return level3;
+    }
+  }
+
   function flipBitAtLevel2(Field level2, Bin bin) internal pure returns (Field) {
     unchecked {
       uint pos = bin.posInLevel2();
@@ -390,14 +398,6 @@ library FieldLib {
     }
   }
 
-  function flipBitAtLevel0(Field level0, Bin bin) internal pure returns (Field) {
-    unchecked {
-      uint pos = bin.posInLevel0();
-      level0 = Field.wrap(Field.unwrap(level0) ^ (1 << pos));
-      return level0;
-    }
-  }
-
   function flipBitAtRoot(Field root, Bin bin) internal pure returns (Field) {
     unchecked {
       uint pos = bin.posInRoot();
@@ -409,14 +409,14 @@ library FieldLib {
   // utility fn
   function eraseToBin0(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ONES << (bin.posInLevel2() + 1);
+      uint mask = ONES << (bin.posInLevel3() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
   function eraseFromBin0(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ~(ONES << bin.posInLevel2());
+      uint mask = ~(ONES << bin.posInLevel3());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
@@ -424,14 +424,14 @@ library FieldLib {
   // utility fn
   function eraseToBin1(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ONES << (bin.posInLevel1() + 1);
+      uint mask = ONES << (bin.posInLevel2() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
   function eraseFromBin1(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ~(ONES << bin.posInLevel1());
+      uint mask = ~(ONES << bin.posInLevel2());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
@@ -439,14 +439,14 @@ library FieldLib {
   // utility fn
   function eraseToBin2(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ONES << (bin.posInLevel0() + 1);
+      uint mask = ONES << (bin.posInLevel1() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
   function eraseFromBin2(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
-      uint mask = ~(ONES << bin.posInLevel0());
+      uint mask = ~(ONES << bin.posInLevel1());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
@@ -481,24 +481,14 @@ library FieldLib {
   }
 
   // Get the index of the first level(i) of a level(i+1)
-  function firstLevel0Index(Field root) internal pure returns (int) {
+  function firstLevel1Index(Field root) internal pure returns (int) {
     unchecked {
       return int(root.firstOnePosition()) - ROOT_SIZE / 2;
     }
   }
-  function lastLevel0Index(Field root) internal pure returns (int) {
+  function lastLevel1Index(Field root) internal pure returns (int) {
     unchecked {
       return int(root.lastOnePosition()) - ROOT_SIZE / 2;
-    }
-  }
-  function firstLevel1Index(Field level0, int level0Index) internal pure returns (int) {
-    unchecked {
-      return level0Index * LEVEL_SIZE + int(level0.firstOnePosition());
-    }
-  }
-  function lastLevel1Index(Field level0, int level0Index) internal pure returns (int) {
-    unchecked {
-      return level0Index * LEVEL_SIZE + int(level0.lastOnePosition());
     }
   }
   function firstLevel2Index(Field level1, int level1Index) internal pure returns (int) {
@@ -511,14 +501,24 @@ library FieldLib {
       return level1Index * LEVEL_SIZE + int(level1.lastOnePosition());
     }
   }
-  function firstLeafIndex(Field level2, int level2Index) internal pure returns (int) {
+  function firstLevel3Index(Field level2, int level2Index) internal pure returns (int) {
     unchecked {
       return level2Index * LEVEL_SIZE + int(level2.firstOnePosition());
     }
   }
-  function lastLeafIndex(Field level2, int level2Index) internal pure returns (int) {
+  function lastLevel3Index(Field level2, int level2Index) internal pure returns (int) {
     unchecked {
       return level2Index * LEVEL_SIZE + int(level2.lastOnePosition());
+    }
+  }
+  function firstLeafIndex(Field level3, int level3Index) internal pure returns (int) {
+    unchecked {
+      return level3Index * LEVEL_SIZE + int(level3.firstOnePosition());
+    }
+  }
+  function lastLeafIndex(Field level3, int level3Index) internal pure returns (int) {
+    unchecked {
+      return level3Index * LEVEL_SIZE + int(level3.lastOnePosition());
     }
   }
 

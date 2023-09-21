@@ -50,6 +50,20 @@ contract MgvView is MgvCommon {
     }
   }
 
+  function level3(OLKey memory olKey, int index) external view returns (Field) {
+    unchecked {
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked _local = offerList.local;
+      unlockedMarketOnly(_local);
+
+      if (_local.bestBin().level3Index() == index) {
+        return _local.level3();
+      } else {
+        return offerList.level3[index].clean();
+      }
+    }
+  }
+
   function level2(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
@@ -74,20 +88,6 @@ contract MgvView is MgvCommon {
         return _local.level1();
       } else {
         return offerList.level1[index].clean();
-      }
-    }
-  }
-
-  function level0(OLKey memory olKey, int index) external view returns (Field) {
-    unchecked {
-      OfferList storage offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = offerList.local;
-      unlockedMarketOnly(_local);
-
-      if (_local.bestBin().level0Index() == index) {
-        return _local.level0();
-      } else {
-        return offerList.level0[index].clean();
       }
     }
   }

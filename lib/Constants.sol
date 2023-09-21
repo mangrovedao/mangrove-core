@@ -7,7 +7,7 @@ uint constant TOPBIT = 1 << 255;
 // can't write ~TOPBIT or ~uint(1 << 255) or constant cannot be referred to from assembly
 uint constant NOT_TOPBIT = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-// MIN_BIN and MAX_BIN should be inside the addressable range defined by the sizes of LEAF, LEVEL2, LEVEL1, LEVEL0, ROOT
+// MIN_BIN and MAX_BIN should be inside the addressable range defined by the sizes of LEAF, LEVEL3, LEVEL2, LEVEL1, ROOT
 int constant MIN_BIN = -1048576;
 int constant MAX_BIN = -MIN_BIN-1;
 
@@ -30,10 +30,10 @@ uint constant LEAF_SIZE_MASK = ~(ONES << LEAF_SIZE_BITS);
 uint constant LEVEL_SIZE_MASK = ~(ONES << LEVEL_SIZE_BITS);
 uint constant ROOT_SIZE_MASK = ~(ONES << ROOT_SIZE_BITS);
 
-int constant NUM_LEAFS = NUM_LEVEL2 * LEVEL_SIZE;
-int constant NUM_LEVEL0 = int(ROOT_SIZE);
-int constant NUM_LEVEL1 = NUM_LEVEL0 * LEVEL_SIZE;
+int constant NUM_LEAFS = NUM_LEVEL3 * LEVEL_SIZE;
+int constant NUM_LEVEL1 = int(ROOT_SIZE);
 int constant NUM_LEVEL2 = NUM_LEVEL1 * LEVEL_SIZE;
+int constant NUM_LEVEL3 = NUM_LEVEL2 * LEVEL_SIZE;
 int constant NUM_BINS = NUM_LEAFS * LEAF_SIZE;
 
 uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);

@@ -119,7 +119,7 @@ contract MgvHasOffers is MgvCommon {
       offerList.leafs[offerBin.leafIndex()] = leaf.dirty();
       // if leaf now empty, flip ticks OFF up the tree
       if (leaf.isEmpty()) {
-        int index = offerBin.level3Index(); // level3Index or level2Index
+        int index = offerBin.level3Index(); // level3Index, level2Index, or  level1Index
         Field field;
         if (index == bestBin.level3Index()) {
           field = local.level3().flipBitAtLevel3(offerBin);

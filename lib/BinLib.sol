@@ -172,9 +172,9 @@ library LeafLib {
 
 library BinLib {
 
-  function eq(Bin tick1, Bin tick2) internal pure returns (bool) {
+  function eq(Bin bin1, Bin bin2) internal pure returns (bool) {
     unchecked {
-      return Bin.unwrap(tick1) == Bin.unwrap(tick2);
+      return Bin.unwrap(bin1) == Bin.unwrap(bin2);
     }
   }
 
@@ -305,15 +305,15 @@ library BinLib {
     }
   }
 
-  function strictlyBetter(Bin tick1, Bin tick2) internal pure returns (bool) {
+  function strictlyBetter(Bin bin1, Bin bin2) internal pure returns (bool) {
     unchecked {
-      return Bin.unwrap(tick1) < Bin.unwrap(tick2);
+      return Bin.unwrap(bin1) < Bin.unwrap(bin2);
     }
   }
 
-  function better(Bin tick1, Bin tick2) internal pure returns (bool) {
+  function better(Bin bin1, Bin bin2) internal pure returns (bool) {
     unchecked {
-      return Bin.unwrap(tick1) <= Bin.unwrap(tick2);
+      return Bin.unwrap(bin1) <= Bin.unwrap(bin2);
     }
   }  
 

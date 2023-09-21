@@ -962,8 +962,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_update_branch_on_insert_posInLeaf() public {
     mkr.provisionMgv(10 ether);
-    Bin tick0 = Bin.wrap(0);
-    mkr.newOfferByTick(TickLib.fromBin(tick0, olKey.tickSpacing), 1 ether, 100_000, 0);
+    Bin bin0 = Bin.wrap(0);
+    mkr.newOfferByTick(TickLib.fromBin(bin0, olKey.tickSpacing), 1 ether, 100_000, 0);
     uint ofr = mkr.newOfferByTick(-46055, 100 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     assertTrue(

@@ -33,13 +33,13 @@ import "mgv_lib/Debug.sol";
 //     2. has one offer
 //     3. has two offers
 // - higher bin list
-//   - bin has higher position in same leaf or level3-3 as ToI
+//   - bin has higher position in same leaf or level1-3 as ToI
 //     - if feasible, given insertion tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower bin list (in {leaf, level3, level2, level1})
-//   - bin has lower position in same leaf or level3-3 as ToI
+//   - bin has lower position in same leaf or level1-3 as ToI
 //     - if feasible, given insertion tick
 //   - list:
 //     1. is empty

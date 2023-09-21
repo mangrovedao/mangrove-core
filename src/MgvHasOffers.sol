@@ -155,7 +155,7 @@ contract MgvHasOffers is MgvCommon {
               field = local.level1().flipBitAtLevel1(offerBin);
               local = local.level1(field);
               if (shouldUpdateBranch && field.isEmpty()) {
-                // unlike level3&1, level1 cannot be CLEAN_EMPTY (dirtied in active())
+                // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
                 offerList.level1[index] = field.dirty();
               }
             } else {

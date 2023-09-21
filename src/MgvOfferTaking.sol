@@ -114,7 +114,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             index = offerBin.level1Index();
             field = local.level1().flipBitAtLevel1(offerBin);
             if (field.isEmpty()) {
-              // unlike level3&1, level1 cannot be CLEAN_EMPTY (dirtied in active())
+              // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
               offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
               field = local.root().flipBitAtRoot(offerBin);
               local = local.root(field);
@@ -306,7 +306,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             mor.leaf = mor.leaf.setBinFirst(bin, sor.offerId);
           }
 
-          // no need to test whether level1 has been reached since by default its stored in local
+          // no need to test whether level1 has been reached since by default it's stored in local
 
           sor.local = sor.local.binPosInLeaf(mor.leaf.firstOfferPosition());
           // no need to test whether mor.level1 != offerList.level1 since update is ~free

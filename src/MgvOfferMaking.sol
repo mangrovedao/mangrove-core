@@ -389,7 +389,7 @@ contract MgvOfferMaking is MgvHasOffers {
             if (insertionIndex != currentIndex) {
               field = offerList.level1[insertionIndex].clean();
               if (insertionIndex < currentIndex) {
-                // unlike level3&1, level1 cannot be CLEAN_EMPTY (dirtied in active())
+                // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
                 offerList.level1[currentIndex] = ofp.local.level1().dirty();
               }
             } else {

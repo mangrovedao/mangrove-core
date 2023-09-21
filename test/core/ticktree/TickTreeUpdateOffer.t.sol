@@ -30,13 +30,13 @@ import "mgv_lib/Debug.sol";
 //       - list length
 //       - offer pos
 // - higher bin list
-//   - bin has higher position in same leaf or level3-3 as ToI
+//   - bin has higher position in same leaf or level1-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower bin list
-//   - bin has lower position in same leaf or level3-3 as ToI
+//   - bin has lower position in same leaf or level1-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty

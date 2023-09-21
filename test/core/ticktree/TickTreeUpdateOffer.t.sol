@@ -6,16 +6,16 @@ import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Tests of Mangrove.updateOffer's interaction with the bin tree.
+// Tests of Mangrove.updateOffer's interaction with the tick tree.
 //
 // The tests use the following pattern:
-// 1. we establish a Mangrove bin tree where there may be offers at:
+// 1. we establish a Mangrove tick tree where there may be offers at:
 //   - the offer to be updated's bin (the offer itself may not be live)
 //   - a higher tick
 //   - a lower tick
-// 2. we take a snapshot of Mangrove's bin tree
-// 3. we update the offer in both Mangrove and in the snapshot bin tree
-// 4. we check that Mangrove's bin tree matches the test bin tree.
+// 2. we take a snapshot of Mangrove's tick tree
+// 3. we update the offer in both Mangrove and in the snapshot tick tree
+// 4. we check that Mangrove's tick tree matches the test tick tree.
 //
 // The scenarios we want to test are:
 // - starting offer tick
@@ -270,13 +270,13 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       add_n_offers_to_tick(scenario.tickScenario.lowerBin, scenario.tickScenario.lowerBinListSize);
     }
 
-    // 3. Snapshot bin tree
+    // 3. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
     if (printToConsole) {
       console.log("before update");
       console.log("  MGV OB");
       printOfferList(olKey);
-      console.log("  bin tree");
+      console.log("  tick tree");
       tickTree.logTickTree();
     }
 
@@ -290,14 +290,14 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     if (printToConsole) {
       console.log("");
       console.log("after update");
-      // NB: Fails with "field is 0" when MGV bin tree is inconsistent
+      // NB: Fails with "field is 0" when MGV tick tree is inconsistent
       console.log("  MGV OB");
       printOfferList(olKey);
-      console.log("  bin tree");
+      console.log("  tick tree");
       tickTree.logTickTree();
     }
 
-    // 5. Assert that Mangrove and bin tree are equal
+    // 5. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();

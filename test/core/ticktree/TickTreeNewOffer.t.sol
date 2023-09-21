@@ -6,16 +6,16 @@ import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Tests of Mangrove.newOffer's interaction with the bin tree.
+// Tests of Mangrove.newOffer's interaction with the tick tree.
 //
 // The tests use the following pattern:
-// 1. we establish a Mangrove bin tree where there may be offers at:
+// 1. we establish a Mangrove tick tree where there may be offers at:
 //   - the insertion tick
 //   - a higher tick
 //   - a lower tick
-// 2. we take a snapshot of Mangrove's bin tree
-// 3. we insert a new offer at the insertion bin in both Mangrove and in the snapshot bin tree
-// 4. we check that Mangrove's bin tree matches the test bin tree.
+// 2. we take a snapshot of Mangrove's tick tree
+// 3. we insert a new offer at the insertion bin in both Mangrove and in the snapshot tick tree
+// 4. we check that Mangrove's tick tree matches the test tick tree.
 //
 // The reason for a having higher/lower ticks is to test Mangrove's handling of the levels that are stored in `local`.
 // - if there are offers at a lower bin, the new offer will not be inserted on the best branch.
@@ -137,17 +137,17 @@ contract TickTreeNewOfferTest is TickTreeTest {
       add_n_offers_to_tick(scenario.tickScenario.lowerBin, scenario.tickScenario.lowerBinListSize);
     }
 
-    // 3. Snapshot bin tree
+    // 3. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
 
-    // 4. Create new offer and add it to bin tree
+    // 4. Create new offer and add it to tick tree
     Bin insertionBin = scenario.tickScenario.bin;
     int tick = TickLib.fromBin(insertionBin, olKey.tickSpacing);
     uint gives = getAcceptableGivesForBin(insertionBin, 50_000);
     mkr.newOfferByTick(tick, gives, 50_000, 50);
     tickTree.addOffer(insertionBin, gives, 50_000, 50, $(mkr));
 
-    // 5. Assert that Mangrove and bin tree are equal
+    // 5. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();

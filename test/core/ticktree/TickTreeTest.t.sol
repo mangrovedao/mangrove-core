@@ -25,25 +25,25 @@ import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Base class for test of Mangrove's bin tree data structure
+// Base class for test of Mangrove's tick tree data structure
 //
-// Provides a simple bin tree data structure and operations on it that can be used to simulate Mangrove's bin tree
-// and then be compared to the actual bin tree.
+// Provides a simple tick tree data structure and operations on it that can be used to simulate Mangrove's tick tree
+// and then be compared to the actual tick tree.
 //
-// The test bin tree operations uses simpler (and less efficient) code to manipulate the bin tree, which should make
-// it clearer what is going on and easier to convince yourself that the bin tree is manipulated correctly.
+// The test tick tree operations uses simpler (and less efficient) code to manipulate the tick tree, which should make
+// it clearer what is going on and easier to convince yourself that the tick tree is manipulated correctly.
 //
-// In contrast, Mangrove's bin tree operations are optimized and interleaved with other code, which makes it harder to
+// In contrast, Mangrove's tick tree operations are optimized and interleaved with other code, which makes it harder to
 // reason about.
 //
-// tl;dr: We use a simple bin tree operations to verify Mangrove's complex bin tree operations.
+// tl;dr: We use a simple tick tree operations to verify Mangrove's complex tick tree operations.
 //
 // Basic test flow:
 // 1. Set up Mangrove's initial state, ie post offers at relevant ticks
-// 2. Take a snapshot of Mangrove's bin tree using `snapshotTickTree` which returns a `TickTree` struct
+// 2. Take a snapshot of Mangrove's tick tree using `snapshotTickTree` which returns a `TickTree` struct
 // 3. Perform some operation on Mangrove (eg add or remove an offer)
-// 4. Perform equivalent operation on the snapshot bin tree
-// 5. Compare Mangrove's bin tree to the snapshot bin tree using `assertEqToMgvTickTree`
+// 4. Perform equivalent operation on the snapshot tick tree
+// 5. Compare Mangrove's tick tree to the snapshot tick tree using `assertEqToMgvTickTree`
 //
 // See README.md in this folder for more details.
 abstract contract TickTreeTest is MangroveTest {
@@ -85,7 +85,7 @@ abstract contract TickTreeTest is MangroveTest {
   function setUp() public virtual override {
     super.setUp();
 
-    // Density is irrelevant when testing the bin tree data structure,
+    // Density is irrelevant when testing the tick tree data structure,
     // so we set it to 0 to avoid having to deal with it
     mgv.setDensity96X32(olKey, 0);
     mgv.setGasmax(10_000_000);
@@ -98,9 +98,9 @@ abstract contract TickTreeTest is MangroveTest {
     deal($(quote), $(this), type(uint).max);
   }
 
-  // # Test bin tree utility functions
+  // # Test tick tree utility functions
 
-  // Creates a snapshot of the Mangrove bin tree
+  // Creates a snapshot of the Mangrove tick tree
   function snapshotTickTree() internal returns (TestTickTree) {
     TestTickTree tickTree = new TestTickTree(mgv, reader, olKey);
     tickTree.snapshotMgvTickTree();

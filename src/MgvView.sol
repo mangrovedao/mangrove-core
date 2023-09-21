@@ -40,7 +40,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  // # Bin tree view functions
+  // # Tick tree view functions
 
   function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
     unchecked {

@@ -82,8 +82,8 @@ library TickTreeUtil {
   }
 }
 
-// Provides a simple bin tree data structure and operations on it that can be used to simulate Mangrove's bin tree
-// and then be compared to the actual bin tree.
+// Provides a simple tick tree data structure and operations on it that can be used to simulate Mangrove's tick tree
+// and then be compared to the actual tick tree.
 //
 // See core/ticktree/README.md for more details on how this can be used.
 //
@@ -105,7 +105,7 @@ contract TestTickTree is MangroveTest {
     vm.label($(this), "TestTickTree");
   }
 
-  // Creates a snapshot of the Mangrove bin tree
+  // Creates a snapshot of the Mangrove tick tree
   function snapshotMgvTickTree() public {
     local = mgv.local(olKey);
     Field root = mgv.root(olKey);
@@ -156,7 +156,7 @@ contract TestTickTree is MangroveTest {
     }
   }
 
-  // Checks that the current Mangrove bin tree in olKey is consistent
+  // Checks that the current Mangrove tick tree in olKey is consistent
   function assertMgvTickTreeIsConsistent() public {
     Field root = mgv.root(olKey);
     uint[4] memory levelPoss;
@@ -269,7 +269,7 @@ contract TestTickTree is MangroveTest {
                   offer.bin(olKey.tickSpacing),
                   bin,
                   string.concat(
-                    "offer[", vm.toString(offerId), "] bin does not match location in bin tree | bin: ", toString(bin)
+                    "offer[", vm.toString(offerId), "] bin does not match location in tick tree | bin: ", toString(bin)
                   )
                 );
                 assertEq(
@@ -284,7 +284,7 @@ contract TestTickTree is MangroveTest {
                 );
                 assertTrue(
                   offer.isLive(),
-                  string.concat("offer[", vm.toString(offerId), "] in bin tree should be live | bin: ", toString(bin))
+                  string.concat("offer[", vm.toString(offerId), "] in tick tree should be live | bin: ", toString(bin))
                 );
                 prev = offerId;
                 offerId = offer.next();
@@ -308,7 +308,7 @@ contract TestTickTree is MangroveTest {
     }
   }
 
-  // Checks that the current Mangrove bin tree in olKey is equal to the bin tree passed as argument
+  // Checks that the current Mangrove tick tree in olKey is equal to the tick tree passed as argument
   function assertEqToMgvTickTree() public {
     Field root = mgv.root(olKey);
     uint[4] memory levelPoss;
@@ -386,7 +386,7 @@ contract TestTickTree is MangroveTest {
                       vm.toString(offerId),
                       " | MGV ",
                       toString(offer),
-                      " | bin tree ",
+                      " | tick tree ",
                       toString(offerTickTree)
                     )
                   );
@@ -402,7 +402,7 @@ contract TestTickTree is MangroveTest {
                       vm.toString(offerId),
                       " | MGV ",
                       toString(detail),
-                      " | bin tree ",
+                      " | tick tree ",
                       toString(detailTickTree)
                     )
                   );

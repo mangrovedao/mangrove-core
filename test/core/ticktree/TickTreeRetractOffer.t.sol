@@ -6,16 +6,16 @@ import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Tests of Mangrove.retractOffer's interaction with the bin tree.
+// Tests of Mangrove.retractOffer's interaction with the tick tree.
 //
 // The tests use the following pattern:
-// 1. we establish a Mangrove bin tree where there may be offers at:
+// 1. we establish a Mangrove tick tree where there may be offers at:
 //   - the offer to be retracted's bin (including the offer itself)
 //   - a higher tick
 //   - a lower tick
-// 2. we take a snapshot of Mangrove's bin tree
-// 3. we retract the offer in both Mangrove and in the snapshot bin tree
-// 4. we check that Mangrove's bin tree matches the test bin tree.
+// 2. we take a snapshot of Mangrove's tick tree
+// 3. we retract the offer in both Mangrove and in the snapshot tick tree
+// 4. we check that Mangrove's tick tree matches the test tick tree.
 //
 // The scenarios we want to test are:
 // - retraction tick
@@ -138,7 +138,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
       add_n_offers_to_tick(scenario.tickScenario.lowerBin, scenario.tickScenario.lowerBinListSize);
     }
 
-    // 3. Snapshot bin tree
+    // 3. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
 
     // 4. Retract the offer
@@ -146,7 +146,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     mkr.retractOffer(offerId);
     tickTree.removeOffer(offerId);
 
-    // 5. Assert that Mangrove and bin tree are equal
+    // 5. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();

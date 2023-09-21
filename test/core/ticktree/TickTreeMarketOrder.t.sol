@@ -6,18 +6,18 @@ import "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Tests of Mangrove.marketOrder's interaction with the bin tree.
+// Tests of Mangrove.marketOrder's interaction with the tick tree.
 //
 // The tests use the following pattern:
-// 1. we establish a Mangrove bin tree where there may be offers at:
+// 1. we establish a Mangrove tick tree where there may be offers at:
 //   - a lower tick
 //   - a middle tick
 //   - a higher tick
-// 2. we take a snapshot of Mangrove's bin tree
-// 3. we remove the offers the market order should take from the snapshot bin tree
+// 2. we take a snapshot of Mangrove's tick tree
+// 3. we remove the offers the market order should take from the snapshot tick tree
 // 4. we run a market order in Mangrove
-//   - in the posthook of the last offer, we check that Mangrove's bin tree matches the test bin tree.
-//   - by doing this in the posthook, we ensure that the bin tree is updated when the first posthook runs.
+//   - in the posthook of the last offer, we check that Mangrove's tick tree matches the test tick tree.
+//   - by doing this in the posthook, we ensure that the tick tree is updated when the first posthook runs.
 //
 // The scenarios we want to test are:
 // - lower bin list
@@ -45,7 +45,7 @@ import "mgv_lib/Debug.sol";
 //     4. is not taken
 //
 // We do not test failing offers or partial fills specifically,
-// as they are not handled specially wrt the bin tree.
+// as they are not handled specially wrt the tick tree.
 contract TickTreeMarketOrderTest is TickTreeTest {
   // Bin list               size  offersToTake
   // 1. is empty                0  0
@@ -246,13 +246,13 @@ contract TickTreeMarketOrderTest is TickTreeTest {
       + middleOffersGive * scenario.middleBin.offersToTake + higherOffersGive * scenario.higherBin.offersToTake;
     lastTakenOfferId = getLastTakenOfferId(scenario, lowerOfferIds, middleOfferIds, higherOfferIds);
 
-    // 3. Snapshot bin tree
+    // 3. Snapshot tick tree
     tickTree = snapshotTickTree();
 
-    // 4. Run the market order and check that the bin tree is updated as expected
-    // The check of the bin tree is done in the posthook of the last taken offer
+    // 4. Run the market order and check that the tick tree is updated as expected
+    // The check of the tick tree is done in the posthook of the last taken offer
     // by the checkMgvTickTreeInLastOfferPosthook function.
-    // We therefore must update the test bin tree before the market order is run.
+    // We therefore must update the test tick tree before the market order is run.
     removeTakenOffers(scenario.lowerBin, lowerOfferIds);
     removeTakenOffers(scenario.middleBin, middleOfferIds);
     removeTakenOffers(scenario.higherBin, higherOfferIds);

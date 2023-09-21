@@ -170,7 +170,7 @@ interface IMangrove is HasMgvEvents {
 
   function withdrawERC20(address tokenAddress, uint value) external;
 
-  // # Bin tree view functions
+  // # Tick tree view functions
 
   function leafs(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Leaf);
 

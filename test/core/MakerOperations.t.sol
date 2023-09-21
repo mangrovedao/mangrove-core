@@ -364,7 +364,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     // note: a former version of this test was checking reader.prevOfferId(olKey,offer) and offer.next () but:
     // 1. There is no spec of what prev() next() are for a non-live offer (nor of what prev/nextOffer are)
-    // 2. prev() and next() are not meaningful with bin trees
+    // 2. prev() and next() are not meaningful with tick trees
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     MgvStructs.OfferPacked offer0 = mgv.offers(olKey, ofr0);
     assertTrue(offer0.isLive(), "Invalid OB");

@@ -497,7 +497,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
-    console.log("--------CURRENT bin TREE BRANCH--------");
+    console.log("--------CURRENT tick tree BRANCH--------");
     MgvStructs.LocalPacked _local = _mgv.local(_ol);
     Bin bin = _local.bestBin();
     console.log("Current bin %s", toString(bin));

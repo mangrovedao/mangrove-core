@@ -10,7 +10,7 @@ import "mgv_lib/Debug.sol";
 //
 // The tests use the following pattern:
 // 1. we establish a Mangrove tick tree where there may be offers at:
-//   - the insertion tick
+//   - the insertion bin
 //   - a higher bin
 //   - a lower bin
 // 2. we take a snapshot of Mangrove's tick tree
@@ -25,32 +25,32 @@ import "mgv_lib/Debug.sol";
 //   - But part of the branch may be shared with the new best offer -> we need to test the different cases of branch sharing: leaf, level3, level2, level1
 //
 // The scenarios we want to test are:
-// - empty book (this happens when lower, higher, and insertion ticks are empty)
-// - insertion tick
+// - empty book (this happens when lower, higher, and insertion bins are empty)
+// - insertion bin
 //   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //   - list:
 //     1. is empty
 //     2. has one offer
 //     3. has two offers
 // - higher bin list
-//   - bin has higher position in same leaf or level1-3 as ToI
-//     - if feasible, given insertion tick
+//   - bin has higher position in same leaf or level1-3 as BoI
+//     - if feasible, given insertion bin
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower bin list (in {leaf, level3, level2, level1})
-//   - bin has lower position in same leaf or level1-3 as ToI
-//     - if feasible, given insertion tick
+//   - bin has lower position in same leaf or level1-3 as BoI
+//     - if feasible, given insertion bin
 //   - list:
 //     1. is empty
 //     2. non-empty
 contract TickTreeNewOfferTest is TickTreeTest {
   struct NewOfferScenario {
-    BinScenario tickScenario;
+    BinScenario binScenario;
     uint insertionBinListSize;
   }
 
-  uint[] tickListSizeScenarios = [0, 1, 2];
+  uint[] binListSizeScenarios = [0, 1, 2];
   // size of {lower,higher}BinList if the bin is present in the scenario
   uint[] otherBinListSizeScenarios = [1];
 
@@ -58,36 +58,36 @@ contract TickTreeNewOfferTest is TickTreeTest {
   // We therefore have a test case per ToI instead.
 
   function test_new_offer_for_BIN_MIN_ROOT_MAX_OTHERS() public {
-    run_new_offer_scenarios_for_tick(BIN_MIN_ROOT_MAX_OTHERS);
+    run_new_offer_scenarios_for_bin(BIN_MIN_ROOT_MAX_OTHERS);
   }
 
   function test_new_offer_for_BIN_MAX_ROOT_MIN_OTHERS() public {
-    run_new_offer_scenarios_for_tick(BIN_MAX_ROOT_MIN_OTHERS);
+    run_new_offer_scenarios_for_bin(BIN_MAX_ROOT_MIN_OTHERS);
   }
 
   function test_new_offer_for_BIN_MIDDLE() public {
-    run_new_offer_scenarios_for_tick(BIN_MIDDLE);
+    run_new_offer_scenarios_for_bin(BIN_MIDDLE);
   }
 
   function test_new_offer_for_BIN_MIN_ALLOWED() public {
-    run_new_offer_scenarios_for_tick(BIN_MIN_ALLOWED);
+    run_new_offer_scenarios_for_bin(BIN_MIN_ALLOWED);
   }
 
   function test_new_offer_for_BIN_MAX_ALLOWED() public {
-    run_new_offer_scenarios_for_tick(BIN_MAX_ALLOWED);
+    run_new_offer_scenarios_for_bin(BIN_MAX_ALLOWED);
   }
 
-  function run_new_offer_scenarios_for_tick(Bin bin) internal {
+  function run_new_offer_scenarios_for_bin(Bin bin) internal {
     vm.pauseGasMetering();
     runBinScenarios(bin, otherBinListSizeScenarios, otherBinListSizeScenarios);
     vm.resumeGasMetering();
   }
 
-  function runBinScenario(BinScenario memory tickScenario) internal override {
+  function runBinScenario(BinScenario memory binScenario) internal override {
     NewOfferScenario memory scenario;
-    scenario.tickScenario = tickScenario;
-    for (uint j = 0; j < tickListSizeScenarios.length; ++j) {
-      scenario.insertionBinListSize = tickListSizeScenarios[j];
+    scenario.binScenario = binScenario;
+    for (uint j = 0; j < binListSizeScenarios.length; ++j) {
+      scenario.insertionBinListSize = binListSizeScenarios[j];
       run_new_offer_scenario(scenario, false);
     }
     vm.resumeGasMetering();
@@ -97,7 +97,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
   function test_single_new_offer_scenario() public {
     run_new_offer_scenario(
       NewOfferScenario({
-        tickScenario: BinScenario({
+        binScenario: BinScenario({
           bin: Bin.wrap(0),
           hasHigherBin: false,
           higherBin: Bin.wrap(0),
@@ -115,13 +115,13 @@ contract TickTreeNewOfferTest is TickTreeTest {
   function run_new_offer_scenario(NewOfferScenario memory scenario, bool printToConsole) internal {
     if (printToConsole) {
       console.log("new offer scenario");
-      console.log("  insertionBin: %s", toString(scenario.tickScenario.bin));
+      console.log("  insertionBin: %s", toString(scenario.binScenario.bin));
       console.log("  insertionBinListSize: %s", scenario.insertionBinListSize);
-      if (scenario.tickScenario.hasHigherBin) {
-        console.log("  higherBin: %s", toString(scenario.tickScenario.higherBin));
+      if (scenario.binScenario.hasHigherBin) {
+        console.log("  higherBin: %s", toString(scenario.binScenario.higherBin));
       }
-      if (scenario.tickScenario.hasLowerBin) {
-        console.log("  lowerBin: %s", toString(scenario.tickScenario.lowerBin));
+      if (scenario.binScenario.hasLowerBin) {
+        console.log("  lowerBin: %s", toString(scenario.binScenario.lowerBin));
       }
     }
 
@@ -129,19 +129,19 @@ contract TickTreeNewOfferTest is TickTreeTest {
     uint vmSnapshotId = vm.snapshot();
 
     // 2. Create scenario
-    add_n_offers_to_tick(scenario.tickScenario.bin, scenario.insertionBinListSize);
-    if (scenario.tickScenario.hasHigherBin) {
-      add_n_offers_to_tick(scenario.tickScenario.higherBin, scenario.tickScenario.higherBinListSize);
+    add_n_offers_to_bin(scenario.binScenario.bin, scenario.insertionBinListSize);
+    if (scenario.binScenario.hasHigherBin) {
+      add_n_offers_to_bin(scenario.binScenario.higherBin, scenario.binScenario.higherBinListSize);
     }
-    if (scenario.tickScenario.hasLowerBin) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerBin, scenario.tickScenario.lowerBinListSize);
+    if (scenario.binScenario.hasLowerBin) {
+      add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
     // 3. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
 
     // 4. Create new offer and add it to tick tree
-    Bin insertionBin = scenario.tickScenario.bin;
+    Bin insertionBin = scenario.binScenario.bin;
     int tick = TickLib.fromBin(insertionBin, olKey.tickSpacing);
     uint gives = getAcceptableGivesForBin(insertionBin, 50_000);
     mkr.newOfferByTick(tick, gives, 50_000, 50);

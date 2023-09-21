@@ -6,10 +6,10 @@ import "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// Tests of the assumptions made about ticks in the TickTreeTests.
+// Tests of the assumptions made about bins in the TickTreeTests.
 contract TickTreeTestAssumptionsTest is TickTreeTest {
-  // Checks that the ticks used in these tests have the expected locations at various levels.
-  function test_ticks_are_at_expected_locations() public {
+  // Checks that the bins used in these tests have the expected locations at various levels.
+  function test_bins_are_at_expected_locations() public {
     assertBinAssumptions({
       bin: BIN_MIN_ROOT_MAX_OTHERS,
       posInRoot: MIN_ROOT_POS,

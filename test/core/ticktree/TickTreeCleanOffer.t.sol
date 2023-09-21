@@ -19,7 +19,7 @@ import "mgv_lib/Debug.sol";
 //
 // The scenarios we want to test are:
 // - offer fails/doesn't fail
-// - cleaning tick
+// - cleaning bin
 //   - bin is a *bin of interest* (BoI) as listed in TickTreeTest
 //   - list:
 //     1. the offer to be cleaned is alone
@@ -27,67 +27,67 @@ import "mgv_lib/Debug.sol";
 //     3. the offer to be cleaned is last of two offers
 //     4. the offer to be cleaned is middle of three offers
 // - higher bin list
-//   - bin has higher position in same leaf or level1-3 as ToI
-//     - if feasible, given cleaning tick
+//   - bin has higher position in same leaf or level1-3 as BoI
+//     - if feasible, given cleaning bin
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower bin list
-//   - bin has lower position in same leaf or level1-3 as ToI
-//     - if feasible, given cleaning tick
+//   - bin has lower position in same leaf or level1-3 as BoI
+//     - if feasible, given cleaning bin
 //   - list:
 //     1. is empty
 //     2. is non-empty
 contract TickTreeCleanOfferTest is TickTreeTest {
   struct CleanOfferScenario {
-    BinScenario tickScenario;
+    BinScenario binScenario;
     uint offerBinListSize;
     uint offerPos;
     bool offerFail;
   }
 
   // (list size, offer pos)
-  uint[2][] tickListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
+  uint[2][] binListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per ToI instead.
 
   function test_clean_offer_for_BIN_MIN_ROOT_MAX_OTHERS() public {
-    run_clean_offer_scenarios_for_tick(BIN_MIN_ROOT_MAX_OTHERS);
+    run_clean_offer_scenarios_for_bin(BIN_MIN_ROOT_MAX_OTHERS);
   }
 
   function test_clean_offer_for_BIN_MAX_ROOT_MIN_OTHERS() public {
-    run_clean_offer_scenarios_for_tick(BIN_MAX_ROOT_MIN_OTHERS);
+    run_clean_offer_scenarios_for_bin(BIN_MAX_ROOT_MIN_OTHERS);
   }
 
   function test_clean_offer_for_BIN_MIDDLE() public {
-    run_clean_offer_scenarios_for_tick(BIN_MIDDLE);
+    run_clean_offer_scenarios_for_bin(BIN_MIDDLE);
   }
 
   function test_clean_offer_for_BIN_MIN_ALLOWED() public {
-    run_clean_offer_scenarios_for_tick(BIN_MIN_ALLOWED);
+    run_clean_offer_scenarios_for_bin(BIN_MIN_ALLOWED);
   }
 
   function test_clean_offer_for_BIN_MAX_ALLOWED() public {
-    run_clean_offer_scenarios_for_tick(BIN_MAX_ALLOWED);
+    run_clean_offer_scenarios_for_bin(BIN_MAX_ALLOWED);
   }
 
   // size of {lower,higher}BinList if the bin is present in the scenario
   uint[] otherBinListSizeScenarios = [1];
 
-  function run_clean_offer_scenarios_for_tick(Bin bin) internal {
+  function run_clean_offer_scenarios_for_bin(Bin bin) internal {
     vm.pauseGasMetering();
     runBinScenarios(bin, otherBinListSizeScenarios, otherBinListSizeScenarios);
     vm.resumeGasMetering();
   }
 
-  function runBinScenario(BinScenario memory tickScenario) internal override {
+  function runBinScenario(BinScenario memory binScenario) internal override {
     CleanOfferScenario memory scenario;
-    scenario.tickScenario = tickScenario;
-    for (uint j = 0; j < tickListScenarios.length; ++j) {
-      uint[2] storage tickListScenario = tickListScenarios[j];
-      scenario.offerBinListSize = tickListScenario[0];
-      scenario.offerPos = tickListScenario[1];
+    scenario.binScenario = binScenario;
+    for (uint j = 0; j < binListScenarios.length; ++j) {
+      uint[2] storage binListScenario = binListScenarios[j];
+      scenario.offerBinListSize = binListScenario[0];
+      scenario.offerPos = binListScenario[1];
 
       scenario.offerFail = true;
       run_clean_offer_scenario(scenario, false);
@@ -101,7 +101,7 @@ contract TickTreeCleanOfferTest is TickTreeTest {
   function test_single_clean_offer_scenario() public {
     run_clean_offer_scenario(
       CleanOfferScenario({
-        tickScenario: BinScenario({
+        binScenario: BinScenario({
           bin: Bin.wrap(0),
           hasHigherBin: false,
           higherBin: Bin.wrap(0),
@@ -121,16 +121,16 @@ contract TickTreeCleanOfferTest is TickTreeTest {
   function run_clean_offer_scenario(CleanOfferScenario memory scenario, bool printToConsole) internal {
     if (printToConsole) {
       console.log("clean offer scenario");
-      console.log("  cleaningBin: %s", toString(scenario.tickScenario.bin));
+      console.log("  cleaningBin: %s", toString(scenario.binScenario.bin));
       console.log("  offerBinListSize: %s", scenario.offerBinListSize);
       console.log("  offerPos: %s", scenario.offerPos);
       console.log("  offerFail: %s", scenario.offerFail);
-      if (scenario.tickScenario.hasHigherBin) {
-        Bin higherBin = scenario.tickScenario.higherBin;
+      if (scenario.binScenario.hasHigherBin) {
+        Bin higherBin = scenario.binScenario.higherBin;
         console.log("  higherBin: %s", toString(higherBin));
       }
-      if (scenario.tickScenario.hasLowerBin) {
-        console.log("  lowerBin: %s", toString(scenario.tickScenario.lowerBin));
+      if (scenario.binScenario.hasLowerBin) {
+        console.log("  lowerBin: %s", toString(scenario.binScenario.lowerBin));
       }
     }
 
@@ -139,16 +139,16 @@ contract TickTreeCleanOfferTest is TickTreeTest {
 
     // 2. Create scenario
     (uint[] memory offerIds,) =
-      add_n_offers_to_tick(scenario.tickScenario.bin, scenario.offerBinListSize, scenario.offerFail);
+      add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize, scenario.offerFail);
     uint offerId = offerIds[scenario.offerPos];
     MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, offerId);
 
-    if (scenario.tickScenario.hasHigherBin) {
-      add_n_offers_to_tick(scenario.tickScenario.higherBin, scenario.tickScenario.higherBinListSize);
+    if (scenario.binScenario.hasHigherBin) {
+      add_n_offers_to_bin(scenario.binScenario.higherBin, scenario.binScenario.higherBinListSize);
     }
-    if (scenario.tickScenario.hasLowerBin) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerBin, scenario.tickScenario.lowerBinListSize);
+    if (scenario.binScenario.hasLowerBin) {
+      add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
     // 3. Snapshot tick tree

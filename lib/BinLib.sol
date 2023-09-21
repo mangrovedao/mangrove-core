@@ -111,9 +111,9 @@ library LeafLib {
     }
   }
 
-  // useful for quickly accessing the next bin even when the current offer is not the best
-  // not for onchain use
-  function eraseToBin(Leaf leaf, Bin bin) internal pure returns (Leaf) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `leaf` is the leaf of `bin`. Erase contents of leaf up to (not including) bin.
+  function eraseLeafToBin(Leaf leaf, Bin bin) internal pure returns (Leaf) {
     unchecked {
       uint mask = ONES >> ((bin.posInLeaf() + 1) * OFFER_BITS * 2);
       return Leaf.wrap(Leaf.unwrap(leaf) & mask);
@@ -406,60 +406,72 @@ library FieldLib {
     }
   }
 
-  // utility fn
-  function eraseToBin0(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the level3 of `bin`. Erase contents of field up to (not including) bin.
+  function eraseLevel3ToBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ONES << (bin.posInLevel3() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
-  function eraseFromBin0(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the level3 of `bin`. Erase contents of field from (not including) bin.
+  function eraseLevel3FromBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ~(ONES << bin.posInLevel3());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
-  // utility fn
-  function eraseToBin1(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the level2 of `bin`. Erase contents of field up to (not including) bin.
+  function eraseLevel2ToBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ONES << (bin.posInLevel2() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
-  function eraseFromBin1(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the level2 of `bin`. Erase contents of field from (not including) bin.
+  function eraseLevel2FromBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ~(ONES << bin.posInLevel2());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
-  // utility fn
-  function eraseToBin2(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the level1 of `bin`. Erase contents of field up to (not including) bin.
+  function eraseLevel1ToBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ONES << (bin.posInLevel1() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
-  function eraseFromBin2(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the level1 of `bin`. Erase contents of field from (not including) bin.
+  function eraseLevel1FromBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ~(ONES << bin.posInLevel1());
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
-  // utility fn
-  function eraseToBin3(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the root of `bin`. Erase contents of field up to (not including) bin.
+  function eraseRootToBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ONES << (bin.posInRoot() + 1);
       return Field.wrap(Field.unwrap(field) & mask);
     }
   }
 
-  function eraseFromBin3(Field field, Bin bin) internal pure returns (Field) {
+  /* Not used by Mangrove, utility fn */
+  // Assumes `field` is the root of `bin`. Erase contents of field from (not including) bin.
+  function eraseRootFromBin(Field field, Bin bin) internal pure returns (Field) {
     unchecked {
       uint mask = ~(ONES << bin.posInRoot());
       return Field.wrap(Field.unwrap(field) & mask);

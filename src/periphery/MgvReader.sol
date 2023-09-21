@@ -242,22 +242,22 @@ contract MgvReader {
     if (nextId == 0) {
       int index = offerBin.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseToBin(offerBin);
+      leaf = leaf.eraseLeafToBin(offerBin);
       if (leaf.isEmpty()) {
         index = offerBin.level3Index();
         Field field = MGV.level3(olKey, index);
-        field = field.eraseToBin0(offerBin);
+        field = field.eraseLevel3ToBin(offerBin);
         if (field.isEmpty()) {
           index = offerBin.level2Index();
           field = MGV.level2(olKey, index);
-          field = field.eraseToBin1(offerBin);
+          field = field.eraseLevel2ToBin(offerBin);
           if (field.isEmpty()) {
             index = offerBin.level1Index();
             field = MGV.level1(olKey, index);
-            field = field.eraseToBin2(offerBin);
+            field = field.eraseLevel1ToBin(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseToBin3(offerBin);
+              field = field.eraseRootToBin(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }
@@ -298,18 +298,18 @@ contract MgvReader {
       if (leaf.isEmpty()) {
         index = offerBin.level3Index();
         Field field = MGV.level3(olKey, index);
-        field = field.eraseFromBin0(offerBin);
+        field = field.eraseLevel3FromBin(offerBin);
         if (field.isEmpty()) {
           index = offerBin.level2Index();
           field = MGV.level2(olKey, index);
-          field = field.eraseFromBin1(offerBin);
+          field = field.eraseLevel2FromBin(offerBin);
           if (field.isEmpty()) {
             index = offerBin.level1Index();
             field = MGV.level1(olKey, index);
-            field = field.eraseFromBin2(offerBin);
+            field = field.eraseLevel1FromBin(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseFromBin3(offerBin);
+              field = field.eraseRootFromBin(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }

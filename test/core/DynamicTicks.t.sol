@@ -29,7 +29,7 @@ contract DynamicBinsTest is MangroveTest {
 
   function test_tick_to_nearest_bin(int96 tick, uint16 _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
-    Bin bin = BinLib.nearestHigherTickToTick(tick, _tickSpacing);
+    Bin bin = BinLib.nearestHigherBinToTick(tick, _tickSpacing);
     assertGe(TickLib.fromBin(bin, _tickSpacing), tick, "tick -> bin -> tick must give same or lower tick");
 
     int tickSpacing = int(uint(_tickSpacing));
@@ -63,7 +63,7 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     uint gives = 1 ether;
 
-    int insertionTick = int24(TickLib.fromBin(BinLib.nearestHigherTickToTick(tick, tickSpacing), tickSpacing));
+    int insertionTick = int24(TickLib.fromBin(BinLib.nearestHigherBinToTick(tick, tickSpacing), tickSpacing));
 
     vm.assume(TickLib.inRange(insertionTick));
 
@@ -83,7 +83,7 @@ contract DynamicBinsTest is MangroveTest {
     OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
     uint gives = 1 ether;
 
-    int insertionTick = int24(TickLib.fromBin(BinLib.nearestHigherTickToTick(tick, tickSpacing), tickSpacing));
+    int insertionTick = int24(TickLib.fromBin(BinLib.nearestHigherBinToTick(tick, tickSpacing), tickSpacing));
     vm.assume(TickLib.inRange(insertionTick));
 
     mgv.activate(olKey, 0, 100 << 32, 0);
@@ -116,7 +116,7 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     vm.assume(tickSpacing != 0);
     uint gives = 1 ether;
-    Bin insertionBin = BinLib.nearestHigherTickToTick(tick, tickSpacing);
+    Bin insertionBin = BinLib.nearestHigherBinToTick(tick, tickSpacing);
     int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
     vm.assume(TickLib.inRange(insertionTick));
 
@@ -170,7 +170,7 @@ contract DynamicBinsTest is MangroveTest {
     vm.assume(tickSpacing != 0);
     vm.assume(int(tick) % int(uint(tickSpacing)) != 0);
     tick = boundTick(tick);
-    Bin insertionBin = BinLib.nearestHigherTickToTick(tick, tickSpacing);
+    Bin insertionBin = BinLib.nearestHigherBinToTick(tick, tickSpacing);
     int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
     vm.assume(TickLib.inRange(insertionTick));
     olKey.tickSpacing = tickSpacing;

@@ -204,11 +204,11 @@ library BinLib {
   }
 
   // Utility for tests&unpacked structs, less gas-optimal
-  // Must not be called with any of level2, level1, level0 or level3 empty
-  function bestBinFromBranch(uint binPosInLeaf,Field level2, Field level1, Field level0, Field level3) internal pure returns (Bin) {
+  // Must not be called with any of level2, level1, level0 or root empty
+  function bestBinFromBranch(uint binPosInLeaf,Field level2, Field level1, Field level0, Field root) internal pure returns (Bin) {
     unchecked {
       LocalPacked local;
-      local = local.binPosInLeaf(binPosInLeaf).level2(level2).level1(level1).level0(level0).root(level3);
+      local = local.binPosInLeaf(binPosInLeaf).level2(level2).level1(level1).level0(level0).root(root);
       return bestBinFromLocal(local);
     }
   }
@@ -292,7 +292,7 @@ library BinLib {
   }
 
   // see note posIn*
-  // note with int24 bin we only use 2 bits in level3
+  // note with int24 bin we only use 2 bits in root
   //   level 3 single node
   // <--------------------->
   //  1                  0
@@ -398,11 +398,11 @@ library FieldLib {
     }
   }
 
-  function flipBitAtRoot(Field level3, Bin bin) internal pure returns (Field) {
+  function flipBitAtRoot(Field root, Bin bin) internal pure returns (Field) {
     unchecked {
       uint pos = bin.posInRoot();
-      level3 = Field.wrap(Field.unwrap(level3) ^ (1 << pos));
-      return level3;
+      root = Field.wrap(Field.unwrap(root) ^ (1 << pos));
+      return root;
     }
   }
 
@@ -481,14 +481,14 @@ library FieldLib {
   }
 
   // Get the index of the first level(i) of a level(i+1)
-  function firstLevel0Index(Field level3) internal pure returns (int) {
+  function firstLevel0Index(Field root) internal pure returns (int) {
     unchecked {
-      return int(level3.firstOnePosition()) - ROOT_SIZE / 2;
+      return int(root.firstOnePosition()) - ROOT_SIZE / 2;
     }
   }
-  function lastLevel0Index(Field level3) internal pure returns (int) {
+  function lastLevel0Index(Field root) internal pure returns (int) {
     unchecked {
-      return int(level3.lastOnePosition()) - ROOT_SIZE / 2;
+      return int(root.lastOnePosition()) - ROOT_SIZE / 2;
     }
   }
   function firstLevel1Index(Field level0, int level0Index) internal pure returns (int) {

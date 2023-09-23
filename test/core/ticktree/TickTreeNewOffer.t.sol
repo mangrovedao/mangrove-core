@@ -142,7 +142,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
 
     // 4. Create new offer and add it to tick tree
     Bin insertionBin = scenario.binScenario.bin;
-    int tick = TickLib.fromBin(insertionBin, olKey.tickSpacing);
+    Tick tick = BinLib.toNearestTick(insertionBin, olKey.tickSpacing);
     uint gives = getAcceptableGivesForBin(insertionBin, 50_000);
     mkr.newOfferByTick(tick, gives, 50_000, 50);
     tickTree.addOffer(insertionBin, gives, 50_000, 50, $(mkr));

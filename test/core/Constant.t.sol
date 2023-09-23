@@ -9,10 +9,10 @@ import "mgv_lib/TickConversionLib.sol";
 // In these tests, the testing contract is the market maker.
 contract ConstantsTest is Test2 {
   function test_constants_min_max_ratio() public {
-    (uint man, uint exp) = TickConversionLib.ratioFromTick(MIN_TICK);
+    (uint man, uint exp) = TickConversionLib.ratioFromTick(Tick.wrap(MIN_TICK));
     assertEq(man, MIN_RATIO_MANTISSA);
     assertEq(int(exp), MIN_RATIO_EXP);
-    (man, exp) = TickConversionLib.ratioFromTick(MAX_TICK);
+    (man, exp) = TickConversionLib.ratioFromTick(Tick.wrap(MAX_TICK));
     assertEq(man, MAX_RATIO_MANTISSA);
     assertEq(int(exp), MAX_RATIO_EXP);
   }

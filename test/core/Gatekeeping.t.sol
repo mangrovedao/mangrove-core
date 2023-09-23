@@ -197,17 +197,17 @@ contract GatekeepingTest is MangroveTest {
 
   function test_newOfferByTick_extrema_tick() public {
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.newOfferByTick(MIN_TICK - 1, 1 ether, 10_000, 0);
+    mkr.newOfferByTick(Tick.wrap(MIN_TICK - 1), 1 ether, 10_000, 0);
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.newOfferByTick(MAX_TICK + 1, 1 ether, 10_000, 0);
+    mkr.newOfferByTick(Tick.wrap(MAX_TICK + 1), 1 ether, 10_000, 0);
   }
 
   function test_updateOfferByTick_extrema_tick() public {
-    uint ofr = mkr.newOfferByTick(0, 1 ether, 10_000, 0);
+    uint ofr = mkr.newOfferByTick(Tick.wrap(0), 1 ether, 10_000, 0);
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.updateOfferByTick(MIN_TICK - 1, 1 ether, 10_000, ofr);
+    mkr.updateOfferByTick(Tick.wrap(MIN_TICK - 1), 1 ether, 10_000, ofr);
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.updateOfferByTick(MAX_TICK + 1, 1 ether, 10_000, ofr);
+    mkr.updateOfferByTick(Tick.wrap(MAX_TICK + 1), 1 ether, 10_000, ofr);
   }
 
   function test_retractOffer_wrong_owner_fails() public {
@@ -224,7 +224,7 @@ contract GatekeepingTest is MangroveTest {
 
   function test_gives_0_rejected() public {
     vm.expectRevert("mgv/writeOffer/gives/tooLow");
-    mkr.newOfferByTick(0, 0 ether, 100_000, 0);
+    mkr.newOfferByTick(Tick.wrap(0), 0 ether, 100_000, 0);
   }
 
   function test_idOverflow_reverts(OLKey memory olKey) public {
@@ -431,9 +431,9 @@ contract GatekeepingTest is MangroveTest {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint other_ofr = mkr.newOfferByTick(olKey, 1, 1 ether, 100_000);
+    uint other_ofr = mkr.newOfferByTick(olKey, Tick.wrap(1), 1 ether, 100_000);
     mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.updateOfferOK, (olKey, other_ofr)));
-    uint ofr = mkr.newOfferByTick(olKey, 0, 1 ether, 300_000);
+    uint ofr = mkr.newOfferByTick(olKey, Tick.wrap(0), 1 ether, 300_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
     assertTrue(mgv.offerDetails(olKey, other_ofr).gasreq() == 35_000, "updateOffer on posthook must work");
@@ -480,10 +480,10 @@ contract GatekeepingTest is MangroveTest {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint other_ofr = mkr.newOfferByTick(olKey, 1, 1 ether, 290_000);
+    uint other_ofr = mkr.newOfferByTick(olKey, Tick.wrap(1), 1 ether, 290_000);
     mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.retractOfferOK, (olKey, other_ofr)));
 
-    uint ofr = mkr.newOfferByTick(olKey, 0, 1 ether, 190_000);
+    uint ofr = mkr.newOfferByTick(olKey, Tick.wrap(0), 1 ether, 190_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
     assertEq(mgv.best(olKey), 0, "retractOffer on posthook must work");
@@ -592,7 +592,7 @@ contract GatekeepingTest is MangroveTest {
     uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
     MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
     Bin nextBin = Bin.wrap(Bin.unwrap(ofr.bin(olKey.tickSpacing)) + 1);
-    uint gives = TickLib.outboundFromInbound(TickLib.fromBin(nextBin, olKey.tickSpacing), 5 ether);
+    uint gives = TickLib.outboundFromInbound(BinLib.toNearestTick(nextBin, olKey.tickSpacing), 5 ether);
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
@@ -628,14 +628,14 @@ contract GatekeepingTest is MangroveTest {
   /* Clean failure */
 
   function cleanKO(uint id, int tick) external {
-    assertFalse(mkr.clean(id, tick, 1 ether), "clean should fail");
+    assertFalse(mkr.clean(id, Tick.wrap(tick), 1 ether), "clean should fail");
   }
 
   function test_clean_on_reentrancy_fails() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mkr.newOfferByTick(olKey, 0, 1 ether, 160_000);
+    uint ofr = mkr.newOfferByTick(olKey, Tick.wrap(0), 1 ether, 160_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.cleanKO, (ofr, 0)));
     assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
@@ -644,17 +644,17 @@ contract GatekeepingTest is MangroveTest {
   /* Clean success */
 
   function cleanOK(OLKey memory _olKey, uint id, int tick) external {
-    assertTrue(mkr.clean(_olKey, id, tick, 0.5 ether), "clean should succeed");
+    assertTrue(mkr.clean(_olKey, id, Tick.wrap(tick), 0.5 ether), "clean should succeed");
   }
 
   function test_clean_on_reentrancy_in_swapped_pair_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint dual_ofr = dual_mkr.newOfferByTick(0, 1 ether, 200_000);
+    uint dual_ofr = dual_mkr.newOfferByTick(Tick.wrap(0), 1 ether, 200_000);
 
     mkr.setTradeCallback($(this), abi.encodeCall(this.cleanOK, (lo, dual_ofr, 0)));
-    uint ofr = mkr.newOfferByTick(olKey, 0, 1 ether, 450_000);
+    uint ofr = mkr.newOfferByTick(olKey, Tick.wrap(0), 1 ether, 450_000);
 
     assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
@@ -666,10 +666,10 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
     mkr.approveMgv(quote, 1 ether);
 
-    int tick2 = TickConversionLib.tickFromRatio(2, 0);
+    Tick tick2 = TickConversionLib.tickFromRatio(2, 0);
     uint other_ofr = other_mkr.newOfferByTick(tick2, 1 ether, 200_000);
 
-    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr, tick2)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr, Tick.unwrap(tick2))));
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 450_000);
 
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
@@ -950,15 +950,15 @@ contract GatekeepingTest is MangroveTest {
 
   function test_marketOrderByTick_extrema() public {
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderByTick(olKey, MAX_TICK + 1, 100, true);
+    mgv.marketOrderByTick(olKey, Tick.wrap(MAX_TICK + 1), 100, true);
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderByTick(olKey, MIN_TICK - 1, 100, true);
+    mgv.marketOrderByTick(olKey, Tick.wrap(MIN_TICK - 1), 100, true);
   }
 
   function test_marketOrderForByTick_extrema(address taker) public {
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderForByTick(olKey, MAX_TICK + 1, 100, true, taker);
+    mgv.marketOrderForByTick(olKey, Tick.wrap(MAX_TICK + 1), 100, true, taker);
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderForByTick(olKey, MIN_TICK - 1, 100, true, taker);
+    mgv.marketOrderForByTick(olKey, Tick.wrap(MIN_TICK - 1), 100, true, taker);
   }
 }

@@ -26,7 +26,7 @@ function toString(OfferPacked __packed) pure returns (string memory) {
 }
 
 function toString(OfferUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "tick: ", vm.toString(__unpacked.tick), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
+  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "tick: ", toString(__unpacked.tick), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
 }
 
 import {OfferDetailPacked, OfferDetailUnpacked} from "mgv_src/preprocessed/MgvOfferDetail.post.sol";
@@ -60,24 +60,24 @@ function binBranchToString(Bin tick) pure returns (string memory) {
   return string.concat(vm.toString(tick.posInRoot()), "->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel2()), "[", vm.toString(tick.level2Index()), "]->", vm.toString(tick.posInLevel3()), "[", vm.toString(tick.level3Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
 }
 
-function toString(Bin tick) pure returns (string memory ret) {
+function toString(Bin bin) pure returns (string memory ret) {
   string memory suffix;
-  if (MIN_BIN > Bin.unwrap(tick) || Bin.unwrap(tick) > MAX_BIN) {
+  if (MIN_BIN > Bin.unwrap(bin) || Bin.unwrap(bin) > MAX_BIN) {
     suffix = "out of range";
-  } else if (MIN_BIN_ALLOWED > Bin.unwrap(tick) || Bin.unwrap(tick) > MAX_BIN_ALLOWED) {
-    suffix = "out of tick range";
+  } else if (MIN_BIN_ALLOWED > Bin.unwrap(bin) || Bin.unwrap(bin) > MAX_BIN_ALLOWED) {
+    suffix = "out of bin range";
   } else {
-    suffix = tickToString(TickLib.fromBin(tick,1));
+    suffix = toString(BinLib.toNearestTick(bin,1));
   }
 
-  ret = string.concat(unicode"「", vm.toString(Bin.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", binBranchToString(tick), "}", unicode"」");
+  ret = string.concat(unicode"「", vm.toString(Bin.unwrap(bin))," (default: " ,suffix, ") {tree branch: ", binBranchToString(bin), "}", unicode"」");
 }
 
-function tickToString(int tick) pure returns (string memory ret) {
+function toString(Tick tick) pure returns (string memory ret) {
   (uint man, uint exp)  = TickConversionLib.ratioFromTick(tick);
   string memory str = toFixed(man,exp);
 
-  ret = string.concat(unicode"⦗ ",vm.toString(tick),"|", str,unicode":1 ⦘");
+  ret = string.concat(unicode"⦗ ",vm.toString(Tick.unwrap(tick)),"|", str,unicode":1 ⦘");
 }
 
 function toString(Leaf leaf) pure returns (string memory ret) {

@@ -310,7 +310,7 @@ abstract contract TickTreeTest is MangroveTest {
   }
 
   function add_n_offers_to_bin(Bin bin, uint n, bool offersFail) internal returns (uint[] memory offerIds, uint gives) {
-    int tick = TickLib.fromBin(bin, olKey.tickSpacing);
+    Tick tick = BinLib.toNearestTick(bin, olKey.tickSpacing);
     uint gasreq = 10_000_000;
     gives = getAcceptableGivesForBin(bin, gasreq);
     offerIds = new uint[](n);

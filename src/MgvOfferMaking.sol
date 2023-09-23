@@ -52,7 +52,7 @@ contract MgvOfferMaking is MgvHasOffers {
     }
   }
 
-  function newOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice)
+  function newOfferByTick(OLKey memory olKey, Tick tick, uint gives, uint gasreq, uint gasprice)
     public
     payable
     returns (uint offerId)
@@ -108,7 +108,7 @@ contract MgvOfferMaking is MgvHasOffers {
     }
   }
 
-  function updateOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice, uint offerId)
+  function updateOfferByTick(OLKey memory olKey, Tick tick, uint gives, uint gasreq, uint gasprice, uint offerId)
     public
     payable
   {
@@ -218,7 +218,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   /* ## Write Offer */
 
-  function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionTick, bool update) internal {
+  function writeOffer(OfferList storage offerList, OfferPack memory ofp, Tick insertionTick, bool update) internal {
     unchecked {
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(MgvStructs.Global.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
@@ -242,13 +242,15 @@ contract MgvOfferMaking is MgvHasOffers {
 
       uint tickSpacing = ofp.olKey.tickSpacing;
       // normalize tick to tickSpacing
-      Bin insertionBin = BinLib.tickToNearestHigherBin(insertionTick, tickSpacing);
-      insertionTick = TickLib.fromBin(insertionBin, tickSpacing);
+      Bin insertionBin = TickLib.toNearestBin(insertionTick, tickSpacing);
+      insertionTick = BinLib.toNearestTick(insertionBin, tickSpacing);
       require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;
-      emit OfferWrite(ofp.olKey.hash(), msg.sender, insertionTick, ofp.gives, ofp.gasprice, ofp.gasreq, ofrId);
+      emit OfferWrite(
+        ofp.olKey.hash(), msg.sender, Tick.unwrap(insertionTick), ofp.gives, ofp.gasprice, ofp.gasreq, ofrId
+      );
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       {

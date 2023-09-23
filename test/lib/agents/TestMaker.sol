@@ -290,29 +290,29 @@ contract SimpleTestMaker is TrivialTestMaker {
     return offerId;
   }
 
-  function newOfferByTick(int tick, uint gives, uint gasreq) public returns (uint) {
+  function newOfferByTick(Tick tick, uint gives, uint gasreq) public returns (uint) {
     return newOfferByTick(tick, gives, gasreq, 0);
   }
 
-  function newFailingOfferByTick(int tick, uint gives, uint gasreq) public returns (uint) {
+  function newFailingOfferByTick(Tick tick, uint gives, uint gasreq) public returns (uint) {
     return newOfferByTickWithFunding(
       olKey, tick, gives, gasreq, 0, 0, OfferData({shouldRevert: true, executeData: "someData"})
     );
   }
 
-  function newOfferByTick(int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+  function newOfferByTick(Tick tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
     return newOfferByTick(olKey, tick, gives, gasreq, gasprice);
   }
 
-  function newOfferByTick(OLKey memory _olKey, int tick, uint gives, uint gasreq) public returns (uint) {
+  function newOfferByTick(OLKey memory _olKey, Tick tick, uint gives, uint gasreq) public returns (uint) {
     return newOfferByTick(_olKey, tick, gives, gasreq, 0);
   }
 
-  function newOfferByTick(OLKey memory _olKey, int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+  function newOfferByTick(OLKey memory _olKey, Tick tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
     return newOfferByTickWithFunding(_olKey, tick, gives, gasreq, gasprice, 0);
   }
 
-  function newOfferByTickWithFunding(OLKey memory _ol, int tick, uint gives, uint gasreq, uint gasprice, uint amount)
+  function newOfferByTickWithFunding(OLKey memory _ol, Tick tick, uint gives, uint gasreq, uint gasprice, uint amount)
     public
     returns (uint)
   {
@@ -322,7 +322,7 @@ contract SimpleTestMaker is TrivialTestMaker {
 
   function newOfferByTickWithFunding(
     OLKey memory _ol,
-    int tick,
+    Tick tick,
     uint gives,
     uint gasreq,
     uint gasprice,
@@ -334,18 +334,18 @@ contract SimpleTestMaker is TrivialTestMaker {
     return offerId;
   }
 
-  function updateOfferByTick(int tick, uint gives, uint gasreq, uint offerId) public {
+  function updateOfferByTick(Tick tick, uint gives, uint gasreq, uint offerId) public {
     updateOfferByTick(tick, gives, gasreq, 0, offerId);
   }
 
-  function updateOfferByTick(int tick, uint gives, uint gasreq, uint gasprice, uint offerId) public {
+  function updateOfferByTick(Tick tick, uint gives, uint gasreq, uint gasprice, uint offerId) public {
     OfferData memory offerData;
     updateOfferByTickWithFunding(olKey, tick, gives, gasreq, gasprice, offerId, 0, offerData);
   }
 
   function updateOfferByTickWithFunding(
     OLKey memory _olKey,
-    int tick,
+    Tick tick,
     uint gives,
     uint gasreq,
     uint gasprice,
@@ -437,20 +437,20 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function clean(uint offerId, uint takerWants) public returns (bool success) {
-    int tick = mgv.offers(olKey, offerId).tick();
+    Tick tick = mgv.offers(olKey, offerId).tick();
     return clean(olKey, offerId, tick, takerWants);
   }
 
-  function clean(uint offerId, int tick, uint takerWants) public returns (bool success) {
+  function clean(uint offerId, Tick tick, uint takerWants) public returns (bool success) {
     return clean(olKey, offerId, tick, takerWants);
   }
 
   function clean(OLKey memory _olKey, uint offerId, uint takerWants) public returns (bool success) {
-    int tick = mgv.offers(olKey, offerId).tick();
+    Tick tick = mgv.offers(olKey, offerId).tick();
     return clean(_olKey, offerId, tick, takerWants);
   }
 
-  function clean(OLKey memory _olKey, uint offerId, int tick, uint takerWants) public returns (bool success) {
+  function clean(OLKey memory _olKey, uint offerId, Tick tick, uint takerWants) public returns (bool success) {
     MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](1);
     targets[0] = MgvLib.CleanTarget(offerId, tick, type(uint48).max, takerWants);
     (uint successes,) = mgv.cleanByImpersonation(_olKey, targets, address(this));

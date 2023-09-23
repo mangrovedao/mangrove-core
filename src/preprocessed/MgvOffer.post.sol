@@ -17,7 +17,7 @@ import "mgv_lib/Constants.sol";
 struct OfferUnpacked {
   uint prev;
   uint next;
-  int tick;
+  Tick tick;
   uint gives;
 }
 
@@ -123,7 +123,7 @@ library Library {
   function to_struct(OfferPacked __packed) internal pure returns (OfferUnpacked memory __s) { unchecked {
     __s.prev  = uint(OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
     __s.next  = uint(OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
-    __s.tick  = int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits));
+    __s.tick  = Tick.wrap(int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
     __s.gives = uint(OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
   }}
 
@@ -133,10 +133,10 @@ library Library {
   }}
 
   // from packed to a tuple
-  function unpack(OfferPacked __packed) internal pure returns (uint __prev, uint __next, int __tick, uint __gives) { unchecked {
+  function unpack(OfferPacked __packed) internal pure returns (uint __prev, uint __next, Tick __tick, uint __gives) { unchecked {
     __prev  = uint(OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
     __next  = uint(OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
-    __tick  = int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits));
+    __tick  = Tick.wrap(int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
     __gives = uint(OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
   }}
 
@@ -159,13 +159,13 @@ library Library {
     return OfferPacked.wrap((OfferPacked.unwrap(__packed) & next_mask) | (val << (256 - next_bits)) >> next_before);
   }}
   
-  function tick(OfferPacked __packed) internal pure returns(int) { unchecked {
-    return int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits));
+  function tick(OfferPacked __packed) internal pure returns(Tick) { unchecked {
+    return Tick.wrap(int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
   }}
 
   // setters
-  function tick(OfferPacked __packed,int val) internal pure returns(OfferPacked) { unchecked {
-    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & tick_mask) | (uint(val) << (256 - tick_bits)) >> tick_before);
+  function tick(OfferPacked __packed,Tick val) internal pure returns(OfferPacked) { unchecked {
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & tick_mask) | (uint(Tick.unwrap(val)) << (256 - tick_bits)) >> tick_before);
   }}
   
   function gives(OfferPacked __packed) internal pure returns(uint) { unchecked {
@@ -185,11 +185,11 @@ function t_of_struct(OfferUnpacked memory __s) pure returns (OfferPacked) { unch
 }}
 
 // from arguments to packed
-function pack(uint __prev, uint __next, int __tick, uint __gives) pure returns (OfferPacked) { unchecked {
+function pack(uint __prev, uint __next, Tick __tick, uint __gives) pure returns (OfferPacked) { unchecked {
   uint __packed;
   __packed |= (__prev << (256 - prev_bits)) >> prev_before;
   __packed |= (__next << (256 - next_bits)) >> next_before;
-  __packed |= (uint(__tick) << (256 - tick_bits)) >> tick_before;
+  __packed |= (uint(Tick.unwrap(__tick)) << (256 - tick_bits)) >> tick_before;
   __packed |= (__gives << (256 - gives_bits)) >> gives_before;
   return OfferPacked.wrap(__packed);
 }}
@@ -201,8 +201,8 @@ function prev_check(uint __prev) pure returns (bool) { unchecked {
 function next_check(uint __next) pure returns (bool) { unchecked {
   return (__next & next_cast_mask) == __next;
 }}
-function tick_check(int __tick) pure returns (bool) { unchecked {
-  return (uint(__tick) & tick_cast_mask) == uint(__tick);
+function tick_check(Tick __tick) pure returns (bool) { unchecked {
+  return (uint(Tick.unwrap(__tick)) & tick_cast_mask) == uint(Tick.unwrap(__tick));
 }}
 function gives_check(uint __gives) pure returns (bool) { unchecked {
   return (__gives & gives_cast_mask) == __gives;

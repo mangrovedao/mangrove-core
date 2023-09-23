@@ -35,7 +35,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume; // used globally
     uint feePaid; // used globally
     Leaf leaf;
-    int maxTick; // maxTick is the log of the max ratio that can be reached by the market order as a limit ratio.
+    Tick maxTick; // maxTick is the log of the max ratio that can be reached by the market order as a limit ratio.
     uint maxGasreqForFailingOffers;
     uint gasreqForFailingOffers;
     uint maxRecursionDepth;
@@ -58,11 +58,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+    Tick maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
     return marketOrderByTick(olKey, maxTick, fillVolume, fillWants);
   }
 
-  function marketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants)
+  function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
@@ -73,7 +73,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function marketOrderByTick(
     OLKey memory olKey,
-    int maxTick,
+    Tick maxTick,
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
@@ -153,7 +153,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function generalMarketOrder(
     OLKey memory olKey,
-    int maxTick,
+    Tick maxTick,
     uint fillVolume,
     bool fillWants,
     address taker,
@@ -225,8 +225,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     unchecked {
       if (
-        mor.fillVolume > 0 && sor.offer.tick() <= mor.maxTick && sor.offerId > 0 && mor.maxRecursionDepth > 0
-          && mor.gasreqForFailingOffers <= mor.maxGasreqForFailingOffers
+        mor.fillVolume > 0 && Tick.unwrap(sor.offer.tick()) <= Tick.unwrap(mor.maxTick) && sor.offerId > 0
+          && mor.maxRecursionDepth > 0 && mor.gasreqForFailingOffers <= mor.maxGasreqForFailingOffers
       ) {
         mor.maxRecursionDepth--;
 
@@ -389,7 +389,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   function internalCleanByImpersonation(
     OLKey memory olKey,
     uint offerId,
-    int tick,
+    Tick tick,
     uint gasreq,
     uint takerWants,
     address taker
@@ -429,7 +429,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. */
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
       /* A mismatched ratio will be detected by `execute`. */
-      require(sor.offer.tick() == tick, "mgv/clean/tickMismatch");
+      require(sor.offer.tick().eq(tick), "mgv/clean/tickMismatch");
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);

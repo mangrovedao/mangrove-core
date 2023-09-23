@@ -24,17 +24,19 @@ contract DynamicBinsTest is MangroveTest {
   function test_bin_to_tick(int24 _bin, uint16 tickSpacing) public {
     vm.assume(tickSpacing != 0);
     Bin bin = Bin.wrap(_bin);
-    assertEq(TickLib.fromBin(bin, tickSpacing), int(_bin) * int(uint(tickSpacing)), "wrong bin -> tick");
+    assertEq(BinLib.toNearestTick(bin, tickSpacing), Tick.wrap(int(_bin) * int(uint(tickSpacing))), "wrong bin -> tick");
   }
 
-  function test_tick_to_nearest_bin(int96 tick, uint16 _tickSpacing) public {
+  function test_tick_to_nearest_bin(int96 itick, uint16 _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
-    Bin bin = BinLib.tickToNearestHigherBin(tick, _tickSpacing);
-    assertGe(TickLib.fromBin(bin, _tickSpacing), tick, "tick -> bin -> tick must give same or lower bin");
+    Bin bin = TickLib.toNearestBin(Tick.wrap(itick), _tickSpacing);
+    assertGe(
+      Tick.unwrap(BinLib.toNearestTick(bin, _tickSpacing)), itick, "tick -> bin -> tick must give same or lower bin"
+    );
 
     int tickSpacing = int(uint(_tickSpacing));
-    int expectedBin = tick / tickSpacing;
-    if (tick > 0 && tick % tickSpacing != 0) {
+    int expectedBin = itick / tickSpacing;
+    if (itick > 0 && itick % tickSpacing != 0) {
       expectedBin = expectedBin + 1;
     }
     assertEq(Bin.unwrap(bin), expectedBin, "wrong tick -> bin");
@@ -43,8 +45,10 @@ contract DynamicBinsTest is MangroveTest {
   function test_aligned_tick_to_bin(int96 tick, uint _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
     vm.assume(tick % int(uint(_tickSpacing)) == 0);
-    Bin bin = BinLib.fromBinAlignedTick(tick, _tickSpacing);
-    assertEq(TickLib.fromBin(bin, _tickSpacing), tick, "aligned tick -> bin -> tick must give same tick");
+    Bin bin = BinLib.fromBinAlignedTick(Tick.wrap(tick), _tickSpacing);
+    assertEq(
+      BinLib.toNearestTick(bin, _tickSpacing), Tick.wrap(tick), "aligned tick -> bin -> tick must give same tick"
+    );
   }
 
   // get a valid tick from a random int24
@@ -63,11 +67,11 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     uint gives = 1 ether;
 
-    int insertionTick = int24(TickLib.fromBin(BinLib.tickToNearestHigherBin(tick, tickSpacing), tickSpacing));
+    Tick insertionTick = BinLib.toNearestTick(TickLib.toNearestBin(Tick.wrap(tick), tickSpacing), tickSpacing);
 
     vm.assume(TickLib.inRange(insertionTick));
 
-    uint ofr = mgv.newOfferByTick(olKey, tick, gives, 100_000, 30);
+    uint ofr = mgv.newOfferByTick(olKey, Tick.wrap(tick), gives, 100_000, 30);
     assertTrue(mgv.offers(olKey, ofr).isLive(), "ofr created at tickSpacing but not found there");
     assertFalse(mgv.offers(ol2, ofr).isLive(), "ofr created at tickSpacing but found at tickSpacing2");
     assertEq(mgv.offers(olKey, ofr).tick(), insertionTick, "ofr found at tickSpacing but with wrong ratio");
@@ -83,29 +87,31 @@ contract DynamicBinsTest is MangroveTest {
     OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
     uint gives = 1 ether;
 
-    int insertionTick = int24(TickLib.fromBin(BinLib.tickToNearestHigherBin(tick, tickSpacing), tickSpacing));
+    Tick insertionTick = BinLib.toNearestTick(TickLib.toNearestBin(Tick.wrap(tick), tickSpacing), tickSpacing);
     vm.assume(TickLib.inRange(insertionTick));
 
     mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.activate(ol2, 0, 100 << 32, 0);
-    uint ofr = mgv.newOfferByTick(ol2, 0, gives, 100_000, 30);
+    uint ofr = mgv.newOfferByTick(ol2, Tick.wrap(0), gives, 100_000, 30);
     assertTrue(mgv.offers(ol2, ofr).isLive(), "offer created at tickSpacing2 but not found there");
-    assertEq(mgv.offers(ol2, ofr).tick(), 0, "offer found at tickSpacing2 but with wrong ratio");
+    assertEq(mgv.offers(ol2, ofr).tick(), Tick.wrap(0), "offer found at tickSpacing2 but with wrong ratio");
     assertFalse(mgv.offers(olKey, ofr).isLive(), "offer created at tickSpacing2 but found at tickSpacing");
 
     // test fails if no existing offer
     vm.expectRevert("mgv/updateOffer/unauthorized");
-    mgv.updateOfferByTick(olKey, tick, gives, 100_000, 30, ofr);
+    mgv.updateOfferByTick(olKey, Tick.wrap(tick), gives, 100_000, 30, ofr);
 
     // test offers update does not touch another tickSpacing
-    uint ofr2 = mgv.newOfferByTick(olKey, 1, gives, 100_000, 30);
+    uint ofr2 = mgv.newOfferByTick(olKey, Tick.wrap(1), gives, 100_000, 30);
     assertEq(ofr, ofr2, "tickSpacing and tickSpacing2 seem to shares offer IDs");
-    mgv.updateOfferByTick(olKey, tick, gives, 100_000, 30, ofr2);
+    mgv.updateOfferByTick(olKey, Tick.wrap(tick), gives, 100_000, 30, ofr2);
     assertTrue(
       mgv.offers(ol2, ofr).isLive(),
       "creating offer with same ID as ofr in a different tickSpacing seems to have deleted ofr"
     );
-    assertEq(mgv.offers(ol2, ofr).tick(), 0, "creating offer with same ID as ofr seems to have changed its ratio");
+    assertEq(
+      mgv.offers(ol2, ofr).tick(), Tick.wrap(0), "creating offer with same ID as ofr seems to have changed its ratio"
+    );
     assertTrue(mgv.offers(olKey, ofr).isLive(), "offer created at new tickSpacing but not found there");
     assertEq(mgv.offers(olKey, ofr).tick(), insertionTick, "offer found at new tickSpacing but with wrong ratio");
   }
@@ -116,12 +122,12 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     vm.assume(tickSpacing != 0);
     uint gives = 1 ether;
-    Bin insertionBin = BinLib.tickToNearestHigherBin(tick, tickSpacing);
-    int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
+    Bin insertionBin = TickLib.toNearestBin(Tick.wrap(tick), tickSpacing);
+    Tick insertionTick = BinLib.toNearestTick(insertionBin, tickSpacing);
     vm.assume(TickLib.inRange(insertionTick));
 
     mgv.activate(olKey, 0, 100 << 32, 0);
-    mgv.newOfferByTick(olKey, tick, gives, 100_000, 30);
+    mgv.newOfferByTick(olKey, Tick.wrap(tick), gives, 100_000, 30);
     assertEq(
       mgv.leafs(olKey, insertionBin.leafIndex()).firstOfferPosition(), insertionBin.posInLeaf(), "wrong pos in leaf"
     );
@@ -151,7 +157,7 @@ contract DynamicBinsTest is MangroveTest {
     mgv.activate(olKey, 0, 0, 0);
 
     vm.expectRevert(stdError.divisionError);
-    mgv.newOfferByTick(olKey, tick, gives, 100_00, 30);
+    mgv.newOfferByTick(olKey, Tick.wrap(tick), gives, 100_00, 30);
   }
 
   function test_id_is_correct(OLKey memory olKey) public {
@@ -170,16 +176,18 @@ contract DynamicBinsTest is MangroveTest {
     vm.assume(tickSpacing != 0);
     vm.assume(int(tick) % int(uint(tickSpacing)) != 0);
     tick = boundTick(tick);
-    Bin insertionBin = BinLib.tickToNearestHigherBin(tick, tickSpacing);
-    int insertionTick = int24(TickLib.fromBin(insertionBin, tickSpacing));
+    Bin insertionBin = TickLib.toNearestBin(Tick.wrap(tick), tickSpacing);
+    Tick insertionTick = BinLib.toNearestTick(insertionBin, tickSpacing);
     vm.assume(TickLib.inRange(insertionTick));
     olKey.tickSpacing = tickSpacing;
 
     mgv.activate(olKey, 0, 100 << 32, 0);
-    uint id = mgv.newOfferByTick(olKey, tick, 1 ether, 100_00, 30);
-    assertEq(mgv.offers(olKey, id).tick(), insertionTick, "recorded tick does not match nearest higher bin");
+    uint id = mgv.newOfferByTick(olKey, Tick.wrap(tick), 1 ether, 100_00, 30);
+    assertEq(mgv.offers(olKey, id).tick(), insertionTick, "recorded tick does not match nearest lower tick");
     assertEq(
-      int(mgv.offers(olKey, id).tick()) % int(uint(tickSpacing)), 0, "recorded tick should be a multiple of tickSpacing"
+      Tick.unwrap(mgv.offers(olKey, id).tick()) % int(uint(tickSpacing)),
+      0,
+      "recorded tick should be a multiple of tickSpacing"
     );
   }
 }

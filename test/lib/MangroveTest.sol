@@ -20,6 +20,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {
   IERC20,
   MgvLib,
+  Tick,
   HasMgvEvents,
   IMaker,
   ITaker,
@@ -177,7 +178,7 @@ contract MangroveTest is Test2, HasMgvEvents {
           string.concat(toFixed(ofr.wants(), req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
           string.concat(toFixed(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
-          string.concat(" (", vm.toString(ofr.tick), ") "),
+          string.concat(" (", toString(ofr.tick), ") "),
           vm.toString(detail.maker)
         )
       );
@@ -285,7 +286,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     return tt;
   }
 
-  function mockCompleteFillBuyOrder(uint takerWants, int tick) public view returns (MgvLib.SingleOrder memory sor) {
+  function mockCompleteFillBuyOrder(uint takerWants, Tick tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = olKey;
     // complete fill (prev and next are bogus)
     sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
@@ -295,7 +296,7 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   function mockPartialFillBuyOrder(
     uint takerWants,
-    int tick,
+    Tick tick,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
@@ -308,7 +309,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     result.mgvData = "mgv/tradeSuccess";
   }
 
-  function mockCompleteFillSellOrder(uint takerWants, int tick) public view returns (MgvLib.SingleOrder memory sor) {
+  function mockCompleteFillSellOrder(uint takerWants, Tick tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = lo;
     // complete fill (prev and next are bogus)
     sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
@@ -318,7 +319,7 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   function mockPartialFillSellOrder(
     uint takerWants,
-    int tick,
+    Tick tick,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
@@ -420,7 +421,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   /// creates `fold` offers in the (outbound, inbound) market with the same `tick`, `gives` and `gasreq` and with `caller` as maker
-  function densify(OLKey memory _ol, int tick, uint gives, uint gasreq, uint fold, address caller) internal {
+  function densify(OLKey memory _ol, Tick tick, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
@@ -440,6 +441,22 @@ contract MangroveTest is Test2, HasMgvEvents {
       densify(_ol, offer.tick(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(_ol, offer);
+    }
+  }
+
+  function assertEq(Tick a, Tick b) internal {
+    if (!a.eq(b)) {
+      emit log("Error: a == b not satisfied [TIck]");
+      emit log_named_string("      Left", toString(a));
+      emit log_named_string("     Right", toString(b));
+      fail();
+    }
+  }
+
+  function assertEq(Tick a, Tick b, string memory err) internal {
+    if (!a.eq(b)) {
+      emit log_named_string("Error", err);
+      assertEq(a, b);
     }
   }
 

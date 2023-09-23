@@ -8,7 +8,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 pragma experimental ABIEncoderV2;
 
-import {MgvLib, MgvStructs, IMaker, OLKey, HasMgvEvents} from "./MgvLib.sol";
+import {MgvLib, MgvStructs, IMaker, OLKey, HasMgvEvents, Tick} from "./MgvLib.sol";
 import "./MgvLib.sol" as MgvLibWrapper;
 
 interface IMangrove is HasMgvEvents {
@@ -45,7 +45,7 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants)
+  function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
@@ -53,7 +53,7 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByTick(OLKey memory olKey, int tick, uint fillVolume, bool fillWants, address taker)
+  function marketOrderForByTick(OLKey memory olKey, Tick tick, uint fillVolume, bool fillWants, address taker)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
@@ -80,7 +80,7 @@ interface IMangrove is HasMgvEvents {
     payable
     returns (uint offerId);
 
-  function newOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice)
+  function newOfferByTick(OLKey memory olKey, Tick tick, uint gives, uint gasreq, uint gasprice)
     external
     payable
     returns (uint offerId);
@@ -89,13 +89,13 @@ interface IMangrove is HasMgvEvents {
     external
     payable;
 
-  function updateOfferByTick(OLKey memory olKey, int tick, uint gives, uint gasreq, uint gasprice, uint offerId)
+  function updateOfferByTick(OLKey memory olKey, Tick tick, uint gives, uint gasreq, uint gasprice, uint offerId)
     external
     payable;
 
   function marketOrderByTick(
     OLKey memory olKey,
-    int maxTick,
+    Tick maxTick,
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
@@ -189,7 +189,7 @@ interface IMangrove is HasMgvEvents {
   function internalCleanByImpersonation(
     OLKey memory olKey,
     uint offerId,
-    int tick,
+    Tick tick,
     uint gasreq,
     uint takerWants,
     address taker

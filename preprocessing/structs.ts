@@ -105,7 +105,7 @@ const struct_defs = {
       id_field("prev"),
       /* * `next` points to the immediately worse offer. The worst offer's `next` is 0. _32 bits wide_. */
       id_field("next"),
-      {name:"tick",bits:24,type:"int"},
+      {name:"tick",bits:24,type:"Tick",underlyingType: "int"},
       /* * `gives` is the amount of `outbound_tkn` the offer will give if successfully executed.
       _96 bits wide_, so assuming the usual 18 decimals, amounts can only go up to
       10 billions. */

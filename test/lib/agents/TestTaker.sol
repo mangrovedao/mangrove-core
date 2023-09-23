@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {IERC20, ITaker, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
@@ -55,15 +55,15 @@ contract TestTaker is ITaker, Script2 {
     public
     returns (uint bounty)
   {
-    int tick = _mgv.offers(_olKey, offerId).tick();
+    Tick tick = _mgv.offers(_olKey, offerId).tick();
     return cleanByTickWithInfo(_mgv, _olKey, offerId, tick, takerWants, gasreq);
   }
 
-  function cleanByTick(uint offerId, int tick, uint takerWants, uint gasreq) public returns (bool success) {
+  function cleanByTick(uint offerId, Tick tick, uint takerWants, uint gasreq) public returns (bool success) {
     return this.cleanByTick(mgv, olKey, offerId, tick, takerWants, gasreq);
   }
 
-  function cleanByTick(IMangrove _mgv, OLKey memory _olKey, uint offerId, int tick, uint takerWants, uint gasreq)
+  function cleanByTick(IMangrove _mgv, OLKey memory _olKey, uint offerId, Tick tick, uint takerWants, uint gasreq)
     public
     returns (bool success)
   {
@@ -75,7 +75,7 @@ contract TestTaker is ITaker, Script2 {
     IMangrove _mgv,
     OLKey memory _olKey,
     uint offerId,
-    int tick,
+    Tick tick,
     uint takerWants,
     uint gasreq
   ) public returns (uint bounty) {

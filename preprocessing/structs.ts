@@ -135,7 +135,7 @@ library OfferPackedExtra {
   }
   function bin(OfferPacked offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return offer.tick().alignedToNearestBin(tickSpacing);
+    return offer.tick().nearestBin(tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -160,7 +160,7 @@ library OfferUnpackedExtra {
   }
   function bin(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return offer.tick.alignedToNearestBin(tickSpacing);
+    return offer.tick.nearestBin(tickSpacing);
   }
 
 }

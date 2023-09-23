@@ -21,23 +21,15 @@ library TickLib {
   }
 
   // Returns the nearest, higher bin to the given tick at the given tickSpacing
-  function nearestBin(Tick tick, uint tickSpacing) internal pure returns (Bin) {
+  function nearestBin(Tick tick, uint tickSpacing) internal pure returns (Bin bin) {
+    // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
+    // Round maker ratios up such that maker is always paid at least what they asked for
     unchecked {
-      // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
-      // Round maker ratios up such that maker is always paid at least what they asked for
-      int bin = Tick.unwrap(tick) / int(tickSpacing);
-      if (Tick.unwrap(tick) > 0 && Tick.unwrap(tick) % int(tickSpacing) != 0) {
-        bin = bin + 1;
+      assembly("memory-safe") {
+        bin := sdiv(tick,tickSpacing)
+        bin := add(bin,sgt(smod(tick,tickSpacing),0))
       }
-      return Bin.wrap(bin);
     }
-  }
-
-
-  // Optimized conversion for ticks that are known to map exactly to a bin at the given tickSpacing,
-  // eg for offers in the offer list which are always written with a tick-aligned tick
-  function alignedToNearestBin(Tick tick, uint tickSpacing) internal pure returns (Bin) {
-    return Bin.wrap(Tick.unwrap(tick) / int(tickSpacing));
   }
 
   // bin underestimates the ratio, so we underestimate  inbound here, i.e. the inbound/outbound ratio will again be underestimated

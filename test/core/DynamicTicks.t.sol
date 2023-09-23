@@ -43,7 +43,7 @@ contract DynamicBinsTest is MangroveTest {
   function test_aligned_tick_to_bin(int96 tick, uint _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
     vm.assume(tick % int(uint(_tickSpacing)) == 0);
-    Bin bin = Tick.wrap(tick).alignedToNearestBin(_tickSpacing);
+    Bin bin = Tick.wrap(tick).nearestBin(_tickSpacing);
     assertEq(bin.tick(_tickSpacing), Tick.wrap(tick), "aligned tick -> bin -> tick must give same tick");
   }
 

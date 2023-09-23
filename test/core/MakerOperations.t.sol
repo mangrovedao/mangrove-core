@@ -1051,7 +1051,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_leaf_update_both_first_and_last(Tick tick) public {
     tick = Tick.wrap(bound(Tick.unwrap(tick), MIN_TICK, MAX_TICK));
     uint ofr0 = mgv.newOfferByTick(olKey, tick, 1 ether, 0, 0);
-    Bin bin = olKey.bin(tick);
+    Bin bin = olKey.nearestBin(tick);
     Leaf expected = LeafLib.EMPTY;
     expected = expected.setPosFirstOrLast(bin.posInLeaf(), ofr0, true);
     expected = expected.setPosFirstOrLast(bin.posInLeaf(), ofr0, false);

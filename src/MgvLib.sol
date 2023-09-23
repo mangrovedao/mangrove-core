@@ -36,13 +36,13 @@ library OLLib {
   }
 
   // Convert tick to bin according to olKey's tickSpacing
-  function bin(OLKey memory olKey, Tick _tick) internal pure returns (Bin) {
-    return _tick.toNearestBin(olKey.tickSpacing);
+  function nearestBin(OLKey memory olKey, Tick _tick) internal pure returns (Bin) {
+    return _tick.nearestBin(olKey.tickSpacing);
   }
 
   // Convert bin to tick according to olKey's tickSpacing
   function tick(OLKey memory olKey, Bin _bin) internal pure returns (Tick) {
-    return _bin.toNearestTick(olKey.tickSpacing);
+    return _bin.tick(olKey.tickSpacing);
   }
 }
 

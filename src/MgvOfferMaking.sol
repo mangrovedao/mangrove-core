@@ -242,8 +242,8 @@ contract MgvOfferMaking is MgvHasOffers {
 
       uint tickSpacing = ofp.olKey.tickSpacing;
       // normalize tick to tickSpacing
-      Bin insertionBin = insertionTick.toNearestBin(tickSpacing);
-      insertionTick = insertionBin.toNearestTick(tickSpacing);
+      Bin insertionBin = insertionTick.nearestBin(tickSpacing);
+      insertionTick = insertionBin.tick(tickSpacing);
       require(insertionTick.inRange(), "mgv/writeOffer/tick/outOfRange");
 
       /* Log the write offer event. */

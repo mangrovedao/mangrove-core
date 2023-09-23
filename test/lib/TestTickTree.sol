@@ -545,7 +545,7 @@ contract TestTickTree is MangroveTest {
     // console.log("leaf after: %s", toString(leafs[bin.leafIndex()]));
 
     // Create offer
-    Tick tick = bin.toNearestTick(olKey.tickSpacing);
+    Tick tick = bin.tick(olKey.tickSpacing);
     offers[offerId].offer = MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: tick, __gives: gives});
     offers[offerId].detail = MgvStructs.OfferDetail.pack({
       __maker: maker,

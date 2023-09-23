@@ -128,8 +128,8 @@ library TickConversionLib {
 
     int log_bp_ratio = log2ratio * 127869479499801913173570;
 
-    int24 tickLow = int24((log_bp_ratio - 1701479891078076505009565712080972645) >> 128);
-    int24 tickHigh = int24((log_bp_ratio + 290040965921304576580754310682015830659) >> 128);
+    int tickLow = int((log_bp_ratio - 1701479891078076505009565712080972645) >> 128);
+    int tickHigh = int((log_bp_ratio + 290040965921304576580754310682015830659) >> 128);
 
     (uint mantissaHigh, uint expHigh) = ratioFromTick(Tick.wrap(tickHigh));
 

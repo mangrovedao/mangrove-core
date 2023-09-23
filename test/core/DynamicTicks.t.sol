@@ -24,13 +24,13 @@ contract DynamicBinsTest is MangroveTest {
   function test_bin_to_tick(int24 _bin, uint16 tickSpacing) public {
     vm.assume(tickSpacing != 0);
     Bin bin = Bin.wrap(_bin);
-    assertEq(bin.toNearestTick(tickSpacing), Tick.wrap(int(_bin) * int(uint(tickSpacing))), "wrong bin -> tick");
+    assertEq(bin.tick(tickSpacing), Tick.wrap(int(_bin) * int(uint(tickSpacing))), "wrong bin -> tick");
   }
 
-  function test_tick_to_nearest_bin(int96 itick, uint16 _tickSpacing) public {
+  function test_tick_to_nearest_bin(int24 itick, uint16 _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
-    Bin bin = Tick.wrap(itick).toNearestBin(_tickSpacing);
-    assertGe(Tick.unwrap(bin.toNearestTick(_tickSpacing)), itick, "tick -> bin -> tick must give same or lower bin");
+    Bin bin = Tick.wrap(itick).nearestBin(_tickSpacing);
+    assertGe(Tick.unwrap(bin.tick(_tickSpacing)), itick, "tick -> bin -> tick must give same or lower bin");
 
     int tickSpacing = int(uint(_tickSpacing));
     int expectedBin = itick / tickSpacing;
@@ -44,7 +44,7 @@ contract DynamicBinsTest is MangroveTest {
     vm.assume(_tickSpacing != 0);
     vm.assume(tick % int(uint(_tickSpacing)) == 0);
     Bin bin = Tick.wrap(tick).alignedToNearestBin(_tickSpacing);
-    assertEq(bin.toNearestTick(_tickSpacing), Tick.wrap(tick), "aligned tick -> bin -> tick must give same tick");
+    assertEq(bin.tick(_tickSpacing), Tick.wrap(tick), "aligned tick -> bin -> tick must give same tick");
   }
 
   // get a valid tick from a random int24
@@ -63,7 +63,7 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     uint gives = 1 ether;
 
-    Tick insertionTick = Tick.wrap(tick).toNearestBin(tickSpacing).toNearestTick(tickSpacing);
+    Tick insertionTick = Tick.wrap(tick).nearestBin(tickSpacing).tick(tickSpacing);
 
     vm.assume(insertionTick.inRange());
 
@@ -83,7 +83,7 @@ contract DynamicBinsTest is MangroveTest {
     OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
     uint gives = 1 ether;
 
-    Tick insertionTick = Tick.wrap(tick).toNearestBin(tickSpacing).toNearestTick(tickSpacing);
+    Tick insertionTick = Tick.wrap(tick).nearestBin(tickSpacing).tick(tickSpacing);
     vm.assume(insertionTick.inRange());
 
     mgv.activate(olKey, 0, 100 << 32, 0);
@@ -118,8 +118,8 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     vm.assume(tickSpacing != 0);
     uint gives = 1 ether;
-    Bin insertionBin = Tick.wrap(tick).toNearestBin(tickSpacing);
-    Tick insertionTick = insertionBin.toNearestTick(tickSpacing);
+    Bin insertionBin = Tick.wrap(tick).nearestBin(tickSpacing);
+    Tick insertionTick = insertionBin.tick(tickSpacing);
     vm.assume(insertionTick.inRange());
 
     mgv.activate(olKey, 0, 100 << 32, 0);
@@ -172,8 +172,8 @@ contract DynamicBinsTest is MangroveTest {
     vm.assume(tickSpacing != 0);
     vm.assume(int(tick) % int(uint(tickSpacing)) != 0);
     tick = boundTick(tick);
-    Bin insertionBin = Tick.wrap(tick).toNearestBin(tickSpacing);
-    Tick insertionTick = insertionBin.toNearestTick(tickSpacing);
+    Bin insertionBin = Tick.wrap(tick).nearestBin(tickSpacing);
+    Tick insertionTick = insertionBin.tick(tickSpacing);
     vm.assume(insertionTick.inRange());
     olKey.tickSpacing = tickSpacing;
 

@@ -67,7 +67,7 @@ function toString(Bin bin) pure returns (string memory ret) {
   } else if (MIN_BIN_ALLOWED > Bin.unwrap(bin) || Bin.unwrap(bin) > MAX_BIN_ALLOWED) {
     suffix = "out of bin range";
   } else {
-    suffix = toString(BinLib.toNearestTick(bin,1));
+    suffix = toString(bin.tick(1));
   }
 
   ret = string.concat(unicode"「", vm.toString(Bin.unwrap(bin))," (default: " ,suffix, ") {tree branch: ", binBranchToString(bin), "}", unicode"」");

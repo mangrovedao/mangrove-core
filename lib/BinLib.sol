@@ -195,7 +195,7 @@ library BinLib {
     }
   }
 
-  function toNearestTick(Bin bin, uint tickSpacing) internal pure returns (Tick) {
+  function tick(Bin bin, uint tickSpacing) internal pure returns (Tick) {
     return Tick.wrap(Bin.unwrap(bin) * int(tickSpacing));
   }
 

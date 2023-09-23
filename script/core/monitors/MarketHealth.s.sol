@@ -40,7 +40,7 @@ import {Bin} from "mgv_lib/BinLib.sol";
  */
 /**
  * Usage: testing status of buy orders on the WMATIC,USDT market for volumes of up to 100,000 WMATIC (display units)
- *  VOLUME=$(cast ff 18 100000) TKN_IN=USDT TKN_OUT=WMATIC \
+ *  VOLUME=$(cast ff 18 100000) TKN_IN=USDT TKN_OUT=WMATIC TICK_SPACING=1 \
  *  forge script --fork-url mumbai MarketHealth
  */
 contract MarketHealth is Test2, Deployer {

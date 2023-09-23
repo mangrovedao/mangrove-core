@@ -224,7 +224,7 @@ library BinLib {
     }
   }
 
-  // ok because 2^BIN_BITS%BINS_PER_LEAF=0
+  // ok because 2^TICK_BITS%BINS_PER_LEAF=0
   // note "posIn*"
   // could instead write uint(bin) / a % b
   // but it's less explicit why it works:
@@ -278,7 +278,7 @@ library BinLib {
   }
 
   // see note posIn*
-  // note with int24 bin we only use 2 bits in root
+  // note with int20 bin we only use 2 bits in root
   //   root single node
   // <--------------------->
   //  1                  0

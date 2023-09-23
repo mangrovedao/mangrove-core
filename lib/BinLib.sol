@@ -278,7 +278,7 @@ library BinLib {
   }
 
   // see note posIn*
-  // note with int20 bin we only use 2 bits in root
+  // note with int21 bin we only use 2 bits in root
   //   root single node
   // <--------------------->
   //  1                  0

@@ -162,7 +162,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     unchecked {
       /* Checking that `takerWants` and `takerGives` fit in 104 bits prevents overflow during the main market order loop. */
       require(fillVolume <= MAX_SAFE_VOLUME, "mgv/mOrder/fillVolume/tooBig");
-      require(TickLib.inRange(maxTick), "mgv/mOrder/tick/outOfRange");
+      require(maxTick.inRange(), "mgv/mOrder/tick/outOfRange");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;
@@ -400,7 +400,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       MultiOrder memory mor;
       {
-        require(TickLib.inRange(tick), "mgv/clean/tick/outOfRange");
+        require(tick.inRange(), "mgv/clean/tick/outOfRange");
         mor.maxTick = tick;
       }
       {
@@ -497,11 +497,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           sor.takerGives = offerWants;
         } else {
           if (mor.fillWants) {
-            sor.takerGives = TickLib.inboundFromOutboundUp(sor.offer.tick(), fillVolume);
+            sor.takerGives = sor.offer.tick().inboundFromOutboundUp(fillVolume);
             sor.takerWants = fillVolume;
           } else {
             // offerWants = 0 is forbidden at offer writing
-            sor.takerWants = TickLib.outboundFromInbound(sor.offer.tick(), fillVolume);
+            sor.takerWants = sor.offer.tick().outboundFromInbound(fillVolume);
             sor.takerGives = fillVolume;
           }
         }

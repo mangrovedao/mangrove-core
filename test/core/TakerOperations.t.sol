@@ -191,9 +191,9 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(base));
     emit Transfer($(mgv), $(this), 1.1 ether);
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), $(this), ofr2, 0.1 ether, TickLib.inboundFromOutbound(offerTick2, 0.1 ether));
+    emit OfferSuccess(olKey.hash(), $(this), ofr2, 0.1 ether, offerTick2.inboundFromOutbound(0.1 ether));
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), $(this), ofr1, 1 ether, TickLib.inboundFromOutbound(offerTick1, 1 ether));
+    emit OfferSuccess(olKey.hash(), $(this), ofr1, 1 ether, offerTick1.inboundFromOutbound(1 ether));
     expectFrom($(mgv));
     emit OrderComplete(olKey.hash(), $(this), 0);
 
@@ -538,7 +538,7 @@ contract TakerOperationsTest is MangroveTest {
       $(this),
       ofr,
       takerWants,
-      TickLib.inboundFromOutboundUp(offer.tick(), takerWants),
+      offer.tick().inboundFromOutboundUp(takerWants),
       /*penalty*/
       0,
       "mgv/makerTransferFail"
@@ -1067,12 +1067,12 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 10_000 ether);
     bin = Bin.wrap(bound(Bin.unwrap(bin), -100, 100));
     Bin firstPostedBin = Bin.wrap(Bin.unwrap(bin) - (crossBin ? int(1) : int(0)));
-    mkr.newOfferByTick(BinLib.toNearestTick(firstPostedBin, olKey.tickSpacing), 1 ether, 100_000);
-    mkr.newOfferByTick(BinLib.toNearestTick(bin, olKey.tickSpacing), 1 ether, 100_000);
-    uint ofr3 = mkr.newOfferByTick(BinLib.toNearestTick(bin, olKey.tickSpacing), 1 ether, 100_000);
-    uint ofr4 = mkr.newOfferByTick(BinLib.toNearestTick(bin, olKey.tickSpacing), 1 ether, 100_000);
+    mkr.newOfferByTick(olKey.tick(firstPostedBin), 1 ether, 100_000);
+    mkr.newOfferByTick(olKey.tick(bin), 1 ether, 100_000);
+    uint ofr3 = mkr.newOfferByTick(olKey.tick(bin), 1 ether, 100_000);
+    uint ofr4 = mkr.newOfferByTick(olKey.tick(bin), 1 ether, 100_000);
     uint volume = leaveOneOnly ? 3 ether : 2 ether;
-    mgv.marketOrderByTick(olKey, BinLib.toNearestTick(bin, olKey.tickSpacing), volume, true);
+    mgv.marketOrderByTick(olKey, olKey.tick(bin), volume, true);
 
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
     MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);
@@ -1092,7 +1092,7 @@ contract TakerOperationsTest is MangroveTest {
   This test just considers as many offers as possible that each have a maximal `wants` and makes sure the error will be about stack overflow, not uint overflow. 
   */
   function test_maximal_wants_is_ok() public {
-    uint maxOfferWants = TickLib.inboundFromOutboundUp(Tick.wrap(MAX_TICK), type(uint96).max);
+    uint maxOfferWants = Tick.wrap(MAX_TICK).inboundFromOutboundUp(type(uint96).max);
     unchecked {
       uint recp = mgv.global().maxRecursionDepth() + 1;
       assertTrue(

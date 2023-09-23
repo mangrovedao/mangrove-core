@@ -33,6 +33,13 @@ library TickLib {
     }
   }
 
+
+  // Optimized conversion for ticks that are known to map exactly to a bin at the given tickSpacing,
+  // eg for offers in the offer list which are always written with a tick-aligned tick
+  function alignedToNearestBin(Tick tick, uint tickSpacing) internal pure returns (Bin) {
+    return Bin.wrap(Tick.unwrap(tick) / int(tickSpacing));
+  }
+
   // bin underestimates the ratio, so we underestimate  inbound here, i.e. the inbound/outbound ratio will again be underestimated
   // no overflow if outboundAmt is on 104 bits
   // rounds down

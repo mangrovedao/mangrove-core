@@ -304,7 +304,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     sor.olKey = _olBaseQuote;
     sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
-    sor.takerGives = TickLib.inboundFromOutboundUp(tick, takerWants);
+    sor.takerGives = tick.inboundFromOutboundUp(takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }
@@ -327,7 +327,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     sor.olKey = _olBaseQuote.flipped();
     sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
-    sor.takerGives = TickLib.inboundFromOutboundUp(tick, takerWants);
+    sor.takerGives = tick.inboundFromOutboundUp(takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }

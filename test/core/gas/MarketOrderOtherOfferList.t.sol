@@ -75,7 +75,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   function test_market_order_by_volume_full() public {
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     uint takerGives = 0.00001 ether;
-    uint takerWants = TickLib.outboundFromInbound(_olKey.tick(MIDDLE_BIN), takerGives);
+    uint takerWants = _olKey.tick(MIDDLE_BIN).outboundFromInbound(takerGives);
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByVolume(_olKey, takerWants, takerGives, false);

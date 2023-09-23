@@ -100,14 +100,14 @@ library LeafLib {
 
   function setBinFirst(Leaf leaf, Bin bin, uint id) internal pure returns (Leaf) {
     unchecked {
-      uint posInLeaf = BinLib.posInLeaf(bin);
+      uint posInLeaf = bin.posInLeaf();
       return setPosFirstOrLast(leaf, posInLeaf, id, false);
     }
   }
 
   function setBinLast(Leaf leaf, Bin bin, uint id) internal pure returns (Leaf) {
     unchecked {
-      uint posInLeaf = BinLib.posInLeaf(bin);
+      uint posInLeaf = bin.posInLeaf();
       return setPosFirstOrLast(leaf, posInLeaf, id, true);
     }
   }
@@ -130,13 +130,13 @@ library LeafLib {
 
   function firstOfBin(Leaf leaf, Bin bin) internal pure returns (uint) {
     unchecked {
-      return firstOfPos(leaf, BinLib.posInLeaf(bin));
+      return firstOfPos(leaf, bin.posInLeaf());
     }
   }
 
   function lastOfBin(Leaf leaf, Bin bin) internal pure returns (uint) {
     unchecked {
-      return lastOfPos(leaf, BinLib.posInLeaf(bin));
+      return lastOfPos(leaf, bin.posInLeaf());
     }
   }
 
@@ -183,12 +183,6 @@ library BinLib {
     unchecked {
       return Bin.unwrap(bin) >= MIN_BIN && Bin.unwrap(bin) <= MAX_BIN;
     }
-  }
-
-  // Optimized conversion for ticks that are known to map exactly to a bin at the given tickSpacing,
-  // eg for offers in the offer list which are always written with a tick-aligned tick
-  function fromBinAlignedTick(Tick tick, uint tickSpacing) internal pure returns (Bin) {
-    return Bin.wrap(Tick.unwrap(tick) / int(tickSpacing));
   }
 
   // Utility for tests&unpacked structs, less gas-optimal

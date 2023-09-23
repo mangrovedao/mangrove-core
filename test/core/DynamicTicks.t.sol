@@ -24,15 +24,13 @@ contract DynamicBinsTest is MangroveTest {
   function test_bin_to_tick(int24 _bin, uint16 tickSpacing) public {
     vm.assume(tickSpacing != 0);
     Bin bin = Bin.wrap(_bin);
-    assertEq(BinLib.toNearestTick(bin, tickSpacing), Tick.wrap(int(_bin) * int(uint(tickSpacing))), "wrong bin -> tick");
+    assertEq(bin.toNearestTick(tickSpacing), Tick.wrap(int(_bin) * int(uint(tickSpacing))), "wrong bin -> tick");
   }
 
   function test_tick_to_nearest_bin(int96 itick, uint16 _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
-    Bin bin = TickLib.toNearestBin(Tick.wrap(itick), _tickSpacing);
-    assertGe(
-      Tick.unwrap(BinLib.toNearestTick(bin, _tickSpacing)), itick, "tick -> bin -> tick must give same or lower bin"
-    );
+    Bin bin = Tick.wrap(itick).toNearestBin(_tickSpacing);
+    assertGe(Tick.unwrap(bin.toNearestTick(_tickSpacing)), itick, "tick -> bin -> tick must give same or lower bin");
 
     int tickSpacing = int(uint(_tickSpacing));
     int expectedBin = itick / tickSpacing;
@@ -45,10 +43,8 @@ contract DynamicBinsTest is MangroveTest {
   function test_aligned_tick_to_bin(int96 tick, uint _tickSpacing) public {
     vm.assume(_tickSpacing != 0);
     vm.assume(tick % int(uint(_tickSpacing)) == 0);
-    Bin bin = BinLib.fromBinAlignedTick(Tick.wrap(tick), _tickSpacing);
-    assertEq(
-      BinLib.toNearestTick(bin, _tickSpacing), Tick.wrap(tick), "aligned tick -> bin -> tick must give same tick"
-    );
+    Bin bin = Tick.wrap(tick).alignedToNearestBin(_tickSpacing);
+    assertEq(bin.toNearestTick(_tickSpacing), Tick.wrap(tick), "aligned tick -> bin -> tick must give same tick");
   }
 
   // get a valid tick from a random int24
@@ -67,9 +63,9 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     uint gives = 1 ether;
 
-    Tick insertionTick = BinLib.toNearestTick(TickLib.toNearestBin(Tick.wrap(tick), tickSpacing), tickSpacing);
+    Tick insertionTick = Tick.wrap(tick).toNearestBin(tickSpacing).toNearestTick(tickSpacing);
 
-    vm.assume(TickLib.inRange(insertionTick));
+    vm.assume(insertionTick.inRange());
 
     uint ofr = mgv.newOfferByTick(olKey, Tick.wrap(tick), gives, 100_000, 30);
     assertTrue(mgv.offers(olKey, ofr).isLive(), "ofr created at tickSpacing but not found there");
@@ -87,8 +83,8 @@ contract DynamicBinsTest is MangroveTest {
     OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
     uint gives = 1 ether;
 
-    Tick insertionTick = BinLib.toNearestTick(TickLib.toNearestBin(Tick.wrap(tick), tickSpacing), tickSpacing);
-    vm.assume(TickLib.inRange(insertionTick));
+    Tick insertionTick = Tick.wrap(tick).toNearestBin(tickSpacing).toNearestTick(tickSpacing);
+    vm.assume(insertionTick.inRange());
 
     mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.activate(ol2, 0, 100 << 32, 0);
@@ -122,9 +118,9 @@ contract DynamicBinsTest is MangroveTest {
     tick = boundTick(tick);
     vm.assume(tickSpacing != 0);
     uint gives = 1 ether;
-    Bin insertionBin = TickLib.toNearestBin(Tick.wrap(tick), tickSpacing);
-    Tick insertionTick = BinLib.toNearestTick(insertionBin, tickSpacing);
-    vm.assume(TickLib.inRange(insertionTick));
+    Bin insertionBin = Tick.wrap(tick).toNearestBin(tickSpacing);
+    Tick insertionTick = insertionBin.toNearestTick(tickSpacing);
+    vm.assume(insertionTick.inRange());
 
     mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.newOfferByTick(olKey, Tick.wrap(tick), gives, 100_000, 30);
@@ -176,9 +172,9 @@ contract DynamicBinsTest is MangroveTest {
     vm.assume(tickSpacing != 0);
     vm.assume(int(tick) % int(uint(tickSpacing)) != 0);
     tick = boundTick(tick);
-    Bin insertionBin = TickLib.toNearestBin(Tick.wrap(tick), tickSpacing);
-    Tick insertionTick = BinLib.toNearestTick(insertionBin, tickSpacing);
-    vm.assume(TickLib.inRange(insertionTick));
+    Bin insertionBin = Tick.wrap(tick).toNearestBin(tickSpacing);
+    Tick insertionTick = insertionBin.toNearestTick(tickSpacing);
+    vm.assume(insertionTick.inRange());
     olKey.tickSpacing = tickSpacing;
 
     mgv.activate(olKey, 0, 100 << 32, 0);

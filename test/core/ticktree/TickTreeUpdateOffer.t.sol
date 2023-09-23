@@ -284,7 +284,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     Bin newBin = scenario.newBin;
     uint newGives = getAcceptableGivesForBin(newBin, offerDetail.gasreq());
     mkr.updateOfferByTick(
-      BinLib.toNearestTick(newBin, olKey.tickSpacing), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
+      newBin.toNearestTick(olKey.tickSpacing), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
     );
     tickTree.updateOffer(offerId, newBin, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
     if (printToConsole) {

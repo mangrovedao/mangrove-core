@@ -483,11 +483,11 @@ contract MgvReader {
           mr.currentGives = offerWants;
         } else {
           if (mr.fillWants) {
-            mr.currentGives = TickLib.inboundFromOutboundUp(mr.offer.tick(), fillVolume);
+            mr.currentGives = mr.offer.tick().inboundFromOutboundUp(fillVolume);
             mr.currentWants = fillVolume;
           } else {
             // offerWants = 0 is forbidden at offer writing
-            mr.currentWants = TickLib.outboundFromInbound(mr.offer.tick(), fillVolume);
+            mr.currentWants = mr.offer.tick().outboundFromInbound(fillVolume);
             mr.currentGives = fillVolume;
           }
         }

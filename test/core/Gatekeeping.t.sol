@@ -592,7 +592,7 @@ contract GatekeepingTest is MangroveTest {
     uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
     MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
     Bin nextBin = Bin.wrap(Bin.unwrap(ofr.bin(olKey.tickSpacing)) + 1);
-    uint gives = TickLib.outboundFromInbound(BinLib.toNearestTick(nextBin, olKey.tickSpacing), 5 ether);
+    uint gives = olKey.tick(nextBin).outboundFromInbound(5 ether);
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check

@@ -39,7 +39,7 @@ uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(prev_mask_inv | next_mask_inv);
 library OfferPackedExtra {
   // Compute wants from tick and gives
   function wants(OfferPacked offer) internal pure returns (uint) {
-    return TickLib.inboundFromOutbound(offer.tick(),offer.gives());
+    return offer.tick().inboundFromOutbound(offer.gives());
   }
   // Sugar to test offer liveness
   function isLive(OfferPacked offer) internal pure returns (bool resp) {
@@ -50,7 +50,7 @@ library OfferPackedExtra {
   }
   function bin(OfferPacked offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return BinLib.fromBinAlignedTick(offer.tick(), tickSpacing);
+    return offer.tick().alignedToNearestBin(tickSpacing);
   }
   function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
     unchecked {
@@ -64,7 +64,7 @@ library OfferPackedExtra {
 library OfferUnpackedExtra {
   // Compute wants from tick and gives
   function wants(OfferUnpacked memory offer) internal pure returns (uint) {
-    return TickLib.inboundFromOutbound(offer.tick,offer.gives);
+    return offer.tick.inboundFromOutbound(offer.gives);
   }
   // Sugar to test offer liveness
   function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {
@@ -75,7 +75,7 @@ library OfferUnpackedExtra {
   }
   function bin(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
-    return BinLib.fromBinAlignedTick(offer.tick, tickSpacing);
+    return offer.tick.alignedToNearestBin(tickSpacing);
   }
 
 }

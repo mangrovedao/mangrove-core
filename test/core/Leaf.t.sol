@@ -266,8 +266,8 @@ contract TickAndBinTest is MangroveTest {
 
   function showTickApprox(uint wants, uint gives) internal pure {
     Tick tick = TickConversionLib.tickFromVolumes(wants, gives);
-    uint wants2 = TickLib.inboundFromOutbound(tick, gives);
-    uint gives2 = TickLib.outboundFromInbound(tick, wants);
+    uint wants2 = tick.inboundFromOutbound(gives);
+    uint gives2 = tick.outboundFromInbound(wants);
     console.log("tick  ", toString(tick));
     console.log("wants ", wants);
     console.log("wants2", wants2);
@@ -498,11 +498,11 @@ contract FieldTest is MangroveTest {
 
     //inboundFromOutboundUp
     (sig, exp) = TickConversionLib.nonNormalizedRatioFromTick(tick);
-    assertEq(TickLib.inboundFromOutboundUp(tick, amt), divExpUp_spec(sig * amt, exp));
+    assertEq(tick.inboundFromOutboundUp(amt), divExpUp_spec(sig * amt, exp));
 
     //outboundFromInboundUp
     (sig, exp) = TickConversionLib.nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
-    assertEq(TickLib.outboundFromInboundUp(tick, amt), divExpUp_spec(sig * amt, exp));
+    assertEq(tick.outboundFromInboundUp(amt), divExpUp_spec(sig * amt, exp));
   }
 
   function test_divExpUp(uint a, uint exp) public {

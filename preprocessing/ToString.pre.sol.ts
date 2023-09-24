@@ -17,7 +17,7 @@ Vm constant vm = Vm(VM_ADDRESS);
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
-import {OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 
 ${structs.map(s => {

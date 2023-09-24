@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, TickLib} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
@@ -363,7 +363,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function check_lastId_in_posthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) internal {
     called = true;
-    (, MgvStructs.LocalPacked cfg) = mgv.config(order.olKey);
+    (, Local cfg) = mgv.config(order.olKey);
     assertEq(cfg.last(), ofr, "Incorrect last offer id in posthook");
   }
 

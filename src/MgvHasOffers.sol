@@ -1,18 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {
-  MgvLib,
-  HasMgvEvents,
-  IMgvMonitor,
-  MgvStructs,
-  Field,
-  Leaf,
-  Bin,
-  LEVEL_SIZE,
-  OLKey,
-  DirtyFieldLib
-} from "./MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {MgvCommon} from "./MgvCommon.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
@@ -42,12 +31,9 @@ contract MgvHasOffers is MgvCommon {
   /* When an offer is deleted, it is marked as such by setting `gives` to 0. Note that provision accounting in Mangrove aims to minimize writes. Each maker `fund`s Mangrove to increase its balance. When an offer is created/updated, we compute how much should be reserved to pay for possible penalties. That amount can always be recomputed with `offerDetail.gasprice * (offerDetail.gasreq + offerDetail.offer_gasbase)`. The balance is updated to reflect the remaining available ethers.
 
      Now, when an offer is deleted, the offer can stay provisioned, or be `deprovision`ed. In the latter case, we set `gasprice` to 0, which induces a provision of 0. All code calling `dirtyDeleteOffer` with `deprovision` set to `true` must be careful to correctly account for where that provision is going (back to the maker's `balanceOf`, or sent to a taker as compensation). */
-  function dirtyDeleteOffer(
-    OfferData storage offerData,
-    MgvStructs.OfferPacked offer,
-    MgvStructs.OfferDetailPacked offerDetail,
-    bool deprovision
-  ) internal {
+  function dirtyDeleteOffer(OfferData storage offerData, Offer offer, OfferDetail offerDetail, bool deprovision)
+    internal
+  {
     unchecked {
       offer = offer.gives(0);
       if (deprovision) {
@@ -64,11 +50,11 @@ contract MgvHasOffers is MgvCommon {
   function dislodgeOffer(
     OfferList storage offerList,
     uint tickSpacing,
-    MgvStructs.OfferPacked offer,
-    MgvStructs.LocalPacked local,
+    Offer offer,
+    Local local,
     Bin bestBin,
     bool shouldUpdateBranch
-  ) internal returns (MgvStructs.LocalPacked, bool) {
+  ) internal returns (Local, bool) {
     unchecked {
       Leaf leaf;
       Bin offerBin = offer.bin(tickSpacing);

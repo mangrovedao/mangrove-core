@@ -528,7 +528,7 @@ contract TakerOperationsTest is MangroveTest {
     // getting rid of base tokens
     //mkr.transferToken(base,$(this),5 ether);
     quote.approve($(mgv), 0.5 ether);
-    MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
+    Offer offer = mgv.offers(olKey, ofr);
 
     uint takerWants = 50 ether;
     vm.expectEmit(true, true, true, false, $(mgv));
@@ -1074,11 +1074,11 @@ contract TakerOperationsTest is MangroveTest {
     mgv.marketOrderByTick(olKey, olKey.tick(bin), volume, true);
 
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
-    MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);
+    Offer best = mgv.offers(olKey, bestId);
     Leaf leaf = mgv.leafs(olKey, best.bin(olKey.tickSpacing).leafIndex());
     assertEq(leaf.firstOfPos(bin.posInLeaf()), bestId, "wrong first of tick");
     assertEq(leaf.lastOfPos(bin.posInLeaf()), ofr4, "wrong last of tick");
-    (, MgvStructs.LocalPacked local) = mgv.config(olKey);
+    (, Local local) = mgv.config(olKey);
     assertEq(local.binPosInLeaf(), bin.posInLeaf(), "wrong local.binPosInLeaf");
     assertEq(best.prev(), 0, "best.prev should be 0");
     Leaf emptyLeaf = leaf.setBinFirst(bin, 0).setBinLast(bin, 0);

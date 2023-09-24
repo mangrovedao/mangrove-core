@@ -6,7 +6,6 @@ import {
   IMaker,
   IMgvMonitor,
   MgvLib,
-  MgvStructs,
   Leaf,
   Field,
   Bin,
@@ -83,13 +82,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   // get offer after current offer, will also remove the current offer and return the corresponding updated `local`
-  function getNextBest(
-    OfferList storage offerList,
-    MultiOrder memory mor,
-    MgvStructs.OfferPacked offer,
-    MgvStructs.LocalPacked local,
-    uint tickSpacing
-  ) internal returns (uint offerId, MgvStructs.LocalPacked) {
+  function getNextBest(OfferList storage offerList, MultiOrder memory mor, Offer offer, Local local, uint tickSpacing)
+    internal
+    returns (uint offerId, Local)
+  {
     Bin offerBin = offer.bin(tickSpacing);
     uint nextId = offer.next();
 
@@ -258,8 +254,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         uint takerWants = sor.takerWants;
         uint takerGives = sor.takerGives;
         uint offerId = sor.offerId;
-        MgvStructs.OfferPacked offer = sor.offer;
-        MgvStructs.OfferDetailPacked offerDetail = sor.offerDetail;
+        Offer offer = sor.offer;
+        OfferDetail offerDetail = sor.offerDetail;
 
         /* If execution was successful, we update fillVolume downwards. Assume `mor.fillWants`: it is known statically that `mor.fillVolume - sor.takerWants` does not underflow. See the [`execute` function](#MgvOfferTaking/computeVolume) for details. */
         if (mgvData == "mgv/tradeSuccess") {
@@ -294,7 +290,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
         // mark current offer as having no prev if necessary
         // update leaf if necessary
-        MgvStructs.OfferPacked offer = sor.offer;
+        Offer offer = sor.offer;
         Bin bin = offer.bin(sor.olKey.tickSpacing);
 
         // Don't uselessly write empty leaf of bin 0
@@ -515,9 +511,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // Clear fields that maker must not see
         /* NB: It should be more efficient to do this in `makerExecute` instead as we would not have to restore the fields afterwards.
          * However, for unknown reasons that solution consumes significantly more gas, so we do it here instead. */
-        MgvStructs.OfferPacked offer = sor.offer;
+        Offer offer = sor.offer;
         sor.offer = offer.clearFieldsForMaker();
-        MgvStructs.LocalPacked local = sor.local;
+        Local local = sor.local;
         sor.local = local.clearFieldsForMaker();
 
         (success, retdata) = address(this).call(abi.encodeCall(this.flashloan, (sor, mor.taker)));

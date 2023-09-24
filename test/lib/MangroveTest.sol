@@ -17,23 +17,7 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
 import {TickLib} from "mgv_lib/TickLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {
-  IERC20,
-  MgvLib,
-  Tick,
-  HasMgvEvents,
-  IMaker,
-  ITaker,
-  IMgvMonitor,
-  MgvStructs,
-  Leaf,
-  Field,
-  Bin,
-  LeafLib,
-  FieldLib,
-  BinLib,
-  OLKey
-} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 
@@ -142,8 +126,8 @@ contract MangroveTest is Test2, HasMgvEvents {
 
     // save call results so logs are easier to read
     uint[] memory ids = new uint[](size);
-    MgvStructs.OfferPacked[] memory offers = new MgvStructs.OfferPacked[](size);
-    MgvStructs.OfferDetailPacked[] memory details = new MgvStructs.OfferDetailPacked[](size);
+    Offer[] memory offers = new Offer[](size);
+    OfferDetail[] memory details = new OfferDetail[](size);
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
       ids[c] = offerId;
@@ -168,8 +152,7 @@ contract MangroveTest is Test2, HasMgvEvents {
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
-        reader.offerInfo(_ol, offerId);
+      (OfferUnpacked memory ofr, OfferDetailUnpacked memory detail) = reader.offerInfo(_ol, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -289,7 +272,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   function mockCompleteFillBuyOrder(uint takerWants, Tick tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = olKey;
     // complete fill (prev and next are bogus)
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
+    sor.offer = OfferLib.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
     sor.takerWants = sor.offer.gives();
     sor.takerGives = sor.offer.wants();
   }
@@ -302,7 +285,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     bytes32 makerData
   ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
     sor.olKey = _olBaseQuote;
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
+    sor.offer = OfferLib.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
     sor.takerGives = tick.inboundFromOutboundUp(takerWants);
     result.makerData = makerData;
@@ -312,7 +295,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   function mockCompleteFillSellOrder(uint takerWants, Tick tick) public view returns (MgvLib.SingleOrder memory sor) {
     sor.olKey = lo;
     // complete fill (prev and next are bogus)
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
+    sor.offer = OfferLib.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants});
     sor.takerWants = sor.offer.gives();
     sor.takerGives = sor.offer.wants();
   }
@@ -325,7 +308,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     bytes32 makerData
   ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
     sor.olKey = _olBaseQuote.flipped();
-    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
+    sor.offer = OfferLib.pack({__prev: 0, __next: 0, __tick: tick, __gives: takerWants * partialFill});
     sor.takerWants = takerWants;
     sor.takerGives = tick.inboundFromOutboundUp(takerWants);
     result.makerData = makerData;
@@ -436,8 +419,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `length` offers.
   function densifyRange(OLKey memory _ol, uint fromId, uint length, uint fold, address caller) internal {
     while (length > 0 && fromId != 0) {
-      MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
-      MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
+      Offer offer = mgv.offers(_ol, fromId);
+      OfferDetail detail = mgv.offerDetails(_ol, fromId);
       densify(_ol, offer.tick(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(_ol, offer);
@@ -515,7 +498,7 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
     console.log("--------CURRENT tick tree BRANCH--------");
-    MgvStructs.LocalPacked _local = _mgv.local(_ol);
+    Local _local = _mgv.local(_ol);
     Bin bin = _local.bestBin();
     console.log("Current bin %s", toString(bin));
     console.log("Current posInLeaf %s", bin.posInLeaf());

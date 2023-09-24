@@ -15,4 +15,4 @@ The import hierarchy is as follows:
   - It imports the user-defined type `<Struct>Packed` and the struct `<Struct>Unpacked` by name.
   - The entire file is imported `as <Struct>`.
 
-Taken together this means we can write `MgvStructs.OfferPacked.wrap(x)` and `MgvStructs.OfferUnpacked s = ...`, and `MgvStructs.Offer.pack(...args)`.
+Taken together this means we can write `Offer.wrap(x)` and `OfferUnpacked s = ...`, and `OfferLib.pack(...args)`.

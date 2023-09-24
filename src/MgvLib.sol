@@ -4,7 +4,7 @@
 
 pragma solidity ^0.8.10;
 
-import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
+import "./preprocessed/MgvStructs.post.sol";
 import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/BinLib.sol";
@@ -57,14 +57,14 @@ library MgvLib {
   struct SingleOrder {
     OLKey olKey;
     uint offerId;
-    MgvStructs.OfferPacked offer;
+    Offer offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's ratio and volume. */
     uint takerWants;
     uint takerGives;
     /* `offerDetail` is only populated when necessary. */
-    MgvStructs.OfferDetailPacked offerDetail;
-    MgvStructs.GlobalPacked global;
-    MgvStructs.LocalPacked local;
+    OfferDetail offerDetail;
+    Global global;
+    Local local;
   }
 
   /* <a id="MgvLib/OrderResult"></a> `OrderResult` holds additional data for the maker and is given to them _after_ they fulfilled an offer. It gives them their own returned data from the previous call, and an `mgvData` specifying whether Mangrove encountered an error. */

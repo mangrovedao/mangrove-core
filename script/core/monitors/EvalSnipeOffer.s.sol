@@ -5,8 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
-import {Bin} from "mgv_lib/BinLib.sol";
+import "mgv_src/MgvLib.sol";
 
 /**
  * Script simulates a series of snipes on the offer at coordinate (TKN_OUT, TKN_IN, OFFER_ID)
@@ -27,8 +26,8 @@ contract EvalSnipeOffer is Test2, Deployer {
   }
 
   struct Heap {
-    MgvStructs.OfferPacked offer;
-    MgvStructs.OfferDetailPacked details;
+    Offer offer;
+    OfferDetail details;
     MgvLib.CleanTarget[] target;
     uint takerWants;
   }

@@ -6,7 +6,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
-import {OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 import {Test2} from "mgv_lib/Test2.sol";
 

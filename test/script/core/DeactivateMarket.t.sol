@@ -12,7 +12,7 @@ import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 contract DeactivateMarketTest is Test2 {
   MangroveDeployer deployer;

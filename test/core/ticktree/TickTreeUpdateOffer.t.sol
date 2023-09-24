@@ -259,7 +259,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     (uint[] memory offerIds,) =
       add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize == 0 ? 1 : scenario.offerBinListSize);
     uint offerId = offerIds[scenario.offerPos];
-    MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, offerId);
+    OfferDetail offerDetail = mgv.offerDetails(olKey, offerId);
     if (scenario.offerBinListSize == 0) {
       mkr.retractOffer(offerIds[0]);
     }

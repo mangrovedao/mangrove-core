@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvStructs, IERC20, Leaf, Field, OLKey} from "./MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import "mgv_src/MgvCommon.sol";
 
 // Contains view functions, to reduce Mangrove contract size
 contract MgvView is MgvCommon {
   /* # Configuration Reads */
   /* Reading the configuration for an offer list involves reading the config global to all offerLists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
-  function config(OLKey memory olKey)
-    external
-    view
-    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local)
-  {
+  function config(OLKey memory olKey) external view returns (Global _global, Local _local) {
     unchecked {
       (_global, _local,) = _config(olKey);
       unlockedMarketOnly(_local);
@@ -20,7 +16,7 @@ contract MgvView is MgvCommon {
   }
 
   /* Sugar for getting only local config */
-  function local(OLKey memory olKey) external view returns (MgvStructs.LocalPacked _local) {
+  function local(OLKey memory olKey) external view returns (Local _local) {
     unchecked {
       (, _local,) = _config(olKey);
       unlockedMarketOnly(_local);
@@ -28,7 +24,7 @@ contract MgvView is MgvCommon {
   }
 
   /* Reading the global configuration. In addition, a parameter (`gasprice`) may be read from the oracle. */
-  function global() external view returns (MgvStructs.GlobalPacked _global) {
+  function global() external view returns (Global _global) {
     unchecked {
       (_global,,) = _config(OLKey(address(0), address(0), 0));
     }
@@ -53,7 +49,7 @@ contract MgvView is MgvCommon {
   function level3(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = offerList.local;
+      Local _local = offerList.local;
       unlockedMarketOnly(_local);
 
       if (_local.bestBin().level3Index() == index) {
@@ -67,7 +63,7 @@ contract MgvView is MgvCommon {
   function level2(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = offerList.local;
+      Local _local = offerList.local;
       unlockedMarketOnly(_local);
 
       if (_local.bestBin().level2Index() == index) {
@@ -81,7 +77,7 @@ contract MgvView is MgvCommon {
   function level1(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = offerList.local;
+      Local _local = offerList.local;
       unlockedMarketOnly(_local);
 
       if (_local.bestBin().level1Index() == index) {
@@ -95,7 +91,7 @@ contract MgvView is MgvCommon {
   function root(OLKey memory olKey) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = offerList.local;
+      Local _local = offerList.local;
       unlockedMarketOnly(_local);
       return _local.root();
     }
@@ -114,7 +110,7 @@ contract MgvView is MgvCommon {
   function best(OLKey memory olKey) external view returns (uint offerId) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = offerList.local;
+      Local _local = offerList.local;
       unlockedMarketOnly(_local);
       return offerList.leafs[_local.bestBin().leafIndex()].clean().getNextOfferId();
     }
@@ -130,7 +126,7 @@ contract MgvView is MgvCommon {
   // # Offer view functions
 
   /* Get an offer in packed format */
-  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
+  function offers(OLKey memory olKey, uint offerId) external view returns (Offer offer) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       unlockedMarketOnly(offerList.local);
@@ -139,11 +135,7 @@ contract MgvView is MgvCommon {
   }
 
   /* Get an offer detail in packed format */
-  function offerDetails(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferDetailPacked offerDetail)
-  {
+  function offerDetails(OLKey memory olKey, uint offerId) external view returns (OfferDetail offerDetail) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       unlockedMarketOnly(offerList.local);
@@ -152,11 +144,7 @@ contract MgvView is MgvCommon {
   }
 
   /* Get both offer and offer detail in packed format */
-  function offerData(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferPacked offer, MgvStructs.OfferDetailPacked offerDetail)
-  {
+  function offerData(OLKey memory olKey, uint offerId) external view returns (Offer offer, OfferDetail offerDetail) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       unlockedMarketOnly(offerList.local);

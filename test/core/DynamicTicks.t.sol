@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, MAX_BIN, MIN_BIN, MAX_BIN_ALLOWED, MIN_BIN_ALLOWED, TickLib} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import {stdError} from "forge-std/StdError.sol";
 import "mgv_lib/Constants.sol";

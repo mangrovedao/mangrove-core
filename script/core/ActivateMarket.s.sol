@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
@@ -60,7 +60,7 @@ contract ActivateMarket is Deployer {
     uint tkn2_in_gwei,
     uint fee
   ) public {
-    MgvStructs.GlobalPacked global = mgv.global();
+    Global global = mgv.global();
     innerRun(mgv, global.gasprice(), reader, market, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 

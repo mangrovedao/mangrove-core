@@ -141,8 +141,8 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     (uint[] memory offerIds,) =
       add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize, scenario.offerFail);
     uint offerId = offerIds[scenario.offerPos];
-    MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
-    MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, offerId);
+    Offer offer = mgv.offers(olKey, offerId);
+    OfferDetail offerDetail = mgv.offerDetails(olKey, offerId);
 
     if (scenario.binScenario.hasHigherBin) {
       add_n_offers_to_bin(scenario.binScenario.higherBin, scenario.binScenario.higherBinListSize);

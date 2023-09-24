@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
-import {Tick, IMaker, MgvLib, MgvStructs, MAX_TICK} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 contract TooDeepRecursionClogTest is MangroveTest, IMaker {

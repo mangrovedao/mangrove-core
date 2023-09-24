@@ -49,7 +49,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import {OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;

@@ -89,7 +89,7 @@ library TickTreeUtil {
 //
 // NB: Inheriting from MangroveTest to get assert functions.
 contract TestTickTree is MangroveTest {
-  MgvStructs.LocalPacked public local;
+  Local public local;
   mapping(uint => MgvCommon.OfferData) public offers;
   mapping(int => Leaf) public leafs;
   mapping(int => Field) public level3s;
@@ -264,7 +264,7 @@ contract TestTickTree is MangroveTest {
               }
               uint prev = 0;
               do {
-                MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
+                Offer offer = mgv.offers(olKey, offerId);
                 assertEq(
                   offer.bin(olKey.tickSpacing),
                   bin,
@@ -377,8 +377,8 @@ contract TestTickTree is MangroveTest {
               uint offerId = leaf.firstOfPos(leafPos);
               while (offerId != 0) {
                 {
-                  MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
-                  MgvStructs.OfferPacked offerTickTree = offers[offerId].offer;
+                  Offer offer = mgv.offers(olKey, offerId);
+                  Offer offerTickTree = offers[offerId].offer;
                   assertTrue(
                     offer.eq(offerTickTree),
                     string.concat(
@@ -393,8 +393,8 @@ contract TestTickTree is MangroveTest {
                   offerId = offer.next();
                 }
                 {
-                  MgvStructs.OfferDetailPacked detail = mgv.offerDetails(olKey, offerId);
-                  MgvStructs.OfferDetailPacked detailTickTree = offers[offerId].detail;
+                  OfferDetail detail = mgv.offerDetails(olKey, offerId);
+                  OfferDetail detailTickTree = offers[offerId].detail;
                   assertTrue(
                     detail.eq(detailTickTree),
                     string.concat(
@@ -546,8 +546,8 @@ contract TestTickTree is MangroveTest {
 
     // Create offer
     Tick tick = bin.tick(olKey.tickSpacing);
-    offers[offerId].offer = MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: tick, __gives: gives});
-    offers[offerId].detail = MgvStructs.OfferDetail.pack({
+    offers[offerId].offer = OfferLib.pack({__prev: lastId, __next: 0, __tick: tick, __gives: gives});
+    offers[offerId].detail = OfferDetailLib.pack({
       __maker: maker,
       __gasreq: gasreq,
       __kilo_offer_gasbase: local.offer_gasbase() / 1e3,

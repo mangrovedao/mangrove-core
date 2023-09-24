@@ -8,8 +8,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 pragma experimental ABIEncoderV2;
 
-import {MgvLib, MgvStructs, IMaker, OLKey, HasMgvEvents, Tick} from "./MgvLib.sol";
-import "./MgvLib.sol" as MgvLibWrapper;
+import "./MgvLib.sol";
 
 interface IMangrove is HasMgvEvents {
   // # Permit functions
@@ -105,16 +104,13 @@ interface IMangrove is HasMgvEvents {
 
   // # Global config view functions
 
-  function global() external view returns (MgvStructs.GlobalPacked _global);
+  function global() external view returns (Global _global);
 
   // # Offer list view functions
 
-  function local(OLKey memory olKey) external view returns (MgvStructs.LocalPacked _local);
+  function local(OLKey memory olKey) external view returns (Local _local);
 
-  function config(OLKey memory olKey)
-    external
-    view
-    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local);
+  function config(OLKey memory olKey) external view returns (Global _global, Local _local);
 
   function locked(OLKey memory olKey) external view returns (bool);
 
@@ -124,17 +120,11 @@ interface IMangrove is HasMgvEvents {
 
   // # Offer view functions
 
-  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer);
+  function offers(OLKey memory olKey, uint offerId) external view returns (Offer offer);
 
-  function offerDetails(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferDetailPacked offerDetail);
+  function offerDetails(OLKey memory olKey, uint offerId) external view returns (OfferDetail offerDetail);
 
-  function offerData(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferPacked offer, MgvStructs.OfferDetailPacked offerDetail);
+  function offerData(OLKey memory olKey, uint offerId) external view returns (Offer offer, OfferDetail offerDetail);
 
   // # Governance functions
 
@@ -172,15 +162,15 @@ interface IMangrove is HasMgvEvents {
 
   // # Tick tree view functions
 
-  function leafs(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Leaf);
+  function leafs(OLKey memory olKey, int index) external view returns (Leaf);
 
-  function level3(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
+  function level3(OLKey memory olKey, int index) external view returns (Field);
 
-  function level2(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
+  function level2(OLKey memory olKey, int index) external view returns (Field);
 
-  function level1(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
+  function level1(OLKey memory olKey, int index) external view returns (Field);
 
-  function root(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
+  function root(OLKey memory olKey) external view returns (Field);
 
   // # Internal functions
 

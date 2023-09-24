@@ -5,8 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, MgvLib, OLKey, DensityLib} from "mgv_src/MgvLib.sol";
-import {Bin} from "mgv_lib/BinLib.sol";
+import "mgv_src/MgvLib.sol";
 
 /**
  * @notice Script to obtain data about a given mangrove offer list. Data is outputted to terminal as space separated values.
@@ -87,8 +86,8 @@ contract MarketHealth is Test2, Deployer {
     uint takerWants;
     MgvLib.CleanTarget[] targets;
     uint g;
-    MgvStructs.OfferUnpacked offer;
-    MgvStructs.OfferDetailUnpacked offerDetail;
+    OfferUnpacked offer;
+    OfferDetailUnpacked offerDetail;
     string rootKey;
     string dataKey;
     uint[] failingIds;
@@ -115,7 +114,7 @@ contract MarketHealth is Test2, Deployer {
     deal(address(inbTkn), address(this), vars.required * 2);
     inbTkn.approve(address(mgv), type(uint).max);
 
-    (, MgvStructs.LocalPacked local) = mgv.config(olKey);
+    (, Local local) = mgv.config(olKey);
     vars.gasbase = local.offer_gasbase();
 
     uint snapshotId = vm.snapshot();

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {IMaker, HasMgvEvents, MgvStructs, Bin, BinLib, Leaf, Field, TickLib, OLKey} from "./MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import "mgv_lib/Debug.sol";
 
@@ -21,10 +21,10 @@ contract MgvOfferMaking is MgvHasOffers {
     uint id;
     uint gasreq;
     uint gasprice;
-    MgvStructs.GlobalPacked global;
-    MgvStructs.LocalPacked local;
+    Global global;
+    Local local;
     // used on update only
-    MgvStructs.OfferPacked oldOffer;
+    Offer oldOffer;
   }
 
   /* The function `newOffer` is for market makers only; no match with the existing book is done. A maker specifies how much `inbound_tkn` it `wants` and how much `outbound_tkn` it `gives`.
@@ -127,7 +127,7 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.gasprice = gasprice;
       ofp.oldOffer = offerList.offerData[offerId].offer;
       // Save local config
-      MgvStructs.LocalPacked oldLocal = ofp.local;
+      Local oldLocal = ofp.local;
       // ofp.tickleaf = tickleafs[outbound_tkn][inbound_tkn][ofp.tick];
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
       writeOffer(offerList, ofp, tick, true);
@@ -143,16 +143,16 @@ contract MgvOfferMaking is MgvHasOffers {
   /* `retractOffer` takes the offer `offerId` out of the book. However, `deprovision == true` also refunds the provision associated with the offer. */
   function retractOffer(OLKey memory olKey, uint offerId, bool deprovision) external returns (uint provision) {
     unchecked {
-      (, MgvStructs.LocalPacked local, OfferList storage offerList) = _config(olKey);
+      (, Local local, OfferList storage offerList) = _config(olKey);
       unlockedMarketOnly(local);
       OfferData storage offerData = offerList.offerData[offerId];
-      MgvStructs.OfferPacked offer = offerData.offer;
-      MgvStructs.OfferDetailPacked offerDetail = offerData.detail;
+      Offer offer = offerData.offer;
+      OfferDetail offerDetail = offerData.detail;
       require(msg.sender == offerDetail.maker(), "mgv/retractOffer/unauthorized");
 
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (offer.isLive()) {
-        MgvStructs.LocalPacked oldLocal = local;
+        Local oldLocal = local;
         (local,) = dislodgeOffer(offerList, olKey.tickSpacing, offer, local, local.bestBin(), true);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
@@ -185,7 +185,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* Fund should be called with a nonzero value (hence the `payable` modifier). The provision will be given to `maker`, not `msg.sender`. */
   function fund(address maker) public payable {
     unchecked {
-      (MgvStructs.GlobalPacked _global,,) = _config(OLKey(address(0), address(0), 0));
+      (Global _global,,) = _config(OLKey(address(0), address(0), 0));
       liveMgvOnly(_global);
       creditWei(maker, msg.value);
     }
@@ -220,7 +220,7 @@ contract MgvOfferMaking is MgvHasOffers {
   function writeOffer(OfferList storage offerList, OfferPack memory ofp, Tick insertionTick, bool update) internal {
     unchecked {
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
-      require(MgvStructs.Global.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
+      require(GlobalLib.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
 
       if (ofp.gasprice < ofp.global.gasprice()) {
         ofp.gasprice = ofp.global.gasprice();
@@ -255,7 +255,7 @@ contract MgvOfferMaking is MgvHasOffers {
       {
         uint oldProvision;
         OfferData storage offerData = offerList.offerData[ofrId];
-        MgvStructs.OfferDetailPacked offerDetail = offerData.detail;
+        OfferDetail offerDetail = offerData.detail;
         if (update) {
           require(msg.sender == offerDetail.maker(), "mgv/updateOffer/unauthorized");
           oldProvision = 10 ** 9 * offerDetail.gasprice() * (offerDetail.gasreq() + offerDetail.offer_gasbase());
@@ -267,7 +267,7 @@ contract MgvOfferMaking is MgvHasOffers {
             || offerDetail.offer_gasbase() != ofp.local.offer_gasbase()
         ) {
           uint offer_gasbase = ofp.local.offer_gasbase();
-          offerData.detail = MgvStructs.OfferDetail.pack({
+          offerData.detail = OfferDetailLib.pack({
             __maker: msg.sender,
             __gasreq: ofp.gasreq,
             __kilo_offer_gasbase: offer_gasbase / 1e3,
@@ -426,8 +426,7 @@ contract MgvOfferMaking is MgvHasOffers {
       offerList.leafs[insertionBin.leafIndex()] = leaf.dirty();
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
-      MgvStructs.OfferPacked ofr =
-        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
+      Offer ofr = OfferLib.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
       offerList.offerData[ofrId].offer = ofr;
     }
   }

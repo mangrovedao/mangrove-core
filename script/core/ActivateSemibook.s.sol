@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import "mgv_lib/Test2.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, DensityLib, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
 uint constant COVER_FACTOR = 1000;
@@ -36,7 +36,7 @@ contract ActivateSemibook is Test2, Deployer {
   }
 
   function innerRun(IMangrove mgv, OLKey memory olKey, uint outbound_in_gwei, uint fee) public {
-    MgvStructs.GlobalPacked global = mgv.global();
+    Global global = mgv.global();
     innerRun(mgv, global.gasprice(), olKey, outbound_in_gwei, fee);
   }
 

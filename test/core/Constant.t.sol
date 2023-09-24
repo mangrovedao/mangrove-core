@@ -4,8 +4,6 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
-import {tick_bits} from "mgv_src/preprocessed/MgvOffer.post.sol";
-import {last_bits} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 // In these tests, the testing contract is the market maker.
 contract ConstantsTest is MangroveTest {
@@ -46,12 +44,12 @@ contract ConstantsTest is MangroveTest {
 
   // make sure TICK_BITS in Constants.sol matches the tick bits used in offer struct
   function test_tick_bits() public {
-    assertEq(TICK_BITS, tick_bits);
+    assertEq(TICK_BITS, OfferLib.tick_bits);
   }
 
   // make sure OFFER_BITS in Constants.sol matches the id fields used in structs
   function test_offer_bits() public {
-    assertEq(OFFER_BITS, last_bits);
+    assertEq(OFFER_BITS, LocalLib.last_bits);
   }
 
   // Since constant expressions are (as of solidity 0.8.21) not evaluated at compile time, we write all constants in Constants.sol as literals and test their values here:

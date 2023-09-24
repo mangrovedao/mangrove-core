@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {
-  MgvLib, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, DensityLib, OLKey, DirtyFieldLib
-} from "./MgvLib.sol";
+import {MgvLib, IMgvMonitor, IERC20, Leaf, Field, Density, DensityLib, OLKey, DirtyFieldLib} from "./MgvLib.sol";
 import "mgv_src/MgvCommon.sol";
 
 // Contains gov functions, to reduce Mangrove contract size
@@ -61,7 +59,7 @@ contract MgvGovernable is MgvCommon {
     unchecked {
       authOnly();
       /* `fee` is in basis points, i.e. in percents of a percent. */
-      require(MgvStructs.Local.fee_check(fee), MgvStructs.Local.fee_size_error);
+      require(LocalLib.fee_check(fee), LocalLib.fee_size_error);
       OfferList storage offerList = offerLists[olKey.hash()];
       offerList.local = offerList.local.fee(fee);
       emit SetFee(olKey.hash(), fee);
@@ -90,9 +88,7 @@ contract MgvGovernable is MgvCommon {
     unchecked {
       authOnly();
       /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
-      require(
-        MgvStructs.Local.kilo_offer_gasbase_check(offer_gasbase / 1e3), MgvStructs.Local.kilo_offer_gasbase_size_error
-      );
+      require(LocalLib.kilo_offer_gasbase_check(offer_gasbase / 1e3), LocalLib.kilo_offer_gasbase_size_error);
       // require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+
       OfferList storage offerList = offerLists[olKey.hash()];
@@ -116,7 +112,7 @@ contract MgvGovernable is MgvCommon {
   function setGasprice(uint gasprice) public {
     unchecked {
       authOnly();
-      require(MgvStructs.Global.gasprice_check(gasprice), MgvStructs.Global.gasprice_size_error);
+      require(GlobalLib.gasprice_check(gasprice), GlobalLib.gasprice_size_error);
 
       //+clear+
 
@@ -130,7 +126,7 @@ contract MgvGovernable is MgvCommon {
     unchecked {
       authOnly();
       /* Since any new `gasreq` is bounded above by `config.gasmax`, this check implies that all offers' `gasreq` is 24 bits wide at most. */
-      require(MgvStructs.Global.gasmax_check(gasmax), MgvStructs.Global.gasmax_size_error);
+      require(GlobalLib.gasmax_check(gasmax), GlobalLib.gasmax_size_error);
       //+clear+
       internal_global = internal_global.gasmax(gasmax);
       emit SetGasmax(gasmax);
@@ -141,9 +137,7 @@ contract MgvGovernable is MgvCommon {
   function setMaxRecursionDepth(uint maxRecursionDepth) public {
     unchecked {
       authOnly();
-      require(
-        MgvStructs.Global.maxRecursionDepth_check(maxRecursionDepth), MgvStructs.Global.maxRecursionDepth_size_error
-      );
+      require(GlobalLib.maxRecursionDepth_check(maxRecursionDepth), GlobalLib.maxRecursionDepth_size_error);
       internal_global = internal_global.maxRecursionDepth(maxRecursionDepth);
       emit SetMaxRecursionDepth(maxRecursionDepth);
     }
@@ -154,8 +148,8 @@ contract MgvGovernable is MgvCommon {
     unchecked {
       authOnly();
       require(
-        MgvStructs.Global.maxGasreqForFailingOffers_check(maxGasreqForFailingOffers),
-        MgvStructs.Global.maxGasreqForFailingOffers_size_error
+        GlobalLib.maxGasreqForFailingOffers_check(maxGasreqForFailingOffers),
+        GlobalLib.maxGasreqForFailingOffers_size_error
       );
       internal_global = internal_global.maxGasreqForFailingOffers(maxGasreqForFailingOffers);
       emit SetMaxGasreqForFailingOffers(maxGasreqForFailingOffers);

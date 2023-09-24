@@ -17,44 +17,45 @@ struct ${s.Unpacked} {
 
 //some type safety for each struct
 type ${s.Packed} is uint;
-using Library for ${s.Packed} global;
+using ${s.Lib} for ${s.Packed} global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
 ${s.additionalDefinitions ?? ''}
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 
-// number of bits in each field
-${tabulate(s.fields.map(f => 
-  [`uint constant ${f.vars.bits}`, ` = ${f.bits};`]
-))}
+library ${s.Lib} {
 
-// number of bits before each field
-${tabulate(s.fields.map((f,i) => {
-    const { before, bits } = i ? s.fields[i - 1].vars : { before: 0, bits: 0 };
-    return [`uint constant ${f.vars.before}`, ` = ${before}`, ` + ${bits};`];
-}))}
+  // number of bits in each field
+  ${tabulate(s.fields.map(f => 
+    [`uint constant ${f.vars.bits}`, ` = ${f.bits};`]
+  ))}
 
-// focus-mask: 1s at field location, 0s elsewhere
-${tabulate(s.fields.map(f => 
-  [`uint constant ${f.vars.mask_inv}`, ` = ${f.mask_inv};`]
-))}
+  // number of bits before each field
+  ${tabulate(s.fields.map((f,i) => {
+      const { before, bits } = i ? s.fields[i - 1].vars : { before: 0, bits: 0 };
+      return [`uint constant ${f.vars.before}`, ` = ${before}`, ` + ${bits};`];
+  }))}
 
-// cleanup-mask: 0s at field location, 1s elsewhere
-${tabulate(s.fields.map(f => 
-  [`uint constant ${f.vars.mask}`, ` = ${f.mask};`]
-))}
+  // focus-mask: 1s at field location, 0s elsewhere
+  ${tabulate(s.fields.map(f => 
+    [`uint constant ${f.vars.mask_inv}`, ` = ${f.mask_inv};`]
+  ))}
 
-// cast-mask: 0s followed by |field| trailing 1s
-${tabulate(s.fields.map(f => 
-  [`uint constant ${f.vars.cast_mask}`, ` = ${f.cast_mask};`]
-))}
+  // cleanup-mask: 0s at field location, 1s elsewhere
+  ${tabulate(s.fields.map(f => 
+    [`uint constant ${f.vars.mask}`, ` = ${f.mask};`]
+  ))}
 
-// size-related error message
-${tabulate(s.fields.map(f => 
-  [`string constant ${f.vars.size_error}`, ` = "mgv/config/${f.name}/${f.bits}bits";`]
-))}
+  // cast-mask: 0s followed by |field| trailing 1s
+  ${tabulate(s.fields.map(f => 
+    [`uint constant ${f.vars.cast_mask}`, ` = ${f.cast_mask};`]
+  ))}
 
-library Library {
+  // size-related error message
+  ${tabulate(s.fields.map(f => 
+    [`string constant ${f.vars.size_error}`, ` = "mgv/config/${f.name}/${f.bits}bits";`]
+  ))}
+
   // from packed to in-memory struct
   function to_struct(${s.Packed} __packed) internal pure returns (${s.Unpacked} memory __s) { unchecked {
     ${tabulate(s.fields.map(f => 
@@ -86,26 +87,26 @@ library Library {
   }}
   `
   )}
+
+  // from in-memory struct to packed
+  function t_of_struct(${s.Unpacked} memory __s) internal pure returns (${s.Packed}) { unchecked {
+    return pack(${s.fields.map(f => `__s.${f.name}`).join(", ")});
+  }}
+
+  // from arguments to packed
+  function pack(${s.fields.map(f => `${f.type} __${f.name}`).join(", ")}) internal pure returns (${s.Packed}) { unchecked {
+    uint __packed;
+    ${s.fields.map(f => `__packed |= ${f.inject(`__${f.name}`)};`)}
+    return ${s.wrap("__packed")};
+  }}
+
+  // input checking
+  ${s.fields.map(f => 
+  `function ${f.name}_check(${f.type} __${f.name}) internal pure returns (bool) { unchecked {
+    return (${f.to_base(`__${f.name}`)} & ${f.vars.cast_mask}) == ${f.to_base(`__${f.name}`)};
+  }}`
+  )}
 }
-
-// from in-memory struct to packed
-function t_of_struct(${s.Unpacked} memory __s) pure returns (${s.Packed}) { unchecked {
-  return pack(${s.fields.map(f => `__s.${f.name}`).join(", ")});
-}}
-
-// from arguments to packed
-function pack(${s.fields.map(f => `${f.type} __${f.name}`).join(", ")}) pure returns (${s.Packed}) { unchecked {
-  uint __packed;
-  ${s.fields.map(f => `__packed |= ${f.inject(`__${f.name}`)};`)}
-  return ${s.wrap("__packed")};
-}}
-
-// input checking
-${s.fields.map(f => 
-`function ${f.name}_check(${f.type} __${f.name}) pure returns (bool) { unchecked {
-  return (${f.to_base(`__${f.name}`)} & ${f.vars.cast_mask}) == ${f.to_base(`__${f.name}`)};
-}}`
-)}
 
 `;
 };

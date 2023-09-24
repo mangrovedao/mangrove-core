@@ -2,8 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
-import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
   IMangrove mgv;
@@ -36,7 +35,7 @@ contract TestMoriartyMaker is IMaker {
     mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
     mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
     mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
+    (, Local cfg) = mgv.config(olKey);
     uint offer_gasbase = cfg.offer_gasbase();
     dummy = mgv.newOfferByVolume({
       olKey: olKey,

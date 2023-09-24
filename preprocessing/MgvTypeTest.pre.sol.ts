@@ -22,7 +22,7 @@ contract Mgv${s.Name}Test is Test2 {
   }
 
   function test_pack(${s.fields.map(f => `${f.type} ${f.name}`).join(", ")}) public {
-    MgvStructs.${s.Packed} packed = MgvStructs.${s.Name}.pack(${s.fields.map(f => `${f.name}`).join(", ")});
+    ${s.Packed} packed = ${s.Lib}.pack(${s.fields.map(f => `${f.name}`).join(", ")});
     ${s.fields.map(f => {
       if (f.rawType === "uint" || f.rawType === "int" ) {
         return `assertEq(${f.unwrapped(`packed.${f.name}()`)},cast(${f.unwrapped(f.name)},${f.bits}),"bad ${f.name}");`
@@ -39,11 +39,11 @@ contract Mgv${s.Name}Test is Test2 {
      - no additional bits being dirtied
   */
   ${s.fields.map(f =>
-    format`function test_set_${f.name}(MgvStructs.${s.Packed} packed,${f.type} ${f.name}) public {
-      MgvStructs.${s.Packed} original = packed.${f.name}(packed.${f.name}());
+    format`function test_set_${f.name}(${s.Packed} packed,${f.type} ${f.name}) public {
+      ${s.Packed} original = packed.${f.name}(packed.${f.name}());
       assertEq(${f.unwrapped(`original.${f.name}()`)},${f.unwrapped(`packed.${f.name}()`)}, "original: bad ${f.name}");
 
-      MgvStructs.${s.Packed} modified = packed.${f.name}(${f.name});
+      ${s.Packed} modified = packed.${f.name}(${f.name});
 
       ${(f.rawType === "uint" || f.rawType === "int") ?
         `assertEq(${f.unwrapped(`modified.${f.name}()`)},cast(${f.unwrapped(f.name)},${f.bits}),"modified: bad ${f.name}");`
@@ -57,7 +57,7 @@ contract Mgv${s.Name}Test is Test2 {
     }`
   )}
 
-  function test_unpack(MgvStructs.${s.Packed} packed) public {
+  function test_unpack(${s.Packed} packed) public {
     (${s.fields.map(f => `${f.type} ${f.name}`).join(", ")}) = packed.unpack();
 
     ${s.fields.map(f =>
@@ -72,16 +72,16 @@ contract Mgv${s.Name}Test is Test2 {
     Instead we test field by field. The getters could be the constant function but no: they are tested in test_pack.
   */
 
-  function test_inverse_1(MgvStructs.${s.Packed} packed) public {
-    MgvStructs.${s.Unpacked} memory unpacked = packed.to_struct();
+  function test_inverse_1(${s.Packed} packed) public {
+    ${s.Unpacked} memory unpacked = packed.to_struct();
     ${s.fields.map(f =>
       `assertEq(${f.unwrapped(`unpacked.${f.name}`)},${f.unwrapped(`packed.${f.name}()`)},"bad ${f.name}");`
     )}
   }
 
-  function test_inverse_2(MgvStructs.${s.Unpacked} memory unpacked) public {
-    MgvStructs.${s.Packed} packed = MgvStructs.${s.Name}.t_of_struct(unpacked);
-    MgvStructs.${s.Packed} packed2;
+  function test_inverse_2(${s.Unpacked} memory unpacked) public {
+    ${s.Packed} packed = ${s.Lib}.t_of_struct(unpacked);
+    ${s.Packed} packed2;
     ${s.fields.map(f =>
       `packed2 = packed2.${f.name}(unpacked.${f.name});`
     )}

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 contract ScenariiTest is MangroveTest {
   TestTaker taker;
@@ -19,8 +19,7 @@ contract ScenariiTest is MangroveTest {
   function saveOffers() internal {
     uint offerId = mgv.best(olKey);
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail) =
-        reader.offerInfo(olKey, offerId);
+      (OfferUnpacked memory offer, OfferDetailUnpacked memory offerDetail) = reader.offerInfo(olKey, offerId);
       console.log("Saving Info for offer id", offerId);
       console.log("  wants", offer.wants());
       console.log("  gives", offer.gives);
@@ -120,7 +119,7 @@ contract ScenariiTest is MangroveTest {
       gives: 1 ether,
       gasreq: 90_000
     });
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
+    (Global cfg,) = mgv.config(olKey);
     _offerOf[0] = makers.getMaker(0).newOfferByVolume({ //failer offer 4
       wants: 20 ether,
       gives: 10 ether,
@@ -140,7 +139,7 @@ contract ScenariiTest is MangroveTest {
     uint offerId = mgv.best(olKey);
     uint expected_maker = 3;
     while (offerId != 0) {
-      (, MgvStructs.OfferDetailUnpacked memory od) = reader.offerInfo(olKey, offerId);
+      (, OfferDetailUnpacked memory od) = reader.offerInfo(olKey, offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvLib, MgvStructs, DensityLib, TickLib} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 contract MonitorTest is MangroveTest {
   TestMaker mkr;
@@ -27,7 +27,7 @@ contract MonitorTest is MangroveTest {
   }
 
   function test_initial_monitor_values() public {
-    (MgvStructs.GlobalPacked config,) = mgv.config(olKey);
+    (Global config,) = mgv.config(olKey);
     assertTrue(!config.useOracle(), "initial useOracle should be false");
     assertTrue(!config.notify(), "initial notify should be false");
   }
@@ -37,7 +37,7 @@ contract MonitorTest is MangroveTest {
     mgv.setUseOracle(true);
     mgv.setNotify(true);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(0, 0));
-    (MgvStructs.GlobalPacked config,) = mgv.config(olKey);
+    (Global config,) = mgv.config(olKey);
     assertEq(config.monitor(), monitor, "monitor should be set");
     assertTrue(config.useOracle(), "useOracle should be set");
     assertTrue(config.notify(), "notify should be set");
@@ -48,7 +48,7 @@ contract MonitorTest is MangroveTest {
     mgv.setUseOracle(true);
     mgv.setDensity96X32(olKey, 898 << 32);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(0, DensityLib.from96X32(1 << 32)));
-    (, MgvStructs.LocalPacked config) = mgv.config(olKey);
+    (, Local config) = mgv.config(olKey);
     assertEq(config.density().to96X32(), 1 << 32, "density should be set oracle");
   }
 
@@ -56,7 +56,7 @@ contract MonitorTest is MangroveTest {
     mgv.setMonitor(monitor);
     uint density96X32 = 898 << 32;
     mgv.setDensity96X32(olKey, density96X32);
-    (, MgvStructs.LocalPacked config) = mgv.config(olKey);
+    (, Local config) = mgv.config(olKey);
     assertEq(config.density().to96X32(), DensityLib.from96X32(density96X32).to96X32(), "density should be set by mgv");
   }
 
@@ -66,14 +66,14 @@ contract MonitorTest is MangroveTest {
     mgv.setUseOracle(true);
     mgv.setGasprice(900);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(1, 0));
-    (MgvStructs.GlobalPacked config,) = mgv.config(olKey);
+    (Global config,) = mgv.config(olKey);
     assertEq(config.gasprice(), 1, "gasprice should be set by oracle");
   }
 
   function test_set_oracle_gasprice_without_useOracle_fails() public {
     mgv.setMonitor(monitor);
     mgv.setGasprice(900);
-    (MgvStructs.GlobalPacked config,) = mgv.config(olKey);
+    (Global config,) = mgv.config(olKey);
     assertEq(config.gasprice(), 900, "gasprice should be set by mgv");
   }
 
@@ -91,11 +91,11 @@ contract MonitorTest is MangroveTest {
     mgv.setMonitor(monitor);
     mgv.setNotify(true);
     uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
-    MgvStructs.OfferPacked offer = mgv.offers(olKey, ofrId);
+    Offer offer = mgv.offers(olKey, ofrId);
 
     Tick tick = offer.tick();
 
-    (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config(olKey);
+    (Global _global, Local _local) = mgv.config(olKey);
     _local = _local.lock(true);
 
     MgvLib.SingleOrder memory order = MgvLib.SingleOrder({
@@ -120,12 +120,12 @@ contract MonitorTest is MangroveTest {
     mgv.setMonitor(address(monitor));
     mgv.setNotify(true);
     uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
-    MgvStructs.OfferPacked offer = mgv.offers(olKey, ofrId);
-    MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, ofrId);
+    Offer offer = mgv.offers(olKey, ofrId);
+    OfferDetail offerDetail = mgv.offerDetails(olKey, ofrId);
 
     Tick tick = offer.tick();
 
-    (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config(olKey);
+    (Global _global, Local _local) = mgv.config(olKey);
     // config sent during maker callback has stale best and, is locked
     _local = _local.lock(true);
 

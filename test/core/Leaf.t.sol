@@ -71,7 +71,6 @@ contract LeafTest is MangroveTest {
   }
 
   int constant BP = 1.0001 * 1e18;
-  // current max bin with solady fixedpoint lib 1353127
 
   function test_x_of_pos(uint pos, uint32 firstId, uint32 lastId) public {
     Leaf leaf = LeafLib.EMPTY;

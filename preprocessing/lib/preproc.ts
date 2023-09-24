@@ -14,7 +14,7 @@ export const struct_utilities = `/* since you can't convert bool to uint in an e
  * we add a file-level function and rely on compiler optimization
  */
 function uint_of_bool(bool b) pure returns (uint u) {
-  assembly { u := b }
+  assembly ("memory-safe") { u := b }
 }
 import "mgv_lib/Constants.sol";`;
 

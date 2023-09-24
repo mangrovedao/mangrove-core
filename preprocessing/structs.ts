@@ -129,7 +129,7 @@ library OfferPackedExtra {
   // Sugar to test offer liveness
   function isLive(OfferPacked offer) internal pure returns (bool resp) {
     uint gives = offer.gives();
-    assembly {
+    assembly ("memory-safe") {
       resp := iszero(iszero(gives))
     }
   }
@@ -154,7 +154,7 @@ library OfferUnpackedExtra {
   // Sugar to test offer liveness
   function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {
     uint gives = offer.gives;
-    assembly {
+    assembly ("memory-safe") {
       resp := iszero(iszero(gives))
     }
   }

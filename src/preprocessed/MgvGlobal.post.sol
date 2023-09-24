@@ -10,7 +10,7 @@ pragma solidity ^0.8.13;
  * we add a file-level function and rely on compiler optimization
  */
 function uint_of_bool(bool b) pure returns (uint u) {
-  assembly { u := b }
+  assembly ("memory-safe") { u := b }
 }
 import "mgv_lib/Constants.sol";
 

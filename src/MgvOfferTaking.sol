@@ -707,7 +707,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       bytes32[4] memory retdata;
 
       /* if success, read returned bytes 1..32, otherwise read returned bytes 69..100. */
-      assembly {
+      assembly ("memory-safe") {
         success := call(gasreq, callee, 0, add(cd, 32), mload(cd), retdata, 100)
         data := mload(add(mul(iszero(success), 68), retdata))
       }
@@ -790,7 +790,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   function innerDecode(bytes memory data) internal pure returns (bytes32 mgvData, uint gasused, bytes32 makerData) {
     unchecked {
       /* The `data` pointer is of the form `[mgvData,gasused,makerData]` where each array element is contiguous and has size 256 bits. */
-      assembly {
+      assembly ("memory-safe") {
         mgvData := mload(add(data, 32))
         gasused := mload(add(data, 64))
         makerData := mload(add(data, 96))
@@ -801,7 +801,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* <a id="MgvOfferTaking/innerRevert"></a>`innerRevert` reverts a raw triple of values to be interpreted by `innerDecode`.    */
   function innerRevert(bytes32[3] memory data) internal pure {
     unchecked {
-      assembly {
+      assembly ("memory-safe") {
         revert(data, 96)
       }
     }

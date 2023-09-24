@@ -36,8 +36,7 @@ library BitLib {
     /// If `x` is zero, returns 256.
     /// Equivalent to `log2(x)`, but without reverting for the zero case.
     function fls(uint256 x) internal pure returns (uint256 r) {
-        /// @solidity memory-safe-assembly
-        assembly {
+        assembly ("memory-safe") {
             r := shl(8, iszero(x))
 
             r := or(r, shl(7, lt(0xffffffffffffffffffffffffffffffff, x)))

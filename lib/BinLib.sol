@@ -78,7 +78,7 @@ library LeafLib {
 
   function uint_of_bool(bool b) internal pure returns (uint u) {
     unchecked {
-      assembly {
+      assembly ("memory-safe") {
         u := b
       }
     }

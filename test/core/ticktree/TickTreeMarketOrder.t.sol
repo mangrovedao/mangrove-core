@@ -97,7 +97,6 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   }
 
   function run_market_order_scenarios_for_bin(Bin bin) internal {
-    vm.pauseGasMetering();
     bool printToConsole = false;
 
     Bin[] memory higherBins = generateHigherBinScenarios(bin);
@@ -160,8 +159,6 @@ contract TickTreeMarketOrderTest is TickTreeTest {
         }
       }
     }
-
-    vm.resumeGasMetering();
   }
 
   // This test is useful for debugging a single scneario
@@ -225,17 +222,14 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   }
 
   function run_market_order_scenario(MarketOrderScenario memory scenario, bool printToConsole) internal {
+    setUp();
     if (printToConsole) {
       console.log("market order scenario");
       console.log("  lower bin scenario:  ", scenarioToString(scenario.lowerBin));
       console.log("  middle bin scenario: ", scenarioToString(scenario.middleBin));
       console.log("  higher bin scenario: ", scenarioToString(scenario.higherBin));
     }
-
-    // 1. Capture state before test
-    uint vmSnapshotId = vm.snapshot();
-
-    // 2. Create scenario
+    // 1. Create scenario
     (uint[] memory lowerOfferIds, uint lowerOffersGive) =
       add_n_offers_to_bin(scenario.lowerBin.bin, scenario.lowerBin.size);
     (uint[] memory middleOfferIds, uint middleOffersGive) =
@@ -246,10 +240,10 @@ contract TickTreeMarketOrderTest is TickTreeTest {
       + middleOffersGive * scenario.middleBin.offersToTake + higherOffersGive * scenario.higherBin.offersToTake;
     lastTakenOfferId = getLastTakenOfferId(scenario, lowerOfferIds, middleOfferIds, higherOfferIds);
 
-    // 3. Snapshot tick tree
+    // 2. Snapshot tick tree
     tickTree = snapshotTickTree();
 
-    // 4. Run the market order and check that the tick tree is updated as expected
+    // 3. Run the market order and check that the tick tree is updated as expected
     // The check of the tick tree is done in the posthook of the last taken offer
     // by the checkMgvTickTreeInLastOfferPosthook function.
     // We therefore must update the test tick tree before the market order is run.
@@ -260,8 +254,5 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     assertTrue(lastTakenOfferId == 0 || lastTakenOfferPosthookCalled, "last taken offer posthook not called");
 
     // assertMgvTickTreeIsConsistent();
-
-    // 5. Restore state from before test
-    vm.revertTo(vmSnapshotId);
   }
 }

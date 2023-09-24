@@ -74,9 +74,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
   uint[] otherBinListSizeScenarios = [1];
 
   function run_retract_offer_scenarios_for_bin(Bin bin) internal {
-    vm.pauseGasMetering();
     runBinScenarios(bin, otherBinListSizeScenarios, otherBinListSizeScenarios);
-    vm.resumeGasMetering();
   }
 
   function runBinScenario(BinScenario memory binScenario) internal override {
@@ -111,6 +109,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
   }
 
   function run_retract_offer_scenario(RetractOfferScenario memory scenario, bool printToConsole) internal {
+    setUp();
     Bin bin = scenario.binScenario.bin;
     if (printToConsole) {
       console.log("retract offer scenario");
@@ -126,10 +125,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
       }
     }
 
-    // 1. Capture state before test
-    uint vmSnapshotId = vm.snapshot();
-
-    // 2. Create scenario
+    // 1. Create scenario
     (uint[] memory offerIds,) = add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize);
     if (scenario.binScenario.hasHigherBin) {
       add_n_offers_to_bin(scenario.binScenario.higherBin, scenario.binScenario.higherBinListSize);
@@ -138,20 +134,17 @@ contract TickTreeRetractOfferTest is TickTreeTest {
       add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
-    // 3. Snapshot tick tree
+    // 2. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
 
-    // 4. Retract the offer
+    // 3. Retract the offer
     uint offerId = offerIds[scenario.offerPos];
     mkr.retractOffer(offerId);
     tickTree.removeOffer(offerId);
 
-    // 5. Assert that Mangrove and tick tree are equal
+    // 4. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
-
-    // 6. Restore state from before test
-    vm.revertTo(vmSnapshotId);
   }
 }

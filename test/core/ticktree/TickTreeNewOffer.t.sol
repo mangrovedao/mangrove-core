@@ -78,9 +78,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
   }
 
   function run_new_offer_scenarios_for_bin(Bin bin) internal {
-    vm.pauseGasMetering();
     runBinScenarios(bin, otherBinListSizeScenarios, otherBinListSizeScenarios);
-    vm.resumeGasMetering();
   }
 
   function runBinScenario(BinScenario memory binScenario) internal override {
@@ -90,7 +88,6 @@ contract TickTreeNewOfferTest is TickTreeTest {
       scenario.insertionBinListSize = binListSizeScenarios[j];
       run_new_offer_scenario(scenario, false);
     }
-    vm.resumeGasMetering();
   }
 
   // This test is useful for debugging a single scneario
@@ -113,6 +110,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
   }
 
   function run_new_offer_scenario(NewOfferScenario memory scenario, bool printToConsole) internal {
+    setUp();
     if (printToConsole) {
       console.log("new offer scenario");
       console.log("  insertionBin: %s", toString(scenario.binScenario.bin));
@@ -125,10 +123,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
       }
     }
 
-    // 1. Capture state before test
-    uint vmSnapshotId = vm.snapshot();
-
-    // 2. Create scenario
+    // 1. Create scenario
     add_n_offers_to_bin(scenario.binScenario.bin, scenario.insertionBinListSize);
     if (scenario.binScenario.hasHigherBin) {
       add_n_offers_to_bin(scenario.binScenario.higherBin, scenario.binScenario.higherBinListSize);
@@ -137,22 +132,19 @@ contract TickTreeNewOfferTest is TickTreeTest {
       add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
-    // 3. Snapshot tick tree
+    // 2. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
 
-    // 4. Create new offer and add it to tick tree
+    // 3. Create new offer and add it to tick tree
     Bin insertionBin = scenario.binScenario.bin;
     Tick tick = insertionBin.tick(olKey.tickSpacing);
     uint gives = getAcceptableGivesForBin(insertionBin, 50_000);
     mkr.newOfferByTick(tick, gives, 50_000, 50);
     tickTree.addOffer(insertionBin, gives, 50_000, 50, $(mkr));
 
-    // 5. Assert that Mangrove and tick tree are equal
+    // 4. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
-
-    // 6. Restore state from before test
-    vm.revertTo(vmSnapshotId);
   }
 }

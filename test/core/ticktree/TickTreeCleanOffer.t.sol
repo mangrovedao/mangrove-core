@@ -76,16 +76,15 @@ contract TickTreeCleanOfferTest is TickTreeTest {
   uint[] otherBinListSizeScenarios = [1];
 
   function run_clean_offer_scenarios_for_bin(Bin bin) internal {
-    vm.pauseGasMetering();
     runBinScenarios(bin, otherBinListSizeScenarios, otherBinListSizeScenarios);
-    vm.resumeGasMetering();
   }
 
   function runBinScenario(BinScenario memory binScenario) internal override {
     CleanOfferScenario memory scenario;
     scenario.binScenario = binScenario;
+    uint[2] storage binListScenario;
     for (uint j = 0; j < binListScenarios.length; ++j) {
-      uint[2] storage binListScenario = binListScenarios[j];
+      binListScenario = binListScenarios[j];
       scenario.offerBinListSize = binListScenario[0];
       scenario.offerPos = binListScenario[1];
 
@@ -119,6 +118,7 @@ contract TickTreeCleanOfferTest is TickTreeTest {
   }
 
   function run_clean_offer_scenario(CleanOfferScenario memory scenario, bool printToConsole) internal {
+    setUp();
     if (printToConsole) {
       console.log("clean offer scenario");
       console.log("  cleaningBin: %s", toString(scenario.binScenario.bin));
@@ -134,10 +134,7 @@ contract TickTreeCleanOfferTest is TickTreeTest {
       }
     }
 
-    // 1. Capture state before test
-    uint vmSnapshotId = vm.snapshot();
-
-    // 2. Create scenario
+    // 1. Create scenario
     (uint[] memory offerIds,) =
       add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize, scenario.offerFail);
     uint offerId = offerIds[scenario.offerPos];
@@ -151,10 +148,10 @@ contract TickTreeCleanOfferTest is TickTreeTest {
       add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
-    // 3. Snapshot tick tree
+    // 2. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
 
-    // 4. Clean the offer
+    // 3. Clean the offer
     mgv.cleanByImpersonation(
       olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, offer.tick(), offerDetail.gasreq(), 1 ether)), $(this)
     );
@@ -162,12 +159,9 @@ contract TickTreeCleanOfferTest is TickTreeTest {
       tickTree.removeOffer(offerId);
     }
 
-    // 5. Assert that Mangrove and tick tree are equal
+    // 4. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // tickTree.assertMgvTickTreeIsConsistent();
-
-    // 6. Restore state from before test
-    vm.revertTo(vmSnapshotId);
   }
 }

@@ -499,7 +499,7 @@ contract FieldTest is MangroveTest {
     assertEq(tick.inboundFromOutboundUp(amt), divExpUp_spec(sig * amt, exp));
 
     //outboundFromInboundUp
-    (sig, exp) = TickLib.nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
+    (sig, exp) = TickLib.nonNormalizedRatioFromTick(tick.negate());
     assertEq(tick.outboundFromInboundUp(amt), divExpUp_spec(sig * amt, exp));
   }
 

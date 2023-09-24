@@ -20,6 +20,11 @@ library TickLib {
     }
   }
 
+  // Returns the negated tick, i.e. relative tick of the opposite offer list
+  function negate(Tick tick) internal pure returns (Tick) {
+    return Tick.wrap(-Tick.unwrap(tick));
+  }
+
   // Returns the nearest, higher bin to the given tick at the given tickSpacing
   function nearestBin(Tick tick, uint tickSpacing) internal pure returns (Bin bin) {
     // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
@@ -53,13 +58,13 @@ library TickLib {
   // no overflow if inboundAmt is on 104 bits
   // rounds down
   function outboundFromInbound(Tick tick, uint inboundAmt) internal pure returns (uint) {
-    (uint sig, uint exp) = nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
+    (uint sig, uint exp) = nonNormalizedRatioFromTick(tick.negate());
     return (sig * inboundAmt) >> exp;
   }
 
   function outboundFromInboundUp(Tick tick, uint inboundAmt) internal pure returns (uint) {
     unchecked {
-      (uint sig, uint exp) = nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
+      (uint sig, uint exp) = nonNormalizedRatioFromTick(tick.negate());
       return divExpUp(sig*inboundAmt,exp);
     }
   }

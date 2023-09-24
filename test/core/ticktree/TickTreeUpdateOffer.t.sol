@@ -185,9 +185,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     uint[] storage higherBinListSizeScenarios,
     uint[] storage lowerBinListSizeScenarios
   ) internal {
-    // vm.pauseGasMetering();
     runBinScenarios(bin, higherBinListSizeScenarios, lowerBinListSizeScenarios);
-    // vm.resumeGasMetering();
   }
 
   function runBinScenario(BinScenario memory binScenario) internal override {

@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_BIN} from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 
 contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickTreeBoundariesGasTest, GasTestBase {
@@ -13,7 +13,7 @@ contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickTreeBou
   function setUp() public virtual override {
     super.setUp();
     // At ratio MIDDLE_BIN so we can post a better or worse offer in same leaf.
-    _offerId = mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 1_000_000, 0);
+    _offerId = mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, 1_000_000, 0);
     description =
       "Posting a new offer in posthook for now empty offer list but where new offer has varying closeness to taken offer";
   }
@@ -29,16 +29,15 @@ contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickTreeBou
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata) public virtual override {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
-      int _tick = tick;
       _gas();
-      mgv.newOfferByTick(_olKey, _tick, 0.00001 ether, 1_000_000, 0);
+      mgv.newOfferByTick(_olKey, _olKey.tick(bin), 0.00001 ether, 1_000_000, 0);
       gas_();
     }
   }
 
-  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal virtual override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, Bin) internal virtual override {
     vm.prank($(taker));
-    mgv.marketOrderByTick(_olKey, MIDDLE_BIN, 1, true);
+    mgv.marketOrderByTick(_olKey, olKey.tick(MIDDLE_BIN), 1, true);
   }
 }
 
@@ -48,8 +47,8 @@ contract PosthookSuccessNewOfferSameList_WithOtherOfferGasTest is
   function setUp() public virtual override {
     super.setUp();
     // We insert two others so PosthookFailure will still have the second offer on the book when executing posthook as the first is taken to do the fill.
-    mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 1_000_000, 0);
-    mgv.newOfferByTick(olKey, MIDDLE_BIN, 0.00001 ether, 1_000_000, 0);
+    mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, 1_000_000, 0);
+    mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, 1_000_000, 0);
     description =
       "Posting a new offer in posthook for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer";
   }
@@ -62,15 +61,15 @@ contract PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameBinGasTest 
     super.setUp();
     this.newOfferOnAllHigherThanMiddleTestRatios();
     description =
-      "Posting a new offer in posthook for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that bin. This is only representative for ticks higher than the middle, as lower bins would be taken by market order";
+      "Posting a new offer in posthook for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that bin. This is only representative for bins higher than the middle, as lower bins would be taken by market order";
   }
 
-  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, int _tick) internal override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, Bin _bin) internal override {
     // Skip lower ratios as they would be taken by market order if posted so they are not posted.
-    if (_tick < MIDDLE_BIN) {
+    if (_bin.strictlyBetter(MIDDLE_BIN)) {
       return;
     }
-    super.impl(mgv, taker, _olKey, offerId, _tick);
+    super.impl(mgv, taker, _olKey, offerId, _bin);
   }
 }
 
@@ -79,15 +78,14 @@ contract PosthookSuccessNewOfferSameList_WithPriorNewOfferAndNoOtherOffersGasTes
 {
   function setUp() public virtual override {
     super.setUp();
-    description =
-      "Posting a second new offer at various tick-distances in posthook after posting an offer at MIDDLE_BIN";
+    description = "Posting a second new offer at various bin-distances in posthook after posting an offer at MIDDLE_BIN";
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata result) public virtual override {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
-      // Insert at middle ratio - the measured one is at various tick-distances.
-      mgv.newOfferByTick(_olKey, MIDDLE_BIN, 0.00001 ether, 1_000_000, 0);
+      // Insert at middle ratio - the measured one is at various bin-distances.
+      mgv.newOfferByTick(_olKey, _olKey.tick(MIDDLE_BIN), 0.00001 ether, 1_000_000, 0);
     }
     super.makerPosthook(sor, result);
   }
@@ -122,7 +120,7 @@ contract PosthookFailureNewOfferSameList_WithOtherOfferAndOfferOnSameBinGasTest 
     super.setUp();
     failExecute = true;
     description =
-      "Posting a new offer in posthook after offer failure for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tick";
+      "Posting a new offer in posthook after offer failure for offer list with other offer at same bin as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that bin";
   }
 }
 
@@ -133,6 +131,6 @@ contract PosthookFailureNewOfferSameListWith_PriorNewOfferAndNoOtherOffersGasTes
     super.setUp();
     failExecute = true;
     description =
-      "Posting a second new offer after offer failure at various tick-distances in posthook after posting an offer at MIDDLE_BIN";
+      "Posting a second new offer after offer failure at various bin-distances in posthook after posting an offer at MIDDLE_BIN";
   }
 }

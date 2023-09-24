@@ -88,7 +88,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function marketOrderFor(uint value, address who) internal returns (uint, uint, uint, uint) {
-    int tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickConversionLib.tickFromRatio(1, 0);
     return mgv.marketOrderForByTick(olKey, tick, value, true, who);
   }
 

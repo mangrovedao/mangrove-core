@@ -53,7 +53,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.offer.prev(), 0, "offer.prev should be hidden");
     assertEq(order.offer.next(), 0, "offer.next should be hidden");
     //   not hidden
-    assertEq(order.offer.tick(), 1, "offer.tick should not be hidden");
+    assertEq(order.offer.tick(), Tick.wrap(1), "offer.tick should not be hidden");
     assertEq(order.offer.gives(), 1 ether, "offer.gives should not be hidden");
 
     // OfferPackedDetail is not filtered
@@ -108,7 +108,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.setExecuteCallback($(this), this.assertSORFieldsFilteredCorrectly.selector);
     deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mkr.newOfferByTick(1, 1 ether, 200_000);
+    uint ofr = mkr.newOfferByTick(Tick.wrap(1), 1 ether, 200_000);
     require(tkr.marketOrderWithSuccess(0.1 ether), "take must work or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
@@ -903,9 +903,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_branch_on_retract_posInLeaf() public {
     mkr.provisionMgv(10 ether);
     uint wants = 5 ether;
-    mkr.newOfferByVolume(wants, TickLib.outboundFromInbound(3, wants), 100_000, 0);
+    mkr.newOfferByVolume(wants, Tick.wrap(3).outboundFromInbound(wants), 100_000, 0);
     uint posInLeaf = mgv.local(olKey).binPosInLeaf();
-    uint ofr = mkr.newOfferByVolume(wants, TickLib.outboundFromInbound(2, wants), 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(wants, Tick.wrap(2).outboundFromInbound(wants), 100_000, 0);
     assertGt(
       posInLeaf, mgv.local(olKey).binPosInLeaf(), "test void if posInLeaf does not change when second offer is created"
     );
@@ -963,8 +963,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_branch_on_insert_posInLeaf() public {
     mkr.provisionMgv(10 ether);
     Bin bin0 = Bin.wrap(0);
-    mkr.newOfferByTick(TickLib.fromBin(bin0, olKey.tickSpacing), 1 ether, 100_000, 0);
-    uint ofr = mkr.newOfferByTick(-46055, 100 ether, 100_000, 0);
+    mkr.newOfferByTick(olKey.tick(bin0), 1 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByTick(Tick.wrap(-46055), 100 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     assertTrue(
       offer.bin(olKey.tickSpacing).posInLeaf() != Bin.wrap(0).posInLeaf(),
@@ -991,11 +991,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_currentBin_is_cached_no_level31_erasure() public {
     // Create a very low bin so that later the branch of lowBin will be both in storage and in cache
     Bin veryLowBin = Bin.wrap(-100000);
-    uint ofr_veryLow = mgv.newOfferByTick(olKey, Bin.unwrap(veryLowBin), 1 ether, 10_000, 0);
+    uint ofr_veryLow = mgv.newOfferByTick(olKey, olKey.tick(veryLowBin), 1 ether, 10_000, 0);
 
     // Create an offer at lowTick
     Bin lowBin = Bin.wrap(10);
-    uint ofr = mgv.newOfferByTick(olKey, Bin.unwrap(lowBin), 1 ether, 10_000, 0);
+    uint ofr = mgv.newOfferByTick(olKey, olKey.tick(lowBin), 1 ether, 10_000, 0);
 
     // Make sure very low bin uses a different branch
     assertTrue(
@@ -1023,11 +1023,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       badLocal.bestBin().level3Index() != lowBin.level3Index(), "test setup: bad bin level3Index should be different"
     );
     // Create a bin there
-    mgv.newOfferByTick(olKey, Bin.unwrap(badLocal.bestBin()), 1 ether, 10_000, 0);
+    mgv.newOfferByTick(olKey, olKey.tick(badLocal.bestBin()), 1 ether, 10_000, 0);
     // Save level3, level2
     Field highLevel3 = mgv.level3(olKey, badLocal.bestBin().level3Index());
     // Update the new bin to an even better tick
-    mgv.updateOfferByTick(olKey, Bin.unwrap(veryLowBin), 1 ether, 10_000, 0, ofr);
+    mgv.updateOfferByTick(olKey, olKey.tick(veryLowBin), 1 ether, 10_000, 0, ofr);
 
     // Make sure we the high offer's branch is still fine
     assertEq(
@@ -1040,18 +1040,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_higher_tick() public {
-    mgv.newOfferByTick(olKey, 2, 1 ether, 100_000, 0);
+    mgv.newOfferByTick(olKey, Tick.wrap(2), 1 ether, 100_000, 0);
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
 
-    mgv.newOfferByTick(olKey, 3, 1 ether, 100_000, 0);
+    mgv.newOfferByTick(olKey, Tick.wrap(3), 1 ether, 100_000, 0);
     (, local) = mgv.config(olKey);
     assertEq(local.binPosInLeaf(), 2);
   }
 
-  function test_leaf_update_both_first_and_last(int tick) public {
-    tick = bound(tick, MIN_TICK, MAX_TICK);
+  function test_leaf_update_both_first_and_last(Tick tick) public {
+    tick = Tick.wrap(bound(Tick.unwrap(tick), MIN_TICK, MAX_TICK));
     uint ofr0 = mgv.newOfferByTick(olKey, tick, 1 ether, 0, 0);
-    Bin bin = BinLib.tickToNearestHigherBin(tick, olKey.tickSpacing);
+    Bin bin = olKey.nearestBin(tick);
     Leaf expected = LeafLib.EMPTY;
     expected = expected.setPosFirstOrLast(bin.posInLeaf(), ofr0, true);
     expected = expected.setPosFirstOrLast(bin.posInLeaf(), ofr0, false);

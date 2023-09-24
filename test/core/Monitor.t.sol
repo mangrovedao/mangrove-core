@@ -93,7 +93,7 @@ contract MonitorTest is MangroveTest {
     uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofrId);
 
-    int tick = offer.tick();
+    Tick tick = offer.tick();
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config(olKey);
     _local = _local.lock(true);
@@ -123,7 +123,7 @@ contract MonitorTest is MangroveTest {
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofrId);
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, ofrId);
 
-    int tick = offer.tick();
+    Tick tick = offer.tick();
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config(olKey);
     // config sent during maker callback has stale best and, is locked

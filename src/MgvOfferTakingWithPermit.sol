@@ -78,12 +78,12 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
-      int tick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+      Tick tick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
       return marketOrderForByTick(olKey, tick, fillVolume, fillWants, taker);
     }
   }
 
-  function marketOrderForByTick(OLKey memory olKey, int tick, uint fillVolume, bool fillWants, address taker)
+  function marketOrderForByTick(OLKey memory olKey, Tick tick, uint fillVolume, bool fillWants, address taker)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {

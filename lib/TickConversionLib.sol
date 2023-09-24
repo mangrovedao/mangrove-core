@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import "mgv_lib/Constants.sol";
 import "mgv_lib/BitLib.sol";
+import {Tick} from "mgv_lib/TickLib.sol";
 
 library TickConversionLib {
   // returns a normalized ratio within the max/min ratio range
@@ -29,13 +30,13 @@ library TickConversionLib {
     }
   }
 
-  function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (int24 tick) {
+  function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick tick) {
     (uint man, uint exp) = ratioFromVolumes(inboundAmt, outboundAmt);
     return tickFromNormalizedRatio(man,exp);
   }
 
   // expects a normalized ratio float
-  function tickFromRatio(uint mantissa, int exp) internal pure returns (int24) {
+  function tickFromRatio(uint mantissa, int exp) internal pure returns (Tick) {
     uint normalized_exp;
     (mantissa, normalized_exp) = normalizeRatio(mantissa, exp);
     return tickFromNormalizedRatio(mantissa,normalized_exp);
@@ -43,7 +44,7 @@ library TickConversionLib {
 
   // return greatest tick t such that ratio(tick) <= input ratio
   // does not expect a normalized ratio float
-  function tickFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (int24 tick) {
+  function tickFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (Tick tick) {
     if (floatLt(mantissa, int(exp), MIN_RATIO_MANTISSA, MIN_RATIO_EXP)) {
       revert("mgv/ratio/tooLow");
     }
@@ -127,16 +128,16 @@ library TickConversionLib {
 
     int log_bp_ratio = log2ratio * 127869479499801913173570;
 
-    int24 tickLow = int24((log_bp_ratio - 1701479891078076505009565712080972645) >> 128);
-    int24 tickHigh = int24((log_bp_ratio + 290040965921304576580754310682015830659) >> 128);
+    int tickLow = int((log_bp_ratio - 1701479891078076505009565712080972645) >> 128);
+    int tickHigh = int((log_bp_ratio + 290040965921304576580754310682015830659) >> 128);
 
-    (uint mantissaHigh, uint expHigh) = ratioFromTick(tickHigh);
+    (uint mantissaHigh, uint expHigh) = ratioFromTick(Tick.wrap(tickHigh));
 
     bool ratioHighGt = floatLt(mantissa, int(exp), mantissaHigh, int(expHigh));
     if (tickLow == tickHigh || ratioHighGt) {
-      tick = tickLow;
+      tick = Tick.wrap(tickLow);
     } else { 
-      tick = tickHigh;
+      tick = Tick.wrap(tickHigh);
     }
   }
 
@@ -147,8 +148,8 @@ library TickConversionLib {
 
   // return ratio from tick, as a non-normalized float (meaning the leftmost set bit is not always in the  same position)
   // first return value is the mantissa, second value is the opposite of the exponent
-  function nonNormalizedRatioFromTick(int tick) internal pure returns (uint man, uint exp) {
-    uint absTick = tick < 0 ? uint(-int(tick)) : uint(tick);
+  function nonNormalizedRatioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
+    uint absTick = Tick.unwrap(tick) < 0 ? uint(-int(Tick.unwrap(tick))) : uint(Tick.unwrap(tick));
     require(absTick <= uint(MAX_TICK), "absTick/outOfBounds");
 
     // each 1.0001^(2^i) below is shifted 128+(an additional shift value)
@@ -222,7 +223,7 @@ library TickConversionLib {
       man = (man * 0xa4d9a773d61316918f140bd96e8e6814) >> 128;
       extra_shift += 75;
     }
-    if (tick > 0) {
+    if (Tick.unwrap(tick) > 0) {
       man = type(uint).max / man;
       extra_shift = -extra_shift;
     }
@@ -233,14 +234,14 @@ library TickConversionLib {
 
   // return ratio from tick, as a normalized float
   // first return value is the mantissa, second value is -exp
-  function ratioFromTick(int tick) internal pure returns (uint man, uint exp) {
+  function ratioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
     (man, exp) = nonNormalizedRatioFromTick(tick);
 
     uint log_bp_2X232 = 47841652135324370225811382070797757678017615758549045118126590952295589692;
     // log_1.0001(ratio) * log_2(1.0001)
-    int log2ratio = (int(tick) << 232) / int(log_bp_2X232);
+    int log2ratio = (int(Tick.unwrap(tick)) << 232) / int(log_bp_2X232);
     // floor(log) towards negative infinity
-    if (tick < 0 && int(tick) << 232 % log_bp_2X232 != 0) {
+    if (Tick.unwrap(tick) < 0 && int(Tick.unwrap(tick)) << 232 % log_bp_2X232 != 0) {
       log2ratio = log2ratio - 1;
     }
     // MANTISSA_BITS was chosen so that diff cannot be <0 

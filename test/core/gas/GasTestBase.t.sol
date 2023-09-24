@@ -9,27 +9,29 @@ import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
 
 // A bin with room for bits above and below at all bin levels, except at root which has only 2 bits.
 // forgefmt: disable-start
-int constant MIDDLE_BIN = 
+int constant IMIDDLE_BIN = 
   /* mid leaf */ LEAF_SIZE / 2 + 
   /* mid level 3 */ LEAF_SIZE * (LEVEL_SIZE / 2) +
   /* mid level 2 */ LEAF_SIZE * (LEVEL_SIZE**2)/2  +
   /* mid level 1 */ LEAF_SIZE * (LEVEL_SIZE ** 3)/4;
 // forgefmt: disable-end
 
-int constant LEAF_LOWER_BIN = MIDDLE_BIN - 1;
-int constant LEAF_HIGHER_BIN = MIDDLE_BIN + 1;
-int constant LEVEL3_LOWER_BIN = MIDDLE_BIN - LEAF_SIZE;
-int constant LEVEL3_HIGHER_BIN = MIDDLE_BIN + LEAF_SIZE;
-int constant LEVEL2_LOWER_BIN = MIDDLE_BIN - LEAF_SIZE * LEVEL_SIZE;
-int constant LEVEL2_HIGHER_BIN = MIDDLE_BIN + LEAF_SIZE * LEVEL_SIZE;
-int constant LEVEL1_LOWER_BIN = MIDDLE_BIN - LEAF_SIZE * (LEVEL_SIZE ** 2);
-int constant LEVEL1_HIGHER_BIN = MIDDLE_BIN + LEAF_SIZE * (LEVEL_SIZE ** 2);
+Bin constant MIDDLE_BIN = Bin.wrap(IMIDDLE_BIN);
+
+Bin constant LEAF_LOWER_BIN = Bin.wrap(IMIDDLE_BIN - 1);
+Bin constant LEAF_HIGHER_BIN = Bin.wrap(IMIDDLE_BIN + 1);
+Bin constant LEVEL3_LOWER_BIN = Bin.wrap(IMIDDLE_BIN - LEAF_SIZE);
+Bin constant LEVEL3_HIGHER_BIN = Bin.wrap(IMIDDLE_BIN + LEAF_SIZE);
+Bin constant LEVEL2_LOWER_BIN = Bin.wrap(IMIDDLE_BIN - LEAF_SIZE * LEVEL_SIZE);
+Bin constant LEVEL2_HIGHER_BIN = Bin.wrap(IMIDDLE_BIN + LEAF_SIZE * LEVEL_SIZE);
+Bin constant LEVEL1_LOWER_BIN = Bin.wrap(IMIDDLE_BIN - LEAF_SIZE * (LEVEL_SIZE ** 2));
+Bin constant LEVEL1_HIGHER_BIN = Bin.wrap(IMIDDLE_BIN + LEAF_SIZE * (LEVEL_SIZE ** 2));
 // Not multiplying by full LEVEL_SIZE or ROOT_HIGHER_BIN goes out of tick range
-int constant ROOT_LOWER_BIN = MIDDLE_BIN - LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
-int constant ROOT_HIGHER_BIN = MIDDLE_BIN + LEAF_SIZE * (LEVEL_SIZE ** 3) / 2;
+Bin constant ROOT_LOWER_BIN = Bin.wrap(IMIDDLE_BIN - LEAF_SIZE * (LEVEL_SIZE ** 3) / 2);
+Bin constant ROOT_HIGHER_BIN = Bin.wrap(IMIDDLE_BIN + LEAF_SIZE * (LEVEL_SIZE ** 3) / 2);
 
 abstract contract GasTestBaseStored {
-  mapping(int tick => uint offerId) internal tickOfferIds;
+  mapping(Bin bin => uint offerId) internal binOfferIds;
   string internal description = "TODO";
 
   function getStored() internal view virtual returns (IMangrove, TestTaker, OLKey memory, uint);
@@ -46,20 +48,26 @@ abstract contract GasTestBaseStored {
 
   function newOfferOnAllLowerThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
-    tickOfferIds[LEAF_LOWER_BIN] = mgv.newOfferByTick(_olKey, LEAF_LOWER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL3_LOWER_BIN] = mgv.newOfferByTick(_olKey, LEVEL3_LOWER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL2_LOWER_BIN] = mgv.newOfferByTick(_olKey, LEVEL2_LOWER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL1_LOWER_BIN] = mgv.newOfferByTick(_olKey, LEVEL1_LOWER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[ROOT_LOWER_BIN] = mgv.newOfferByTick(_olKey, ROOT_LOWER_BIN, 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEAF_LOWER_BIN] = mgv.newOfferByTick(_olKey, _olKey.tick(LEAF_LOWER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEVEL3_LOWER_BIN] =
+      mgv.newOfferByTick(_olKey, _olKey.tick(LEVEL3_LOWER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEVEL2_LOWER_BIN] =
+      mgv.newOfferByTick(_olKey, _olKey.tick(LEVEL2_LOWER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEVEL1_LOWER_BIN] =
+      mgv.newOfferByTick(_olKey, _olKey.tick(LEVEL1_LOWER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[ROOT_LOWER_BIN] = mgv.newOfferByTick(_olKey, _olKey.tick(ROOT_LOWER_BIN), 0.00001 ether, 1_000_000, 0);
   }
 
   function newOfferOnAllHigherThanMiddleTestRatios() public virtual {
     (IMangrove mgv,, OLKey memory _olKey,) = getStored();
-    tickOfferIds[LEAF_HIGHER_BIN] = mgv.newOfferByTick(_olKey, LEAF_HIGHER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL3_HIGHER_BIN] = mgv.newOfferByTick(_olKey, LEVEL3_HIGHER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL2_HIGHER_BIN] = mgv.newOfferByTick(_olKey, LEVEL2_HIGHER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL1_HIGHER_BIN] = mgv.newOfferByTick(_olKey, LEVEL1_HIGHER_BIN, 0.00001 ether, 1_000_000, 0);
-    tickOfferIds[ROOT_HIGHER_BIN] = mgv.newOfferByTick(_olKey, ROOT_HIGHER_BIN, 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEAF_HIGHER_BIN] = mgv.newOfferByTick(_olKey, _olKey.tick(LEAF_HIGHER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEVEL3_HIGHER_BIN] =
+      mgv.newOfferByTick(_olKey, _olKey.tick(LEVEL3_HIGHER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEVEL2_HIGHER_BIN] =
+      mgv.newOfferByTick(_olKey, _olKey.tick(LEVEL2_HIGHER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[LEVEL1_HIGHER_BIN] =
+      mgv.newOfferByTick(_olKey, _olKey.tick(LEVEL1_HIGHER_BIN), 0.00001 ether, 1_000_000, 0);
+    binOfferIds[ROOT_HIGHER_BIN] = mgv.newOfferByTick(_olKey, _olKey.tick(ROOT_HIGHER_BIN), 0.00001 ether, 1_000_000, 0);
   }
 }
 

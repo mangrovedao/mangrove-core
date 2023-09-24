@@ -34,6 +34,16 @@ library OLLib {
   function flipped(OLKey memory olKey) internal pure returns (OLKey memory) {
     return OLKey(olKey.inbound, olKey.outbound, olKey.tickSpacing);
   }
+
+  // Convert tick to bin according to olKey's tickSpacing
+  function nearestBin(OLKey memory olKey, Tick _tick) internal pure returns (Bin) {
+    return _tick.nearestBin(olKey.tickSpacing);
+  }
+
+  // Convert bin to tick according to olKey's tickSpacing
+  function tick(OLKey memory olKey, Bin _bin) internal pure returns (Tick) {
+    return _bin.tick(olKey.tickSpacing);
+  }
 }
 
 /* # Structs
@@ -70,7 +80,7 @@ library MgvLib {
   /* `CleanTarget` holds data about an offer that should be cleaned, i.e. made to fail by executing it with the specified volume. */
   struct CleanTarget {
     uint offerId;
-    int tick;
+    Tick tick;
     uint gasreq;
     uint takerWants;
   }
@@ -279,7 +289,7 @@ interface HasMgvEvents {
 
   By emitting `maxTick`, `fillVolume` and `fillWants`, we can now also know how much of the market order was filled and if it matches the ratio given. See OrderComplete for more.
   */
-  event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxTick, uint fillVolume, bool fillWants);
+  event OrderStart(bytes32 indexed olKeyHash, address indexed taker, Tick maxTick, uint fillVolume, bool fillWants);
 
   /*
   This event is emitted when a market order is finished.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs, Bin, Leaf, Field, TickLib, OLKey} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, Bin, Leaf, Field, TickLib, OLKey, Tick} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {TickConversionLib} from "mgv_lib/TickConversionLib.sol";
 
@@ -51,7 +51,7 @@ function toOLKey(Market memory market) pure returns (OLKey memory) {
 contract MgvReader {
   struct MarketOrder {
     OLKey olKey;
-    int maxTick;
+    Tick maxTick;
     uint initialFillVolume;
     uint totalGot;
     uint totalGave;
@@ -395,11 +395,11 @@ contract MgvReader {
     bool accumulate
   ) public view returns (VolumeData[] memory) {
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+    Tick maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
     return simulateMarketOrderByTick(olKey, maxTick, fillVolume, fillWants, accumulate);
   }
 
-  function simulateMarketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants)
+  function simulateMarketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     public
     view
     returns (VolumeData[] memory)
@@ -407,7 +407,7 @@ contract MgvReader {
     return simulateMarketOrderByTick(olKey, maxTick, fillVolume, fillWants, true);
   }
 
-  function simulateMarketOrderByTick(OLKey memory olKey, int maxTick, uint fillVolume, bool fillWants, bool accumulate)
+  function simulateMarketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants, bool accumulate)
     public
     view
     returns (VolumeData[] memory)
@@ -432,7 +432,10 @@ contract MgvReader {
 
   function simulateInternalMarketOrder(MarketOrder memory mr) internal view {
     unchecked {
-      if (mr.currentFillVolume > 0 && mr.offer.tick() <= mr.maxTick && mr.offerId > 0 && mr.maxRecursionDepth > 0) {
+      if (
+        mr.currentFillVolume > 0 && Tick.unwrap(mr.offer.tick()) <= Tick.unwrap(mr.maxTick) && mr.offerId > 0
+          && mr.maxRecursionDepth > 0
+      ) {
         uint currentIndex = mr.numOffers;
 
         mr.offerDetail = MGV.offerDetails(mr.olKey, mr.offerId);
@@ -480,11 +483,11 @@ contract MgvReader {
           mr.currentGives = offerWants;
         } else {
           if (mr.fillWants) {
-            mr.currentGives = TickLib.inboundFromOutboundUp(mr.offer.tick(), fillVolume);
+            mr.currentGives = mr.offer.tick().inboundFromOutboundUp(fillVolume);
             mr.currentWants = fillVolume;
           } else {
             // offerWants = 0 is forbidden at offer writing
-            mr.currentWants = TickLib.outboundFromInbound(mr.offer.tick(), fillVolume);
+            mr.currentWants = mr.offer.tick().outboundFromInbound(fillVolume);
             mr.currentGives = fillVolume;
           }
         }

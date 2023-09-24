@@ -96,7 +96,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
     uint mgvQuoteBal = quote.balanceOf(address(mgv));
 
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mgv.marketOrderByTick(olKey, tick, 1 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(quote.balanceOf(address(mgv)) - mgvQuoteBal, 1 ether, "Mgv balance should have increased");
@@ -108,7 +108,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     _takerTrade = noop;
     skipCheck = true;
     uint ofr = 2;
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     (uint totalGot, uint totalGave,,) = mgv.marketOrderByTick(olKey, tick, 0.1 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(totalGot, 0.1 ether, "Incorrect totalGot");
@@ -132,7 +132,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
 
   function test_taker_pays_back_correct_amount_1() public {
     uint ofr = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
     mgv.marketOrderByTick(olKey, tick, 0.05 ether, true);
@@ -142,7 +142,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
 
   function test_taker_pays_back_correct_amount_2() public {
     uint ofr = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
     mgv.marketOrderByTick(olKey, tick, 0.02 ether, true);

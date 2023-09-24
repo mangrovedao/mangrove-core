@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "mgv_lib/Constants.sol";
+import {Tick} from "mgv_lib/TickLib.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 import {console2 as csf} from "forge-std/console2.sol";
 import {LocalPacked} from "mgv_src/preprocessed/MgvLocal.post.sol";
@@ -99,14 +100,14 @@ library LeafLib {
 
   function setBinFirst(Leaf leaf, Bin bin, uint id) internal pure returns (Leaf) {
     unchecked {
-      uint posInLeaf = BinLib.posInLeaf(bin);
+      uint posInLeaf = bin.posInLeaf();
       return setPosFirstOrLast(leaf, posInLeaf, id, false);
     }
   }
 
   function setBinLast(Leaf leaf, Bin bin, uint id) internal pure returns (Leaf) {
     unchecked {
-      uint posInLeaf = BinLib.posInLeaf(bin);
+      uint posInLeaf = bin.posInLeaf();
       return setPosFirstOrLast(leaf, posInLeaf, id, true);
     }
   }
@@ -129,13 +130,13 @@ library LeafLib {
 
   function firstOfBin(Leaf leaf, Bin bin) internal pure returns (uint) {
     unchecked {
-      return firstOfPos(leaf, BinLib.posInLeaf(bin));
+      return firstOfPos(leaf, bin.posInLeaf());
     }
   }
 
   function lastOfBin(Leaf leaf, Bin bin) internal pure returns (uint) {
     unchecked {
-      return lastOfPos(leaf, BinLib.posInLeaf(bin));
+      return lastOfPos(leaf, bin.posInLeaf());
     }
   }
 
@@ -184,25 +185,6 @@ library BinLib {
     }
   }
 
-  // Returns the nearest, higher bin to the given tick at the given tickSpacing
-  function tickToNearestHigherBin(int tick, uint tickSpacing) internal pure returns (Bin) {
-    unchecked {
-      // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
-      // Round maker ratios up such that maker is always paid at least what they asked for
-      int bin = tick / int(tickSpacing);
-      if (tick > 0 && tick % int(tickSpacing) != 0) {
-        bin = bin + 1;
-      }
-      return Bin.wrap(bin);
-    }
-  }
-
-  // Optimized conversion for ticks that are known to map exactly to a bin at the given tickSpacing,
-  // eg for offers in the offer list which are always written with a tick-aligned tick
-  function fromBinAlignedTick(int tick, uint tickSpacing) internal pure returns (Bin) {
-    return Bin.wrap(tick / int(tickSpacing));
-  }
-
   // Utility for tests&unpacked structs, less gas-optimal
   // Must not be called with any of level3, level2, level1 or root empty
   function bestBinFromBranch(uint binPosInLeaf,Field level3, Field level2, Field level1, Field root) internal pure returns (Bin) {
@@ -211,6 +193,10 @@ library BinLib {
       local = local.binPosInLeaf(binPosInLeaf).level3(level3).level2(level2).level1(level1).root(root);
       return bestBinFromLocal(local);
     }
+  }
+
+  function tick(Bin bin, uint tickSpacing) internal pure returns (Tick) {
+    return Tick.wrap(Bin.unwrap(bin) * int(tickSpacing));
   }
 
   function bestBinFromLocal(LocalPacked local) internal pure returns (Bin) {

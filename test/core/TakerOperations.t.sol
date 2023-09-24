@@ -64,7 +64,7 @@ contract TakerOperationsTest is MangroveTest {
   function test_execute_reverts_if_taker_is_blacklisted_for_quote() public {
     uint weiBalanceBefore = mgv.balanceOf($(this));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
     quote.blacklists($(this));
@@ -77,7 +77,7 @@ contract TakerOperationsTest is MangroveTest {
   function test_execute_reverts_if_taker_is_blacklisted_for_base() public {
     uint weiBalanceBefore = mgv.balanceOf($(this));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
     base.blacklists($(this));
@@ -93,20 +93,20 @@ contract TakerOperationsTest is MangroveTest {
   function test_taker_cannot_drain_maker() public {
     mgv.setDensity96X32(olKey, 0);
     quote.approve($(mgv), 1 ether);
-    int bin = -7000; // ratio slightly < 1/2
-    mkr.newOfferByTick(bin, 10, 100_000, 0);
+    Tick tick = Tick.wrap(-7000); // ratio slightly < 1/2
+    mkr.newOfferByTick(tick, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
-    mgv.marketOrderByTick(olKey, MAX_TICK, 1, true);
+    mgv.marketOrderByTick(olKey, Tick.wrap(MAX_TICK), 1, true);
     uint newBal = quote.balanceOf($(this));
     assertGt(oldBal, newBal, "oldBal should be strictly higher");
   }
 
   function test_execute_fillWants() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
-    (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, tick + 1, 0.5 ether, true);
+    (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, Tick.wrap(Tick.unwrap(tick) + 1), 0.5 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(got, 0.5 ether, "Taker did not get correct amount");
     assertEq(gave, 0.5 ether, "Taker did not give correct amount");
@@ -121,7 +121,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = true means we should not receive more than `wants`.
        Here we are asking for 0.1 eth to an offer that gives 1eth for ~nothing.
        We should still only receive 0.1 eth */
-    int tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickConversionLib.tickFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, tick, 0.1 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 0.1 ether, relError(10), "Wrong got value");
@@ -138,7 +138,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = false means we should spend as little as possible to receive
        as much as possible.
        Here despite asking for .1eth the offer gives 1eth for ~0 so we should receive 1eth. */
-    int tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickConversionLib.tickFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, tick, 0.1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 1 ether, relError(10), "Wrong got value");
@@ -151,7 +151,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
-    int tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickConversionLib.tickFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, tick, 1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(got, 1 ether, "Taker did not get correct amount");
@@ -165,11 +165,11 @@ contract TakerOperationsTest is MangroveTest {
   function test_mo_fillWants() public {
     uint ofr1 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     uint ofr2 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int offerTick1 = mgv.offers(olKey, ofr1).tick();
-    int offerTick2 = mgv.offers(olKey, ofr2).tick();
+    Tick offerTick1 = mgv.offers(olKey, ofr1).tick();
+    Tick offerTick2 = mgv.offers(olKey, ofr2).tick();
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    int maxTick = TickConversionLib.tickFromVolumes(1.9 ether, 1.1 ether);
+    Tick maxTick = TickConversionLib.tickFromVolumes(1.9 ether, 1.1 ether);
 
     expectFrom($(mgv));
     emit OrderStart(olKey.hash(), $(this), maxTick, 1.1 ether, true);
@@ -191,9 +191,9 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(base));
     emit Transfer($(mgv), $(this), 1.1 ether);
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), $(this), ofr2, 0.1 ether, TickLib.inboundFromOutbound(offerTick2, 0.1 ether));
+    emit OfferSuccess(olKey.hash(), $(this), ofr2, 0.1 ether, offerTick2.inboundFromOutbound(0.1 ether));
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), $(this), ofr1, 1 ether, TickLib.inboundFromOutbound(offerTick1, 1 ether));
+    emit OfferSuccess(olKey.hash(), $(this), ofr1, 1 ether, offerTick1.inboundFromOutbound(1 ether));
     expectFrom($(mgv));
     emit OrderComplete(olKey.hash(), $(this), 0);
 
@@ -209,7 +209,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_mo_fillWants_zero() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should be in the book");
     quote.approve($(mgv), 1 ether);
 
@@ -249,7 +249,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_mo_fillGives_zero() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should be in the book");
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
@@ -294,7 +294,7 @@ contract TakerOperationsTest is MangroveTest {
     // uint mkr_provision = reader.getProvision(olKey, 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = refusemkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
     uint beforeQuote = quote.balanceOf($(this));
     uint beforeWei = $(this).balance;
@@ -314,7 +314,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_taker_reverts_on_penalty_triggers_revert() public {
     uint ofr = refusemkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     refuseReceive = true;
     quote.approve($(mgv), 1 ether);
 
@@ -326,7 +326,7 @@ contract TakerOperationsTest is MangroveTest {
     // uint mkr_provision = reader.getProvision(olKey, 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
 
     base.blacklists(address(mkr));
@@ -349,7 +349,7 @@ contract TakerOperationsTest is MangroveTest {
     // uint mkr_provision = reader.getProvision(olKey, 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/makerReceiveFail"); // status visible in the posthook
 
     quote.blacklists(address(mkr));
@@ -371,7 +371,7 @@ contract TakerOperationsTest is MangroveTest {
   function test_taker_collects_failing_offer() public {
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     uint beforeWei = $(this).balance;
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick(olKey, tick, 1 ether, true);
@@ -384,7 +384,7 @@ contract TakerOperationsTest is MangroveTest {
     // uint mkr_provision = reader.getProvision(olKey, 50_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     uint beforeQuote = quote.balanceOf($(this));
     uint beforeWei = $(this).balance;
 
@@ -405,7 +405,7 @@ contract TakerOperationsTest is MangroveTest {
 
     uint balTaker = base.balanceOf($(this));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     quote.approve($(mgv), 1 ether);
     uint shouldGet = reader.minusFee(olKey, 1 ether);
     mgv.marketOrderByTick(olKey, tick, 1 ether, true);
@@ -416,7 +416,7 @@ contract TakerOperationsTest is MangroveTest {
   function test_taker_hasnt_approved_base_succeeds_order_wo_fee() public {
     uint balTaker = base.balanceOf($(this));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     quote.approve($(mgv), 1 ether);
     mgv.marketOrderByTick(olKey, tick, 1 ether, true);
     assertEq(base.balanceOf($(this)) - balTaker, 1 ether, "Incorrect delivered amount");
@@ -425,7 +425,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_taker_hasnt_approved_quote_fails_order() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     base.approve($(mgv), 1 ether);
 
     vm.expectRevert("mgv/takerTransferFail");
@@ -478,7 +478,7 @@ contract TakerOperationsTest is MangroveTest {
   function test_fillGives_at_0_wants_works() public {
     uint wants = 0;
     uint ofr = mkr.newOfferByVolume(wants, 2 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/tradeSuccess");
     quote.approve($(mgv), 10 ether);
 
@@ -512,7 +512,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_taker_has_no_quote_fails_order() public {
     uint ofr = mkr.newOfferByVolume(100 ether, 2 ether, 50_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/tradeSuccess");
 
     quote.approve($(mgv), 100 ether);
@@ -524,7 +524,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_maker_has_not_enough_base_fails_order() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/makerTransferFail");
     // getting rid of base tokens
     //mkr.transferToken(base,$(this),5 ether);
@@ -538,7 +538,7 @@ contract TakerOperationsTest is MangroveTest {
       $(this),
       ofr,
       takerWants,
-      TickLib.inboundFromOutboundUp(offer.tick(), takerWants),
+      offer.tick().inboundFromOutboundUp(takerWants),
       /*penalty*/
       0,
       "mgv/makerTransferFail"
@@ -550,7 +550,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_maker_revert_is_logged() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     mkr.expect("mgv/makerRevert");
     mkr.shouldRevert(true);
     quote.approve($(mgv), 1 ether);
@@ -562,7 +562,7 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_detect_low_gas() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
     // Change gasbase so that gas limit checks does not prevent execution attempt
     mgv.setGasbase(olKey, 1);
     quote.approve($(mgv), 100 ether);
@@ -674,7 +674,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
     uint mkrBal = base.balanceOf(address(mkr));
     uint ofr = failmkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
-    int offerTick = mgv.offers(olKey, ofr).tick();
+    Tick offerTick = mgv.offers(olKey, ofr).tick();
 
     (uint successes,) =
       mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, offerTick, 100_000, 0)), $(this));
@@ -688,7 +688,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 120_000, 0);
     mgv.setGasbase(olKey, 1);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
 
     vm.expectRevert("mgv/notEnoughGasForMakerTrade");
     mgv.marketOrderByTick{gas: 145_000}(olKey, tick, 1 ether, true);
@@ -698,7 +698,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.setGasbase(olKey, 1);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 120_000, 0);
-    int tick = mgv.offers(olKey, ofr).tick();
+    Tick tick = mgv.offers(olKey, ofr).tick();
 
     vm.expectRevert("mgv/notEnoughGasForMakerPosthook");
     mgv.marketOrderByTick{gas: 291_000}(olKey, tick, 1 ether, true);
@@ -720,7 +720,7 @@ contract TakerOperationsTest is MangroveTest {
     olKey.outbound = address(oogtt);
     mgv.activate(olKey, 0, 0, 1);
 
-    int tick = 0;
+    Tick tick = Tick.wrap(0);
     mkr.newOfferByTick(olKey, tick, 1 ether, 220_000, 0);
     vm.expectRevert("mgv/MgvFailToPayTaker");
 
@@ -796,71 +796,80 @@ contract TakerOperationsTest is MangroveTest {
   /* # Clean tests */
   /* Clean parameter validation */
   function test_gives_tick_outside_range_fails_clean() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 1 << 23, 0, 1)), $(this));
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(1 << 23), 0, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
   function test_gives_volume_above_96bits_fails_clean() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 0, 1 << 96)), $(this));
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 0, 1 << 96)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
   /* Clean offer state&match validation */
   function test_clean_on_nonexistent_offer_fails() public {
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(1, 0, 0, 1)), $(this));
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(1, Tick.wrap(0), 0, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
   function test_clean_non_live_offer_fails() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
     failmkr.retractOffer(ofr);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(this));
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == 0, "clean must not have changed the book");
   }
 
   function test_cleaning_with_exact_offer_details_succeeds() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 0)), $(this));
     assertTrue(successes > 0, "cleaning should have succeeded");
     assertTrue(mgv.best(olKey) == 0, "clean must have emptied mgv");
   }
 
   function test_giving_smaller_tick_to_clean_fails() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, -1, 100_000, 0)), $(this));
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(-1), 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
   function test_giving_bigger_tick_to_clean_fails() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 1, 100_000, 0)), $(this));
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(1), 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have succeeded");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
   function test_giving_smaller_gasreq_to_clean_fails() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 99_000, 0)), $(this));
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 99_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
   function test_giving_bigger_gasreq_to_clean_succeeds() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_001, 0)), $(this));
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_001, 0)), $(this));
     assertTrue(successes > 0, "cleaning should have succeeded");
     assertTrue(mgv.best(olKey) == 0, "clean must have emptied mgv");
   }
 
   /* Clean - offer execution */
   function test_cleaning_non_failing_offer_fails() public {
-    int tick = 0;
+    Tick tick = Tick.wrap(0);
     uint ofr = mkr.newOfferByTick(tick, 1 ether, 100_000);
 
     expectFrom($(mgv));
@@ -873,14 +882,15 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(base));
     emit Transfer($(mkr), $(mgv), 0 ether);
 
-    (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
+    (uint successes,) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
   function test_cleaning_failing_offer_transfers_bounty() public {
     uint balanceBefore = $(this).balance;
-    int tick = 0;
+    Tick tick = Tick.wrap(0);
     uint ofr = failmkr.newOfferByTick(tick, 1 ether, 100_000);
 
     expectFrom($(mgv));
@@ -898,7 +908,8 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit CleanComplete();
 
-    (, uint bounty) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
+    (, uint bounty) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 0)), $(this));
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");
     uint balanceAfter = $(this).balance;
     assertEq(balanceBefore + bounty, balanceAfter, "the bounty was not transfered to the cleaner");
@@ -906,13 +917,14 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_clean_multiple_failing_offers() public {
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    uint ofr2 = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    uint ofr2 = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
 
     uint oldBal = $(this).balance;
 
-    MgvLib.CleanTarget[] memory targets =
-      wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0), MgvLib.CleanTarget(ofr2, 0, 100_000, 0));
+    MgvLib.CleanTarget[] memory targets = wrap_dynamic(
+      MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 0), MgvLib.CleanTarget(ofr2, Tick.wrap(0), 100_000, 0)
+    );
 
     expectFrom($(mgv));
     emit CleanStart(olKey.hash(), $(this), 2);
@@ -949,16 +961,16 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_cleans_failing_offers_despite_one_not_failing() public {
     deal($(quote), $(this), 10 ether);
-    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
-    uint ofr2 = mkr.newOfferByTick(0, 1 ether, 100_000);
-    uint ofr3 = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    uint ofr2 = mkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
+    uint ofr3 = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
 
     uint oldBal = $(this).balance;
 
     MgvLib.CleanTarget[] memory targets = wrap_dynamic(
-      MgvLib.CleanTarget(ofr, 0, 100_000, 0),
-      MgvLib.CleanTarget(ofr2, 0, 100_000, 0),
-      MgvLib.CleanTarget(ofr3, 0, 100_000, 0)
+      MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 0),
+      MgvLib.CleanTarget(ofr2, Tick.wrap(0), 100_000, 0),
+      MgvLib.CleanTarget(ofr3, Tick.wrap(0), 100_000, 0)
     );
 
     expectFrom($(mgv));
@@ -1000,9 +1012,10 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_cleaning_by_impersonation_succeeds_and_does_not_transfer_funds() public {
-    uint ofr = failNonZeroMkr.newOfferByTick(0, 1 ether, 100_000);
+    uint ofr = failNonZeroMkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
     // $this cannot clean with taker because of lack of funds/approval
-    (, uint bounty) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(this));
+    (, uint bounty) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 1)), $(this));
     assertEq(bounty, 0, "cleaning should have failed");
 
     uint balanceNativeBefore = $(this).balance;
@@ -1032,7 +1045,8 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit CleanComplete();
 
-    (, bounty) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(otherTkr));
+    (, bounty) =
+      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 100_000, 1)), $(otherTkr));
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");
     assertTrue(mgv.best(olKey) == 0, "clean must have emptied mgv");
 
@@ -1046,21 +1060,19 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_unconsumed_tick_leaves_correct_leaf_start_at_tick_leave_one_only(
-    int24 _bin,
+    Bin bin,
     bool crossBin,
     bool leaveOneOnly
   ) public {
     quote.approve($(mgv), 10_000 ether);
-    _bin = int24(bound(_bin, -100, 100));
-    int24 _firstPostedBin = crossBin ? _bin - 1 : _bin;
-    mkr.newOfferByTick(_firstPostedBin, 1 ether, 100_000);
-    mkr.newOfferByTick(_bin, 1 ether, 100_000);
-    uint ofr3 = mkr.newOfferByTick(_bin, 1 ether, 100_000);
-    uint ofr4 = mkr.newOfferByTick(_bin, 1 ether, 100_000);
+    bin = Bin.wrap(bound(Bin.unwrap(bin), -100, 100));
+    Bin firstPostedBin = Bin.wrap(Bin.unwrap(bin) - (crossBin ? int(1) : int(0)));
+    mkr.newOfferByTick(olKey.tick(firstPostedBin), 1 ether, 100_000);
+    mkr.newOfferByTick(olKey.tick(bin), 1 ether, 100_000);
+    uint ofr3 = mkr.newOfferByTick(olKey.tick(bin), 1 ether, 100_000);
+    uint ofr4 = mkr.newOfferByTick(olKey.tick(bin), 1 ether, 100_000);
     uint volume = leaveOneOnly ? 3 ether : 2 ether;
-    mgv.marketOrderByTick(olKey, _bin, volume, true);
-
-    Bin bin = Bin.wrap(_bin);
+    mgv.marketOrderByTick(olKey, olKey.tick(bin), volume, true);
 
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
     MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);
@@ -1080,7 +1092,7 @@ contract TakerOperationsTest is MangroveTest {
   This test just considers as many offers as possible that each have a maximal `wants` and makes sure the error will be about stack overflow, not uint overflow. 
   */
   function test_maximal_wants_is_ok() public {
-    uint maxOfferWants = TickLib.inboundFromOutboundUp(MAX_TICK, type(uint96).max);
+    uint maxOfferWants = Tick.wrap(MAX_TICK).inboundFromOutboundUp(type(uint96).max);
     unchecked {
       uint recp = mgv.global().maxRecursionDepth() + 1;
       assertTrue(

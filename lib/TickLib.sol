@@ -5,26 +5,44 @@ import {Bin} from "mgv_lib/BinLib.sol";
 import "mgv_lib/Constants.sol";
 import "mgv_lib/TickConversionLib.sol";
 
+type Tick is int;
+using TickLib for Tick global;
+
 library TickLib {
 
-  function inRange(int tick) internal pure returns (bool) {
-    return tick >= MIN_TICK && tick <= MAX_TICK;
+  function inRange(Tick tick) internal pure returns (bool) {
+    return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
   }
-  function fromBin(Bin bin, uint tickSpacing) internal pure returns (int) {
-    return Bin.unwrap(bin) * int(tickSpacing);
+
+  function eq(Tick tick1, Tick tick2) internal pure returns (bool) {
+    unchecked {
+      return Tick.unwrap(tick1) == Tick.unwrap(tick2);
+    }
+  }
+
+  // Returns the nearest, higher bin to the given tick at the given tickSpacing
+  function nearestBin(Tick tick, uint tickSpacing) internal pure returns (Bin bin) {
+    // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
+    // Round maker ratios up such that maker is always paid at least what they asked for
+    unchecked {
+      assembly("memory-safe") {
+        bin := sdiv(tick,tickSpacing)
+        bin := add(bin,sgt(smod(tick,tickSpacing),0))
+      }
+    }
   }
 
   // bin underestimates the ratio, so we underestimate  inbound here, i.e. the inbound/outbound ratio will again be underestimated
   // no overflow if outboundAmt is on 104 bits
   // rounds down
-  function inboundFromOutbound(int tick, uint outboundAmt) internal pure returns (uint) {
+  function inboundFromOutbound(Tick tick, uint outboundAmt) internal pure returns (uint) {
     (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(tick);
     return (sig * outboundAmt) >> exp;
   }
 
   // no overflow if outboundAmt is on 104 bits
   // rounds up
-  function inboundFromOutboundUp(int tick, uint outboundAmt) internal pure returns (uint) {
+  function inboundFromOutboundUp(Tick tick, uint outboundAmt) internal pure returns (uint) {
     unchecked {
       (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(tick);
       return divExpUp(sig*outboundAmt,exp);
@@ -34,14 +52,14 @@ library TickLib {
   // bin underestimates the ratio, and we underestimate outbound here, so ratio will be overestimated here
   // no overflow if inboundAmt is on 104 bits
   // rounds down
-  function outboundFromInbound(int tick, uint inboundAmt) internal pure returns (uint) {
-    (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(-tick);
+  function outboundFromInbound(Tick tick, uint inboundAmt) internal pure returns (uint) {
+    (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
     return (sig * inboundAmt) >> exp;
   }
 
-  function outboundFromInboundUp(int tick, uint inboundAmt) internal pure returns (uint) {
+  function outboundFromInboundUp(Tick tick, uint inboundAmt) internal pure returns (uint) {
     unchecked {
-      (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(-tick);
+      (uint sig, uint exp) = TickConversionLib.nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
       return divExpUp(sig*inboundAmt,exp);
     }
   }

@@ -9,7 +9,6 @@ import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MIDDLE_BIN} from "./GasTestBase.t.sol";
-import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
@@ -124,9 +123,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   }
 
   function test_gasbase_transfers_estimate() public {
-    ActivateSemibook semibook = new ActivateSemibook();
-    uint outbound_gas = semibook.measureTransferGas($(base));
-    uint inbound_gas = semibook.measureTransferGas($(quote));
+    uint outbound_gas = measureTransferGas($(base));
+    uint inbound_gas = measureTransferGas($(quote));
     uint gasbase = 2 * (outbound_gas + inbound_gas);
     console.log("Gas used: %s", gasbase);
     description = string.concat(description, " - Case: ActivateSemibook transfers estimate");

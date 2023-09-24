@@ -8,7 +8,6 @@ import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MIDDLE_BIN} from "./GasTestBase.t.sol";
-import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {AbstractMangrove, TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";

@@ -93,18 +93,4 @@ contract ActivateSemibook is Test2, Deployer {
     broadcast();
     mgv.activate({olKey: olKey, fee: fee, density96X32: density96X32, offer_gasbase: gasbase});
   }
-
-  function measureTransferGas(address tkn) public returns (uint) {
-    address someone = freshAddress();
-    vm.prank(someone);
-    IERC20(tkn).approve(address(this), type(uint).max);
-    deal(tkn, someone, 10);
-    /* WARNING: gas metering is done by local execution, which means that on
-     * networks that have different EIPs activated, there will be discrepancies. */
-    uint post;
-    uint pre = gasleft();
-    IERC20(tkn).transferFrom(someone, address(this), 1);
-    post = gasleft();
-    return pre - post;
-  }
 }

@@ -9,7 +9,7 @@ uint constant NOT_TOPBIT = 0x7ffffffffffffffffffffffffffffffffffffffffffffffffff
 
 // MIN_BIN and MAX_BIN should be inside the addressable range defined by the sizes of LEAF, LEVEL3, LEVEL2, LEVEL1, ROOT
 int constant MIN_BIN = -1048576;
-int constant MAX_BIN = -MIN_BIN-1;
+int constant MAX_BIN = 1048575;
 
 // sizes must match field sizes in structs.ts where relevant
 uint constant TICK_BITS = 21;
@@ -21,39 +21,39 @@ uint constant LEAF_SIZE_BITS = 2;
 uint constant LEVEL_SIZE_BITS = 6;
 uint constant ROOT_SIZE_BITS = 1;
 
-int constant LEAF_SIZE = int(2 ** (LEAF_SIZE_BITS));
-int constant LEVEL_SIZE = int(2 ** (LEVEL_SIZE_BITS));
-int constant ROOT_SIZE = int(2 ** (ROOT_SIZE_BITS));
+int constant LEAF_SIZE = 4;
+int constant LEVEL_SIZE = 64;
+int constant ROOT_SIZE = 2;
 
-uint constant LEAF_SIZE_MASK = ~(ONES << LEAF_SIZE_BITS);
-uint constant LEVEL_SIZE_MASK = ~(ONES << LEVEL_SIZE_BITS);
-uint constant ROOT_SIZE_MASK = ~(ONES << ROOT_SIZE_BITS);
+uint constant LEAF_SIZE_MASK = 3;
+uint constant LEVEL_SIZE_MASK = 63;
+uint constant ROOT_SIZE_MASK = 1;
 
-int constant NUM_LEVEL1 = int(ROOT_SIZE);
-int constant NUM_LEVEL2 = NUM_LEVEL1 * LEVEL_SIZE;
-int constant NUM_LEVEL3 = NUM_LEVEL2 * LEVEL_SIZE;
-int constant NUM_LEAFS = NUM_LEVEL3 * LEVEL_SIZE;
-int constant NUM_BINS = NUM_LEAFS * LEAF_SIZE;
+int constant NUM_LEVEL1 = 2;
+int constant NUM_LEVEL2 = 128;
+int constant NUM_LEVEL3 = 8192;
+int constant NUM_LEAFS = 524288;
+int constant NUM_BINS = 2097152;
 
-uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
+uint constant OFFER_MASK = 4294967295;
 
 
 
 // +/- 2**20-1 because only 20 bits are examined by the tick->ratio function
-int constant MIN_TICK = -((1 << 20)-1);
-int constant MAX_TICK = -MIN_TICK;
+int constant MIN_TICK = -1048575;
+int constant MAX_TICK = 1048575;
 uint constant MIN_RATIO_MANTISSA = 4735129379934731672174804159539094721182826496;
 int constant MIN_RATIO_EXP = 303;
 uint constant MAX_RATIO_MANTISSA = 3441571814221581909035848501253497354125574144;
 int constant MAX_RATIO_EXP = 0;
 uint constant MANTISSA_BITS = 152;
-uint constant MANTISSA_BITS_MINUS_ONE = MANTISSA_BITS-1;
+uint constant MANTISSA_BITS_MINUS_ONE = 151;
 // Maximum volume that can be multiplied by a ratio mantissa
-uint constant MAX_SAFE_VOLUME = (1<<(256-MANTISSA_BITS))-1;
+uint constant MAX_SAFE_VOLUME = 20282409603651670423947251286015;
 // Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe.
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
 
 // Price math limits the allowed ticks to a subset of the full range
-int constant MIN_BIN_ALLOWED = MIN_TICK;
-int constant MAX_BIN_ALLOWED = MAX_TICK;
+int constant MIN_BIN_ALLOWED = -1048575;
+int constant MAX_BIN_ALLOWED = 1048575;

@@ -185,16 +185,16 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     uint[] storage higherBinListSizeScenarios,
     uint[] storage lowerBinListSizeScenarios
   ) internal {
-    vm.pauseGasMetering();
     runBinScenarios(bin, higherBinListSizeScenarios, lowerBinListSizeScenarios);
-    vm.resumeGasMetering();
   }
 
   function runBinScenario(BinScenario memory binScenario) internal override {
     UpdateOfferScenario memory scenario;
     scenario.binScenario = binScenario;
+    uint[2] storage binListScenario;
+
     for (uint j = 0; j < binListScenarios.length; ++j) {
-      uint[2] storage binListScenario = binListScenarios[j];
+      binListScenario = binListScenarios[j];
       scenario.offerBinListSize = binListScenario[0];
       scenario.offerPos = binListScenario[1];
 
@@ -233,6 +233,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   }
 
   function run_update_offer_scenario(UpdateOfferScenario memory scenario, bool printToConsole) internal {
+    setUp();
     // NB: Enabling all console.log statements will trigger an out-of-memory error when running through all test scenarios.
     // `printToConsole` is used to enable logging for specific scenarios.
 
@@ -252,10 +253,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       }
     }
 
-    // 1. Capture VM state before scenario so we can restore it after
-    uint vmSnapshotId = vm.snapshot();
-
-    // 2. Create scenario
+    // 1. Create scenario
     (uint[] memory offerIds,) =
       add_n_offers_to_bin(scenario.binScenario.bin, scenario.offerBinListSize == 0 ? 1 : scenario.offerBinListSize);
     uint offerId = offerIds[scenario.offerPos];
@@ -270,7 +268,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       add_n_offers_to_bin(scenario.binScenario.lowerBin, scenario.binScenario.lowerBinListSize);
     }
 
-    // 3. Snapshot tick tree
+    // 2. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
     if (printToConsole) {
       console.log("before update");
@@ -280,7 +278,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       tickTree.logTickTree();
     }
 
-    // 4. Update the offer
+    // 3. Update the offer
     Bin newBin = scenario.newBin;
     uint newGives = getAcceptableGivesForBin(newBin, offerDetail.gasreq());
     mkr.updateOfferByTick(
@@ -297,12 +295,9 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       tickTree.logTickTree();
     }
 
-    // 5. Assert that Mangrove and tick tree are equal
+    // 4. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
-
-    // 6. Restore state from before test
-    vm.revertTo(vmSnapshotId);
   }
 }

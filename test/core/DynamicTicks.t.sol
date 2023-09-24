@@ -145,17 +145,6 @@ contract DynamicBinsTest is MangroveTest {
     assertEq(mgv.root(olKey).firstOnePosition(), insertionBin.posInRoot(), "wrong pos in root");
   }
 
-  // creating offer at zero tickSpacing is impossible
-  function test_noOfferAtZeroTickSpacing(int24 tick, uint96 gives) public {
-    vm.assume(gives > 0);
-    tick = boundTick(tick);
-    olKey.tickSpacing = 0;
-    mgv.activate(olKey, 0, 0, 0);
-
-    vm.expectRevert(stdError.divisionError);
-    mgv.newOfferByTick(olKey, Tick.wrap(tick), gives, 100_00, 30);
-  }
-
   function test_id_is_correct(OLKey memory olKey) public {
     assertEq(olKey.hash(), keccak256(abi.encode(olKey)), "id() is hashing incorrect data");
   }

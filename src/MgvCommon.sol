@@ -20,7 +20,7 @@
 
 pragma solidity ^0.8.10;
 
-import {MgvStructs, DirtyField, OLKey, HasMgvEvents, Density, IMgvMonitor, IERC20, DirtyLeaf} from "./MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
 contract MgvCommon is HasMgvEvents {
@@ -31,12 +31,12 @@ contract MgvCommon is HasMgvEvents {
   //+clear+
 
   /* Global mgv configuration, encoded in a 256 bits word. The information encoded is detailed in [`structs.js`](#structs.js). */
-  MgvStructs.GlobalPacked internal internal_global;
+  Global internal internal_global;
   /* `OfferData` contains all the information related to an offer. Each field contains packed information such as the volumes and the gas requried. See [`structs.js`](#structs.js) for more information. */
 
   struct OfferData {
-    MgvStructs.OfferPacked offer;
-    MgvStructs.OfferDetailPacked detail;
+    Offer offer;
+    OfferDetail detail;
   }
   /* `OfferList` contains the information specific to an oriented `outbound_tkn,inbound_tkn`, `tickSpacing` offerList:
 
@@ -49,7 +49,7 @@ contract MgvCommon is HasMgvEvents {
      level1, level2 and level3 nodes are bitfield, a bit is set iff there is a bin set below them.
   */
   struct OfferList {
-    MgvStructs.LocalPacked local;
+    Local local;
     mapping(uint => OfferData) offerData;
     mapping(int => DirtyLeaf) leafs;
     mapping(int => DirtyField) level3;
@@ -78,7 +78,7 @@ contract MgvCommon is HasMgvEvents {
   */
 
   /* `unlockedMarketOnly` protects modifying the market while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the market.  */
-  function unlockedMarketOnly(MgvStructs.LocalPacked local) internal pure {
+  function unlockedMarketOnly(Local local) internal pure {
     require(!local.lock(), "mgv/reentrancyLocked");
   }
 
@@ -88,12 +88,12 @@ contract MgvCommon is HasMgvEvents {
        * Sending ETH to Mangrove the normal way. Usual [shenanigans](https://medium.com/@alexsherbuck/two-ways-to-force-ether-into-a-contract-1543c1311c56) are possible.
        * Creating a new offer
    */
-  function liveMgvOnly(MgvStructs.GlobalPacked _global) internal pure {
+  function liveMgvOnly(Global _global) internal pure {
     require(!_global.dead(), "mgv/dead");
   }
 
   /* When Mangrove is deployed, all offerLists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offerLists cannot be taken or created. They can be updated and retracted. */
-  function activeMarketOnly(MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) internal pure {
+  function activeMarketOnly(Global _global, Local _local) internal pure {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");
   }
@@ -105,7 +105,7 @@ contract MgvCommon is HasMgvEvents {
   function _config(OLKey memory olKey)
     internal
     view
-    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local, OfferList storage offerList)
+    returns (Global _global, Local _local, OfferList storage offerList)
   {
     unchecked {
       offerList = offerLists[olKey.hash()];
@@ -114,14 +114,14 @@ contract MgvCommon is HasMgvEvents {
       if (_global.useOracle()) {
         (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(olKey);
         /* Gas gasprice can be ignored by making sure the oracle's set gasprice does not pass the check below. */
-        if (MgvStructs.Global.gasprice_check(gasprice)) {
+        if (GlobalLib.gasprice_check(gasprice)) {
           _global = _global.gasprice(gasprice);
         }
         /* Oracle density can be ignored by making sure the oracle's set density does not pass the checks below. */
 
         /* Checking the size of `density` is necessary to prevent overflow when `density` is used in calculations. */
 
-        if (MgvStructs.Local.density_check(density)) {
+        if (LocalLib.density_check(density)) {
           _local = _local.density(density);
         }
       }

@@ -44,9 +44,9 @@ ruplacer 'P}' 'MgvStructs}' --go
 
 ruplacer 'Pack.post.sol" as P' 'Structs.post.sol" as MgvStructs' --go
 
-ruplacer 'P\.(.+?)\.t' 'MgvStructs.${1}Packed' --go
+ruplacer 'P\.(.+?)\.t' '${1}' --go
 
-ruplacer 'P\.(.+?)Struct' 'MgvStructs.${1}Unpacked' --go
+ruplacer 'P\.(.+?)Struct' '${1}Unpacked' --go
 
 ruplacer 'MgvLib as ML' 'MgvLib' --go
 

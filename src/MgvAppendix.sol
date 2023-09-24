@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, DensityLib, OLKey} from "./MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {MgvView} from "mgv_src/MgvView.sol";
 import {MgvGovernable} from "mgv_src/MgvGovernable.sol";
 

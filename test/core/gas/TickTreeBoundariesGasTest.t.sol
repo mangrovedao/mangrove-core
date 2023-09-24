@@ -17,7 +17,7 @@ import {
   ROOT_HIGHER_BIN
 } from "./GasTestBase.t.sol";
 
-import {IMangrove, TestTaker, OLKey, MgvStructs} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker, OLKey} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Debug.sol";
 
 /// Implements tests for all boundaries of bin values. Starting from a MIDDLE_BIN it goes above and below creating new branches for all levels.

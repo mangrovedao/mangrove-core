@@ -6,7 +6,7 @@ import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol
 
 import {Test2, Test} from "mgv_lib/Test2.sol";
 
-import {MgvStructs, Density, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader, Market} from "mgv_src/periphery/MgvReader.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
@@ -44,7 +44,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     // Mangrove - verify expected values have been passed in
     IMangrove mgv = mgvDeployer.mgv();
     assertEq(mgv.governance(), chief);
-    MgvStructs.GlobalPacked cfg = mgv.global();
+    Global cfg = mgv.global();
     assertEq(cfg.gasmax(), gasmax);
     assertEq(cfg.monitor(), address(oracle), "monitor should be set to oracle");
     assertTrue(cfg.useOracle(), "useOracle should be set");

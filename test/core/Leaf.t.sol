@@ -317,7 +317,7 @@ contract TickAndBinTest is MangroveTest {
     Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL_SIZE) - 1));
     Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL_SIZE) - 1));
     Field root = Field.wrap(bound(_root, 1, uint(ROOT_SIZE) - 1));
-    MgvStructs.LocalPacked local;
+    Local local;
     local = local.binPosInLeaf(binPosInLeaf);
     local = local.level3(level3);
     local = local.level2(level2);

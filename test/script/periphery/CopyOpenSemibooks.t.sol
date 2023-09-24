@@ -8,7 +8,7 @@ import "mgv_test/lib/MangroveTest.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import "mgv_src/periphery/MgvReader.sol";
 import {CopyOpenSemibooks} from "mgv_script/periphery/CopyOpenSemibooks.s.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 contract CopyOpenSemibooksTest is MangroveTest {
   // MangroveDeployer deployer;
@@ -44,10 +44,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
     assertEq(reader.numOpenMarkets(), 1, "changes in previous reader");
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
     assertEq(reader2.isMarketOpen(market), true, "market should be open");
-    assertEq(
-      MgvStructs.LocalPacked.unwrap(mgv2.local(toOLKey(market))),
-      MgvStructs.LocalPacked.unwrap(mgv.local(toOLKey(market)))
-    );
+    assertEq(Local.unwrap(mgv2.local(toOLKey(market))), Local.unwrap(mgv.local(toOLKey(market))));
   }
 
   function test_copy_already_open(Market memory market) public {

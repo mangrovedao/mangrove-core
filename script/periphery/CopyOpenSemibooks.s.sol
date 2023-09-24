@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* 
@@ -41,7 +41,7 @@ contract CopyOpenSemibooks is Deployer {
     console.log("...done.");
   }
 
-  function updateActivation(OLKey memory olKey, MgvStructs.LocalUnpacked memory cAB) internal {
+  function updateActivation(OLKey memory olKey, LocalUnpacked memory cAB) internal {
     if (cAB.active) {
       console.log(olKey.outbound, olKey.inbound);
       broadcast();

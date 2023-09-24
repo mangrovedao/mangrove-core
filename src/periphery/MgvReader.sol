@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs, Bin, Leaf, Field, TickLib, OLKey, Tick} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
 struct VolumeData {
@@ -18,8 +18,8 @@ struct Market {
 
 /// @notice Config of a market. Assumes a context where `tkn0` and `tkn1` are defined. `config01` is the local config of the `tkn0/tkn1` offer list. `config10` is the config of the `tkn1/tkn0` offer list.
 struct MarketConfig {
-  MgvStructs.LocalUnpacked config01;
-  MgvStructs.LocalUnpacked config10;
+  LocalUnpacked config01;
+  LocalUnpacked config10;
 }
 
 /// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order.
@@ -60,9 +60,9 @@ contract MgvReader {
     uint currentGives;
     bool fillWants;
     uint offerId;
-    MgvStructs.OfferPacked offer;
-    MgvStructs.OfferDetailPacked offerDetail;
-    MgvStructs.LocalPacked local;
+    Offer offer;
+    OfferDetail offerDetail;
+    Local local;
     VolumeData[] volumeData;
     uint numOffers;
     bool accumulate;
@@ -93,20 +93,20 @@ contract MgvReader {
   function configInfo(OLKey memory olKey)
     external
     view
-    returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local)
+    returns (GlobalUnpacked memory _global, LocalUnpacked memory _local)
   {
     unchecked {
-      (MgvStructs.GlobalPacked __global, MgvStructs.LocalPacked __local) = MGV.config(olKey);
+      (Global __global, Local __local) = MGV.config(olKey);
       _global = __global.to_struct();
       _local = __local.to_struct();
     }
   }
 
-  function globalUnpacked() public view returns (MgvStructs.GlobalUnpacked memory) {
+  function globalUnpacked() public view returns (GlobalUnpacked memory) {
     return MGV.global().to_struct();
   }
 
-  function localUnpacked(OLKey memory olKey) public view returns (MgvStructs.LocalUnpacked memory) {
+  function localUnpacked(OLKey memory olKey) public view returns (LocalUnpacked memory) {
     return MGV.local(olKey).to_struct();
   }
 
@@ -116,10 +116,10 @@ contract MgvReader {
   function offerInfo(OLKey memory olKey, uint offerId)
     public
     view
-    returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
+    returns (OfferUnpacked memory offer, OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      (MgvStructs.OfferPacked _offer, MgvStructs.OfferDetailPacked _offerDetail) = MGV.offerData(olKey, offerId);
+      (Offer _offer, OfferDetail _offerDetail) = MGV.offerData(olKey, offerId);
       offer = _offer.to_struct();
       offerDetail = _offerDetail.to_struct();
     }
@@ -174,15 +174,15 @@ contract MgvReader {
   function packedOfferList(OLKey memory olKey, uint fromId, uint maxOffers)
     public
     view
-    returns (uint, uint[] memory, MgvStructs.OfferPacked[] memory, MgvStructs.OfferDetailPacked[] memory)
+    returns (uint, uint[] memory, Offer[] memory, OfferDetail[] memory)
   {
     unchecked {
       OfferListArgs memory olh = OfferListArgs(olKey, fromId, maxOffers);
       (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
-      MgvStructs.OfferPacked[] memory offers = new MgvStructs.OfferPacked[](length);
-      MgvStructs.OfferDetailPacked[] memory details = new MgvStructs.OfferDetailPacked[](length);
+      Offer[] memory offers = new Offer[](length);
+      OfferDetail[] memory details = new OfferDetail[](length);
 
       uint i = 0;
 
@@ -201,15 +201,15 @@ contract MgvReader {
   function offerList(OLKey memory olKey, uint fromId, uint maxOffers)
     public
     view
-    returns (uint, uint[] memory, MgvStructs.OfferUnpacked[] memory, MgvStructs.OfferDetailUnpacked[] memory)
+    returns (uint, uint[] memory, OfferUnpacked[] memory, OfferDetailUnpacked[] memory)
   {
     unchecked {
       OfferListArgs memory olh = OfferListArgs(olKey, fromId, maxOffers);
       (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
-      MgvStructs.OfferUnpacked[] memory offers = new MgvStructs.OfferUnpacked[](length);
-      MgvStructs.OfferDetailUnpacked[] memory details = new MgvStructs.OfferDetailUnpacked[](length);
+      OfferUnpacked[] memory offers = new OfferUnpacked[](length);
+      OfferDetailUnpacked[] memory details = new OfferDetailUnpacked[](length);
 
       uint i = 0;
       while (currentId != 0 && i < length) {
@@ -230,7 +230,7 @@ contract MgvReader {
   }
 
   /// @notice Get the offer after a given offer
-  function nextOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) public view returns (uint) {
+  function nextOfferId(OLKey memory olKey, Offer offer) public view returns (uint) {
     // WARNING
     // If the offer is not actually recorded in the offer list, results will be meaningless.
     // if (offer.gives() == 0) {
@@ -282,7 +282,7 @@ contract MgvReader {
   }
 
   /// @notice Get the offer before a given offer
-  function prevOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) public view returns (uint offerId) {
+  function prevOfferId(OLKey memory olKey, Offer offer) public view returns (uint offerId) {
     // WARNING
     // If the offer is not actually recorded in the offer list, results will be meaningless.
     // if (offer.gives() == 0) {
@@ -332,14 +332,14 @@ contract MgvReader {
 
   /* Returns the minimum outbound_tkn volume to give on the outbound_tkn/inbound_tkn offer list for an offer that requires gasreq gas. */
   function minVolume(OLKey memory olKey, uint gasreq) public view returns (uint) {
-    MgvStructs.LocalPacked _local = MGV.local(olKey);
+    Local _local = MGV.local(olKey);
     return _local.density().multiplyUp(gasreq + _local.offer_gasbase());
   }
 
   /* Returns the provision necessary to post an offer on the outbound_tkn/inbound_tkn offer list. You can set gasprice=0 or use the overload to use Mangrove's internal gasprice estimate. */
   function getProvision(OLKey memory olKey, uint ofr_gasreq, uint ofr_gasprice) public view returns (uint) {
     unchecked {
-      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+      (Global _global, Local _local) = MGV.config(olKey);
       uint gp;
       uint global_gasprice = _global.gasprice();
       if (global_gasprice > ofr_gasprice) {
@@ -360,13 +360,13 @@ contract MgvReader {
 
   /* Returns the fee that would be extracted from the given volume of outbound_tkn tokens on Mangrove's outbound_tkn/inbound_tkn offer list. */
   function getFee(OLKey memory olKey, uint outVolume) external view returns (uint) {
-    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+    (, Local _local) = MGV.config(olKey);
     return ((outVolume * _local.fee()) / 10000);
   }
 
   /* Returns the given amount of outbound_tkn tokens minus the fee on Mangrove's outbound_tkn/inbound_tkn offer list. */
   function minusFee(OLKey memory olKey, uint outVolume) external view returns (uint) {
-    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+    (, Local _local) = MGV.config(olKey);
     return (outVolume * (10_000 - _local.fee())) / 10000;
   }
 
@@ -413,7 +413,7 @@ contract MgvReader {
   {
     MarketOrder memory mr;
     mr.olKey = olKey;
-    MgvStructs.GlobalPacked _global;
+    Global _global;
     (_global, mr.local) = MGV.config(olKey);
     mr.offerId = MGV.best(olKey);
     mr.offer = MGV.offers(olKey, mr.offerId);

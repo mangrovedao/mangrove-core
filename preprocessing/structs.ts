@@ -33,7 +33,7 @@ struct_defs = {
 }
 ```
 
-The generated file will store all data in a single EVM stack slot (seen as an abstract type `<TypeName>Packed` by Solidity); here is a simplified version:
+The generated file will store all data in a single EVM stack slot (seen as an abstract type `<TypeName>` by Solidity); here is a simplified version:
 
 ```
 struct UniverseUnpacked {
@@ -43,32 +43,31 @@ struct UniverseUnpacked {
 
 library Library {
   // use Solidity 0.8* custom types
-  type UniversePacked is uint;
+  type Universe is uint;
 
   // test word equality
-  function eq(UniversePacked,UniversePacked) returns (bool);
+  function eq(Universe ,Universe) returns (bool);
 
   // word <-> struct conversion
-  function to_struct(UniversePacked) returns (UniverseUnpacked memory);
-  function t_of_struct(UniverseUnpacked memory) returns (UniversePacked);
+  function to_struct(Universe) returns (UniverseUnpacked memory);
+  function t_of_struct(UniverseUnpacked memory) returns (Universe);
 
   // arguments <-> word conversion
-  function unpack(UniversePacked) returns (uint serialnumber, bool hospitable);
-  function pack(uint serialnumber, bool hospitable) returns(UniversePacked);
+  function unpack(Universe) returns (uint serialnumber, bool hospitable);
+  function pack(uint serialnumber, bool hospitable) returns(Universe);
 
   // read and write first property
-  function serialnumber(UniversePacked) returns (uint);
-  function serialnumber(UniversePacked,uint) returns (UniversePacked);
+  function serialnumber(Universe) returns (uint);
+  function serialnumber(Universe,uint) returns (Universe);
 
   // read and write second property
-  function hospitable(UniversePacked) returns (bool);
-  function hospitable(UniversePacked,bool) returns (UniversePacked);
+  function hospitable(Universe) returns (bool);
+  function hospitable(Universe,bool) returns (Universe);
 }
 ```
 Then, in Solidity code, one can write:
 ```
-using Universe for Universe.UniversePacked
-UniversePacked uni = Universe.pack(32,false);
+Universe uni = UniverseLib.pack(32,false);
 uint num = uni.serialnumber();
 uni.hospitable(true);
 ```
@@ -114,32 +113,32 @@ const struct_defs = {
     additionalDefinitions: `import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 
-using OfferPackedExtra for OfferPacked global;
+using OfferExtra for Offer global;
 using OfferUnpackedExtra for OfferUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(prev_mask_inv | next_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(OfferLib.prev_mask_inv | OfferLib.next_mask_inv);
 
-library OfferPackedExtra {
+library OfferExtra {
   // Compute wants from tick and gives
-  function wants(OfferPacked offer) internal pure returns (uint) {
+  function wants(Offer offer) internal pure returns (uint) {
     return offer.tick().inboundFromOutbound(offer.gives());
   }
   // Sugar to test offer liveness
-  function isLive(OfferPacked offer) internal pure returns (bool resp) {
+  function isLive(Offer offer) internal pure returns (bool resp) {
     uint gives = offer.gives();
     assembly ("memory-safe") {
       resp := iszero(iszero(gives))
     }
   }
-  function bin(OfferPacked offer, uint tickSpacing) internal pure returns (Bin) {
+  function bin(Offer offer, uint tickSpacing) internal pure returns (Bin) {
     // Offers are always stored with a tick that corresponds exactly to a tick
     return offer.tick().nearestBin(tickSpacing);
   }
-  function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
+  function clearFieldsForMaker(Offer offer) internal pure returns (Offer) {
     unchecked {
-      return OfferPacked.wrap(
-        OfferPacked.unwrap(offer)
+      return Offer.wrap(
+        Offer.unwrap(offer)
         & HIDE_FIELDS_FROM_MAKER_MASK);
     }
   }
@@ -218,14 +217,14 @@ They have the following fields: */
       fields.gasprice,
     ],
     additionalDefinitions: (struct) => `
-using OfferDetailPackedExtra for OfferDetailPacked global;
+using OfferDetailExtra for OfferDetail global;
 using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
 
-library OfferDetailPackedExtra {
-  function offer_gasbase(OfferDetailPacked offerDetail) internal pure returns (uint) { unchecked {
+library OfferDetailExtra {
+  function offer_gasbase(OfferDetail offerDetail) internal pure returns (uint) { unchecked {
     return offerDetail.kilo_offer_gasbase() * 1e3;
   }}
-  function offer_gasbase(OfferDetailPacked offerDetail,uint val) internal pure returns (OfferDetailPacked) { unchecked {
+  function offer_gasbase(OfferDetail offerDetail,uint val) internal pure returns (OfferDetail) { unchecked {
     return offerDetail.kilo_offer_gasbase(val/1e3);
   }}
 }
@@ -306,29 +305,30 @@ library OfferDetailUnpackedExtra {
 import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 
-using LocalPackedExtra for LocalPacked global;
+using LocalExtra for Local global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(binPosInLeaf_mask_inv | level3_mask_inv | level2_mask_inv | level1_mask_inv | root_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(LocalLib.binPosInLeaf_mask_inv | LocalLib.level3_mask_inv | LocalLib.level2_mask_inv | LocalLib.level1_mask_inv | LocalLib.root_mask_inv | LocalLib.last_mask_inv);
 
-library LocalPackedExtra {
-  function densityFrom96X32(LocalPacked local, uint density96X32) internal pure returns (LocalPacked) { unchecked {
+library LocalExtra {
+
+  function densityFrom96X32(Local local, uint density96X32) internal pure returns (Local) { unchecked {
     return local.density(DensityLib.from96X32(density96X32));
   }}
-  function offer_gasbase(LocalPacked local) internal pure returns (uint) { unchecked {
+  function offer_gasbase(Local local) internal pure returns (uint) { unchecked {
     return local.kilo_offer_gasbase() * 1e3;
   }}
-  function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
+  function offer_gasbase(Local local,uint val) internal pure returns (Local) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
-  function bestBin(LocalPacked local) internal pure returns (Bin) {
+  function bestBin(Local local) internal pure returns (Bin) {
     return BinLib.bestBinFromLocal(local);
   }
-  function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
+  function clearFieldsForMaker(Local local) internal pure returns (Local) {
     unchecked {
-      return LocalPacked.wrap(
-        LocalPacked.unwrap(local)
+      return Local.wrap(
+        Local.unwrap(local)
         & HIDE_FIELDS_FROM_MAKER_MASK);
     }
   }

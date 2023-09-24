@@ -18,10 +18,10 @@ import {
   ROOT_HIGHER_BIN
 } from "./GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE, ROOT_SIZE} from "mgv_lib/BinLib.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBase {
@@ -120,7 +120,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
     _gas();
     mgv.marketOrderByTick(_olKey, _olKey.tick(MIDDLE_BIN), 1, false);
     gas_();
-    (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
+    (, Local local) = mgv.config(_olKey);
     assertEq(bin, local.bestBin());
     printDescription();
   }
@@ -200,7 +200,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameBin 
     _gas();
     mgv.marketOrderByTick(_olKey, _olKey.tick(MIDDLE_BIN), 2 ** 96, false);
     gas_();
-    (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
+    (, Local local) = mgv.config(_olKey);
     assertEq(Bin.unwrap(MIDDLE_BIN) + 1, Bin.unwrap(local.bestBin()));
     printDescription();
   }
@@ -245,7 +245,7 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyBins is TickT
     _gas();
     mgv.marketOrderByTick(_olKey, _olKey.tick(_bin), 2 ** 104 - 1, false);
     gas_();
-    (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
+    (, Local local) = mgv.config(_olKey);
     // In some tests the market order takes all offers, in others not. `local.bestBin()` must only be called when the book is non-empty
     if (!local.root().isEmpty()) {
       assertTrue(_bin.strictlyBetter(local.bestBin()), "tick should be strictly less than current tick");

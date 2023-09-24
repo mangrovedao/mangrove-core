@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {ITaker, MgvLib, MgvStructs} from "./MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 

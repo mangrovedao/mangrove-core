@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import {IMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
 

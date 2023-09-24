@@ -19,7 +19,7 @@ contract MgvLocalTest is Test2 {
   }
 
   function test_pack(bool active, uint fee, Density density, uint binPosInLeaf, Field level3, Field level2, Field level1, Field root, uint kilo_offer_gasbase, bool lock, uint last) public {
-    MgvStructs.LocalPacked packed = MgvStructs.Local.pack(active, fee, density, binPosInLeaf, level3, level2, level1, root, kilo_offer_gasbase, lock, last);
+    Local packed = LocalLib.pack(active, fee, density, binPosInLeaf, level3, level2, level1, root, kilo_offer_gasbase, lock, last);
     assertEq(packed.active(),active,"bad active");
     assertEq(packed.fee(),cast(fee,8),"bad fee");
     assertEq(Density.unwrap(packed.density()),cast(Density.unwrap(density),9),"bad density");
@@ -39,11 +39,11 @@ contract MgvLocalTest is Test2 {
      - dirty bit cleaning 
      - no additional bits being dirtied
   */
-  function test_set_active(MgvStructs.LocalPacked packed,bool active) public {
-      MgvStructs.LocalPacked original = packed.active(packed.active());
+  function test_set_active(Local packed,bool active) public {
+      Local original = packed.active(packed.active());
       assertEq(original.active(),packed.active(), "original: bad active");
 
-      MgvStructs.LocalPacked modified = packed.active(active);
+      Local modified = packed.active(active);
 
       assertEq(modified.active(),active,"modified: bad active");
 
@@ -58,11 +58,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_fee(MgvStructs.LocalPacked packed,uint fee) public {
-      MgvStructs.LocalPacked original = packed.fee(packed.fee());
+  function test_set_fee(Local packed,uint fee) public {
+      Local original = packed.fee(packed.fee());
       assertEq(original.fee(),packed.fee(), "original: bad fee");
 
-      MgvStructs.LocalPacked modified = packed.fee(fee);
+      Local modified = packed.fee(fee);
 
       assertEq(modified.fee(),cast(fee,8),"modified: bad fee");
 
@@ -77,11 +77,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_density(MgvStructs.LocalPacked packed,Density density) public {
-      MgvStructs.LocalPacked original = packed.density(packed.density());
+  function test_set_density(Local packed,Density density) public {
+      Local original = packed.density(packed.density());
       assertEq(Density.unwrap(original.density()),Density.unwrap(packed.density()), "original: bad density");
 
-      MgvStructs.LocalPacked modified = packed.density(density);
+      Local modified = packed.density(density);
 
       assertEq(Density.unwrap(modified.density()),cast(Density.unwrap(density),9),"modified: bad density");
 
@@ -96,11 +96,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_binPosInLeaf(MgvStructs.LocalPacked packed,uint binPosInLeaf) public {
-      MgvStructs.LocalPacked original = packed.binPosInLeaf(packed.binPosInLeaf());
+  function test_set_binPosInLeaf(Local packed,uint binPosInLeaf) public {
+      Local original = packed.binPosInLeaf(packed.binPosInLeaf());
       assertEq(original.binPosInLeaf(),packed.binPosInLeaf(), "original: bad binPosInLeaf");
 
-      MgvStructs.LocalPacked modified = packed.binPosInLeaf(binPosInLeaf);
+      Local modified = packed.binPosInLeaf(binPosInLeaf);
 
       assertEq(modified.binPosInLeaf(),cast(binPosInLeaf,2),"modified: bad binPosInLeaf");
 
@@ -115,11 +115,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_level3(MgvStructs.LocalPacked packed,Field level3) public {
-      MgvStructs.LocalPacked original = packed.level3(packed.level3());
+  function test_set_level3(Local packed,Field level3) public {
+      Local original = packed.level3(packed.level3());
       assertEq(Field.unwrap(original.level3()),Field.unwrap(packed.level3()), "original: bad level3");
 
-      MgvStructs.LocalPacked modified = packed.level3(level3);
+      Local modified = packed.level3(level3);
 
       assertEq(Field.unwrap(modified.level3()),cast(Field.unwrap(level3),64),"modified: bad level3");
 
@@ -134,11 +134,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_level2(MgvStructs.LocalPacked packed,Field level2) public {
-      MgvStructs.LocalPacked original = packed.level2(packed.level2());
+  function test_set_level2(Local packed,Field level2) public {
+      Local original = packed.level2(packed.level2());
       assertEq(Field.unwrap(original.level2()),Field.unwrap(packed.level2()), "original: bad level2");
 
-      MgvStructs.LocalPacked modified = packed.level2(level2);
+      Local modified = packed.level2(level2);
 
       assertEq(Field.unwrap(modified.level2()),cast(Field.unwrap(level2),64),"modified: bad level2");
 
@@ -153,11 +153,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_level1(MgvStructs.LocalPacked packed,Field level1) public {
-      MgvStructs.LocalPacked original = packed.level1(packed.level1());
+  function test_set_level1(Local packed,Field level1) public {
+      Local original = packed.level1(packed.level1());
       assertEq(Field.unwrap(original.level1()),Field.unwrap(packed.level1()), "original: bad level1");
 
-      MgvStructs.LocalPacked modified = packed.level1(level1);
+      Local modified = packed.level1(level1);
 
       assertEq(Field.unwrap(modified.level1()),cast(Field.unwrap(level1),64),"modified: bad level1");
 
@@ -172,11 +172,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_root(MgvStructs.LocalPacked packed,Field root) public {
-      MgvStructs.LocalPacked original = packed.root(packed.root());
+  function test_set_root(Local packed,Field root) public {
+      Local original = packed.root(packed.root());
       assertEq(Field.unwrap(original.root()),Field.unwrap(packed.root()), "original: bad root");
 
-      MgvStructs.LocalPacked modified = packed.root(root);
+      Local modified = packed.root(root);
 
       assertEq(Field.unwrap(modified.root()),cast(Field.unwrap(root),2),"modified: bad root");
 
@@ -191,11 +191,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_kilo_offer_gasbase(MgvStructs.LocalPacked packed,uint kilo_offer_gasbase) public {
-      MgvStructs.LocalPacked original = packed.kilo_offer_gasbase(packed.kilo_offer_gasbase());
+  function test_set_kilo_offer_gasbase(Local packed,uint kilo_offer_gasbase) public {
+      Local original = packed.kilo_offer_gasbase(packed.kilo_offer_gasbase());
       assertEq(original.kilo_offer_gasbase(),packed.kilo_offer_gasbase(), "original: bad kilo_offer_gasbase");
 
-      MgvStructs.LocalPacked modified = packed.kilo_offer_gasbase(kilo_offer_gasbase);
+      Local modified = packed.kilo_offer_gasbase(kilo_offer_gasbase);
 
       assertEq(modified.kilo_offer_gasbase(),cast(kilo_offer_gasbase,9),"modified: bad kilo_offer_gasbase");
 
@@ -210,11 +210,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_lock(MgvStructs.LocalPacked packed,bool lock) public {
-      MgvStructs.LocalPacked original = packed.lock(packed.lock());
+  function test_set_lock(Local packed,bool lock) public {
+      Local original = packed.lock(packed.lock());
       assertEq(original.lock(),packed.lock(), "original: bad lock");
 
-      MgvStructs.LocalPacked modified = packed.lock(lock);
+      Local modified = packed.lock(lock);
 
       assertEq(modified.lock(),lock,"modified: bad lock");
 
@@ -229,11 +229,11 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_last(MgvStructs.LocalPacked packed,uint last) public {
-      MgvStructs.LocalPacked original = packed.last(packed.last());
+  function test_set_last(Local packed,uint last) public {
+      Local original = packed.last(packed.last());
       assertEq(original.last(),packed.last(), "original: bad last");
 
-      MgvStructs.LocalPacked modified = packed.last(last);
+      Local modified = packed.last(last);
 
       assertEq(modified.last(),cast(last,32),"modified: bad last");
 
@@ -249,7 +249,7 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
     }
 
-  function test_unpack(MgvStructs.LocalPacked packed) public {
+  function test_unpack(Local packed) public {
     (bool active, uint fee, Density density, uint binPosInLeaf, Field level3, Field level2, Field level1, Field root, uint kilo_offer_gasbase, bool lock, uint last) = packed.unpack();
 
     assertEq(packed.active(),active,"bad active");
@@ -272,8 +272,8 @@ contract MgvLocalTest is Test2 {
     Instead we test field by field. The getters could be the constant function but no: they are tested in test_pack.
   */
 
-  function test_inverse_1(MgvStructs.LocalPacked packed) public {
-    MgvStructs.LocalUnpacked memory unpacked = packed.to_struct();
+  function test_inverse_1(Local packed) public {
+    LocalUnpacked memory unpacked = packed.to_struct();
     assertEq(unpacked.active,packed.active(),"bad active");
     assertEq(unpacked.fee,packed.fee(),"bad fee");
     assertEq(Density.unwrap(unpacked.density),Density.unwrap(packed.density()),"bad density");
@@ -287,9 +287,9 @@ contract MgvLocalTest is Test2 {
     assertEq(unpacked.last,packed.last(),"bad last");
   }
 
-  function test_inverse_2(MgvStructs.LocalUnpacked memory unpacked) public {
-    MgvStructs.LocalPacked packed = MgvStructs.Local.t_of_struct(unpacked);
-    MgvStructs.LocalPacked packed2;
+  function test_inverse_2(LocalUnpacked memory unpacked) public {
+    Local packed = LocalLib.t_of_struct(unpacked);
+    Local packed2;
     packed2 = packed2.active(unpacked.active);
     packed2 = packed2.fee(unpacked.fee);
     packed2 = packed2.density(unpacked.density);

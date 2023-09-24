@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, MAX_BIN, MIN_BIN, TickLib, TickLib} from "mgv_src/MgvLib.sol";
+import "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/Constants.sol";
 
@@ -91,7 +91,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_killing_updates_config() public {
-    MgvStructs.GlobalPacked global = mgv.global();
+    Global global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
@@ -101,7 +101,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_kill_is_idempotent() public {
-    MgvStructs.GlobalPacked global = mgv.global();
+    Global global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
@@ -240,9 +240,9 @@ contract GatekeepingTest is MangroveTest {
     (bytes32[] memory reads,) = vm.accesses(address(mgv));
     bytes32 slot = reads[0];
     bytes32 data = vm.load(address(mgv), slot);
-    MgvStructs.LocalPacked local = MgvStructs.LocalPacked.wrap(uint(data));
+    Local local = Local.wrap(uint(data));
     local = local.last(type(uint32).max);
-    vm.store(address(mgv), slot, bytes32(MgvStructs.LocalPacked.unwrap(local)));
+    vm.store(address(mgv), slot, bytes32(Local.unwrap(local)));
 
     // try new offer now that we set the last id to uint32.max
     vm.expectRevert("mgv/offerIdOverflow");
@@ -260,13 +260,13 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerGasreq_bigger_than_gasmax_fails_newOfferByVolume() public {
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
+    (Global cfg,) = mgv.config(olKey);
     vm.expectRevert("mgv/writeOffer/gasreq/tooHigh");
     mkr.newOfferByVolume(1, 1, cfg.gasmax() + 1);
   }
 
   function test_makerGasreq_at_gasmax_succeeds_newOfferByVolume() public {
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
+    (Global cfg,) = mgv.config(olKey);
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
@@ -286,7 +286,7 @@ contract GatekeepingTest is MangroveTest {
 
   function test_makerGasreq_lower_than_density_fails_newOfferByVolume() public {
     mgv.setDensity96X32(olKey, 100 << 32);
-    (, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
+    (, Local cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     vm.expectRevert("mgv/writeOffer/density/tooLow");
     mkr.newOfferByVolume(amount - 1, amount - 1, 1);
@@ -294,7 +294,7 @@ contract GatekeepingTest is MangroveTest {
 
   function test_makerGasreq_at_density_suceeds() public {
     mgv.setDensity96X32(olKey, 100 << 32);
-    (MgvStructs.GlobalPacked glob, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
+    (Global glob, Local cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     // Logging tests
     expectFrom($(mgv));
@@ -590,7 +590,7 @@ contract GatekeepingTest is MangroveTest {
   function test_leaf_is_flushed_case1() public {
     mgv.setGasmax(10_000_000);
     uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
-    MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
+    Offer ofr = mgv.offers(olKey, id);
     Bin nextBin = Bin.wrap(Bin.unwrap(ofr.bin(olKey.tickSpacing)) + 1);
     uint gives = olKey.tick(nextBin).outboundFromInbound(5 ether);
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
@@ -921,7 +921,7 @@ contract GatekeepingTest is MangroveTest {
   function test_configInfo(OLKey memory olKey, address monitor, uint128 density96X32) public {
     mgv.activate(olKey, 0, density96X32, 0);
     mgv.setMonitor(monitor);
-    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = reader.configInfo(olKey);
+    (GlobalUnpacked memory g, LocalUnpacked memory l) = reader.configInfo(olKey);
     assertEq(g.monitor, monitor, "wrong monitor");
     assertEq(l.density.to96X32(), DensityLib.from96X32(density96X32).to96X32(), "wrong density");
   }

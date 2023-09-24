@@ -167,6 +167,7 @@ class Struct {
 
   name: string;
   Name: string;
+  Lib: string;
   Packed: string;
   Unpacked: string;
   filenames: { src: string; test: string };
@@ -181,7 +182,8 @@ class Struct {
     Struct.validate(struct_def.fields);
     this.name = name;
     this.Name = capitalize(this.name);
-    this.Packed = `${this.Name}Packed`;
+    this.Packed = `${this.Name}`;
+    this.Lib = `${this.Name}Lib`;
     this.Unpacked = `${this.Name}Unpacked`;
     this.filenames = filenamers(this);
     this.fields = struct_def.fields.map((data: field_def) => new Field(data));

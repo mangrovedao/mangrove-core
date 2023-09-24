@@ -19,7 +19,7 @@ contract MgvOfferTest is Test2 {
   }
 
   function test_pack(uint prev, uint next, Tick tick, uint gives) public {
-    MgvStructs.OfferPacked packed = MgvStructs.Offer.pack(prev, next, tick, gives);
+    Offer packed = OfferLib.pack(prev, next, tick, gives);
     assertEq(packed.prev(),cast(prev,32),"bad prev");
     assertEq(packed.next(),cast(next,32),"bad next");
     assertEq(Tick.unwrap(packed.tick()),cast(Tick.unwrap(tick),21),"bad tick");
@@ -32,11 +32,11 @@ contract MgvOfferTest is Test2 {
      - dirty bit cleaning 
      - no additional bits being dirtied
   */
-  function test_set_prev(MgvStructs.OfferPacked packed,uint prev) public {
-      MgvStructs.OfferPacked original = packed.prev(packed.prev());
+  function test_set_prev(Offer packed,uint prev) public {
+      Offer original = packed.prev(packed.prev());
       assertEq(original.prev(),packed.prev(), "original: bad prev");
 
-      MgvStructs.OfferPacked modified = packed.prev(prev);
+      Offer modified = packed.prev(prev);
 
       assertEq(modified.prev(),cast(prev,32),"modified: bad prev");
 
@@ -44,11 +44,11 @@ contract MgvOfferTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
-  function test_set_next(MgvStructs.OfferPacked packed,uint next) public {
-      MgvStructs.OfferPacked original = packed.next(packed.next());
+  function test_set_next(Offer packed,uint next) public {
+      Offer original = packed.next(packed.next());
       assertEq(original.next(),packed.next(), "original: bad next");
 
-      MgvStructs.OfferPacked modified = packed.next(next);
+      Offer modified = packed.next(next);
 
       assertEq(modified.next(),cast(next,32),"modified: bad next");
 
@@ -56,11 +56,11 @@ contract MgvOfferTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
-  function test_set_tick(MgvStructs.OfferPacked packed,Tick tick) public {
-      MgvStructs.OfferPacked original = packed.tick(packed.tick());
+  function test_set_tick(Offer packed,Tick tick) public {
+      Offer original = packed.tick(packed.tick());
       assertEq(Tick.unwrap(original.tick()),Tick.unwrap(packed.tick()), "original: bad tick");
 
-      MgvStructs.OfferPacked modified = packed.tick(tick);
+      Offer modified = packed.tick(tick);
 
       assertEq(Tick.unwrap(modified.tick()),cast(Tick.unwrap(tick),21),"modified: bad tick");
 
@@ -68,11 +68,11 @@ contract MgvOfferTest is Test2 {
       assertEq(modified.next(),packed.next(),"modified: bad next");
       assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
-  function test_set_gives(MgvStructs.OfferPacked packed,uint gives) public {
-      MgvStructs.OfferPacked original = packed.gives(packed.gives());
+  function test_set_gives(Offer packed,uint gives) public {
+      Offer original = packed.gives(packed.gives());
       assertEq(original.gives(),packed.gives(), "original: bad gives");
 
-      MgvStructs.OfferPacked modified = packed.gives(gives);
+      Offer modified = packed.gives(gives);
 
       assertEq(modified.gives(),cast(gives,96),"modified: bad gives");
 
@@ -81,7 +81,7 @@ contract MgvOfferTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
     }
 
-  function test_unpack(MgvStructs.OfferPacked packed) public {
+  function test_unpack(Offer packed) public {
     (uint prev, uint next, Tick tick, uint gives) = packed.unpack();
 
     assertEq(packed.prev(),prev,"bad prev");
@@ -97,17 +97,17 @@ contract MgvOfferTest is Test2 {
     Instead we test field by field. The getters could be the constant function but no: they are tested in test_pack.
   */
 
-  function test_inverse_1(MgvStructs.OfferPacked packed) public {
-    MgvStructs.OfferUnpacked memory unpacked = packed.to_struct();
+  function test_inverse_1(Offer packed) public {
+    OfferUnpacked memory unpacked = packed.to_struct();
     assertEq(unpacked.prev,packed.prev(),"bad prev");
     assertEq(unpacked.next,packed.next(),"bad next");
     assertEq(Tick.unwrap(unpacked.tick),Tick.unwrap(packed.tick()),"bad tick");
     assertEq(unpacked.gives,packed.gives(),"bad gives");
   }
 
-  function test_inverse_2(MgvStructs.OfferUnpacked memory unpacked) public {
-    MgvStructs.OfferPacked packed = MgvStructs.Offer.t_of_struct(unpacked);
-    MgvStructs.OfferPacked packed2;
+  function test_inverse_2(OfferUnpacked memory unpacked) public {
+    Offer packed = OfferLib.t_of_struct(unpacked);
+    Offer packed2;
     packed2 = packed2.prev(unpacked.prev);
     packed2 = packed2.next(unpacked.next);
     packed2 = packed2.tick(unpacked.tick);

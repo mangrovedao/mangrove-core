@@ -5,7 +5,7 @@ import "mgv_lib/Constants.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 import {console2 as csf} from "forge-std/console2.sol";
-import {LocalPacked} from "mgv_src/preprocessed/MgvLocal.post.sol";
+import {Local} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 type Leaf is uint;
 type DirtyLeaf is uint;
@@ -189,7 +189,7 @@ library BinLib {
   // Must not be called with any of level3, level2, level1 or root empty
   function bestBinFromBranch(uint binPosInLeaf,Field level3, Field level2, Field level1, Field root) internal pure returns (Bin) {
     unchecked {
-      LocalPacked local;
+      Local local;
       local = local.binPosInLeaf(binPosInLeaf).level3(level3).level2(level2).level1(level1).root(root);
       return bestBinFromLocal(local);
     }
@@ -199,7 +199,7 @@ library BinLib {
     return Tick.wrap(Bin.unwrap(bin) * int(tickSpacing));
   }
 
-  function bestBinFromLocal(LocalPacked local) internal pure returns (Bin) {
+  function bestBinFromLocal(Local local) internal pure returns (Bin) {
     unchecked {
       uint ubin = local.binPosInLeaf() |
         ((BitLib.ctz64(Field.unwrap(local.level3())) |

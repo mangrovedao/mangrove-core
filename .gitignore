@@ -37,5 +37,8 @@ addresses/deployed/local.json
 !.yarn/versions
 .pnp.*
 
+# Bun, as long as its for personal use
+bun.lockb
+
 # Stil useful?
 *-mumbai.sh

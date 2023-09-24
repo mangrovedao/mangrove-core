@@ -6,7 +6,6 @@ import "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Constants.sol";
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting
@@ -121,7 +120,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = true means we should not receive more than `wants`.
        Here we are asking for 0.1 eth to an offer that gives 1eth for ~nothing.
        We should still only receive 0.1 eth */
-    Tick tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickLib.tickFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, tick, 0.1 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 0.1 ether, relError(10), "Wrong got value");
@@ -138,7 +137,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = false means we should spend as little as possible to receive
        as much as possible.
        Here despite asking for .1eth the offer gives 1eth for ~0 so we should receive 1eth. */
-    Tick tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickLib.tickFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, tick, 0.1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 1 ether, relError(10), "Wrong got value");
@@ -151,7 +150,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
-    Tick tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickLib.tickFromRatio(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, tick, 1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(got, 1 ether, "Taker did not get correct amount");
@@ -169,7 +168,7 @@ contract TakerOperationsTest is MangroveTest {
     Tick offerTick2 = mgv.offers(olKey, ofr2).tick();
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    Tick maxTick = TickConversionLib.tickFromVolumes(1.9 ether, 1.1 ether);
+    Tick maxTick = TickLib.tickFromVolumes(1.9 ether, 1.1 ether);
 
     expectFrom($(mgv));
     emit OrderStart(olKey.hash(), $(this), maxTick, 1.1 ether, true);

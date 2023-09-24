@@ -28,7 +28,6 @@ using Library for OfferPacked global;
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;

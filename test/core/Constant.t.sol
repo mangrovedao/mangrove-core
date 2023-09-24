@@ -4,26 +4,25 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 import {tick_bits} from "mgv_src/preprocessed/MgvOffer.post.sol";
 import {last_bits} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 // In these tests, the testing contract is the market maker.
 contract ConstantsTest is MangroveTest {
   function test_constants_min_max_ratio() public {
-    (uint man, uint exp) = TickConversionLib.ratioFromTick(Tick.wrap(MIN_TICK));
+    (uint man, uint exp) = TickLib.ratioFromTick(Tick.wrap(MIN_TICK));
     assertEq(man, MIN_RATIO_MANTISSA);
     assertEq(int(exp), MIN_RATIO_EXP);
-    (man, exp) = TickConversionLib.ratioFromTick(Tick.wrap(MAX_TICK));
+    (man, exp) = TickLib.ratioFromTick(Tick.wrap(MAX_TICK));
     assertEq(man, MAX_RATIO_MANTISSA);
     assertEq(int(exp), MAX_RATIO_EXP);
   }
 
   function test_constants_min_max_ratio2() public {
     Tick tick;
-    tick = TickConversionLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP));
+    tick = TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP));
     assertEq(tick, Tick.wrap(MIN_TICK));
-    tick = TickConversionLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP));
+    tick = TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP));
     assertEq(tick, Tick.wrap(MAX_TICK));
   }
 

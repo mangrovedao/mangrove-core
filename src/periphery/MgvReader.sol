@@ -3,7 +3,6 @@ pragma solidity ^0.8.10;
 
 import {MgvLib, MgvStructs, Bin, Leaf, Field, TickLib, OLKey, Tick} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {TickConversionLib} from "mgv_lib/TickConversionLib.sol";
 
 struct VolumeData {
   uint totalGot;
@@ -395,7 +394,7 @@ contract MgvReader {
     bool accumulate
   ) public view returns (VolumeData[] memory) {
     uint fillVolume = fillWants ? takerWants : takerGives;
-    Tick maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+    Tick maxTick = TickLib.tickFromVolumes(takerGives, takerWants);
     return simulateMarketOrderByTick(olKey, maxTick, fillVolume, fillWants, accumulate);
   }
 

@@ -85,7 +85,7 @@ library OfferUnpackedExtra {
 // number of bits in each field
 uint constant prev_bits  = 32;
 uint constant next_bits  = 32;
-uint constant tick_bits  = 24;
+uint constant tick_bits  = 21;
 uint constant gives_bits = 96;
 
 // number of bits before each field
@@ -115,7 +115,7 @@ uint constant gives_cast_mask = ~(ONES << gives_bits);
 // size-related error message
 string constant prev_size_error  = "mgv/config/prev/32bits";
 string constant next_size_error  = "mgv/config/next/32bits";
-string constant tick_size_error  = "mgv/config/tick/24bits";
+string constant tick_size_error  = "mgv/config/tick/21bits";
 string constant gives_size_error = "mgv/config/gives/96bits";
 
 library Library {

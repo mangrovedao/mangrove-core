@@ -22,7 +22,7 @@ contract MgvOfferTest is Test2 {
     MgvStructs.OfferPacked packed = MgvStructs.Offer.pack(prev, next, tick, gives);
     assertEq(packed.prev(),cast(prev,32),"bad prev");
     assertEq(packed.next(),cast(next,32),"bad next");
-    assertEq(Tick.unwrap(packed.tick()),cast(Tick.unwrap(tick),24),"bad tick");
+    assertEq(Tick.unwrap(packed.tick()),cast(Tick.unwrap(tick),21),"bad tick");
     assertEq(packed.gives(),cast(gives,96),"bad gives");
   }
 
@@ -62,7 +62,7 @@ contract MgvOfferTest is Test2 {
 
       MgvStructs.OfferPacked modified = packed.tick(tick);
 
-      assertEq(Tick.unwrap(modified.tick()),cast(Tick.unwrap(tick),24),"modified: bad tick");
+      assertEq(Tick.unwrap(modified.tick()),cast(Tick.unwrap(tick),21),"modified: bad tick");
 
       assertEq(modified.prev(),packed.prev(),"modified: bad prev");
       assertEq(modified.next(),packed.next(),"modified: bad next");

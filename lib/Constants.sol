@@ -12,8 +12,7 @@ int constant MIN_BIN = -1048576;
 int constant MAX_BIN = -MIN_BIN-1;
 
 // sizes must match field sizes in structs.ts where relevant
-// FIXME add tests for ^
-uint constant BIN_BITS = 24;
+uint constant TICK_BITS = 21;
 uint constant OFFER_BITS = 32;
 uint constant MAX_FIELD_SIZE = 64; // Constraint given by BitLib.ctz64
 

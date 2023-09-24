@@ -5,6 +5,8 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/TickConversionLib.sol";
+import {tick_bits} from "mgv_src/preprocessed/MgvOffer.post.sol";
+import {last_bits} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 // In these tests, the testing contract is the market maker.
 contract ConstantsTest is MangroveTest {
@@ -41,5 +43,15 @@ contract ConstantsTest is MangroveTest {
   // checks that there is no overflow
   function test_maxSafeVolumeIsSafeLowLevel() public {
     assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
+  }
+
+  // make sure TICK_BITS in Constants.sol matches the tick bits used in offer struct
+  function test_tick_bits() public {
+    assertEq(TICK_BITS, tick_bits);
+  }
+
+  // make sure OFFER_BITS in Constants.sol matches the id fields used in structs
+  function test_offer_bits() public {
+    assertEq(OFFER_BITS, last_bits);
   }
 }

@@ -285,7 +285,6 @@ contract TickAndBinTest is MangroveTest {
     showTickApprox(1 ether, 1 ether);
   }
 
-  // int constant min_tick_abs = int(2**(BIN_BITS-1));
   function test_leafIndex_auto(int bin) public {
     bin = bound(bin, MIN_BIN, MAX_BIN);
     int tn = NUM_BINS / 2 + bin; // normalize to positive

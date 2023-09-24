@@ -9,7 +9,6 @@ import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 
 using OLLib for OLKey global;
 // OLKey is OfferList

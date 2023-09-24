@@ -5,7 +5,6 @@ import {HasMgvEvents, Bin, TickLib, OLKey} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {BinLib} from "mgv_lib/BinLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 import {MgvStructs} from "./MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -78,7 +77,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
-      Tick tick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+      Tick tick = TickLib.tickFromVolumes(takerGives, takerWants);
       return marketOrderForByTick(olKey, tick, fillVolume, fillWants, taker);
     }
   }

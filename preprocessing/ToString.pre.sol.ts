@@ -16,7 +16,6 @@ Vm constant vm = Vm(VM_ADDRESS);
 // Manual user-defined types
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -61,7 +60,7 @@ function toString(Bin bin) pure returns (string memory ret) {
 }
 
 function toString(Tick tick) pure returns (string memory ret) {
-  (uint man, uint exp)  = TickConversionLib.ratioFromTick(tick);
+  (uint man, uint exp)  = TickLib.ratioFromTick(tick);
   string memory str = toFixed(man,exp);
 
   ret = string.concat(unicode"⦗ ",vm.toString(Tick.unwrap(tick)),"|", str,unicode":1 ⦘");

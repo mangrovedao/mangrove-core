@@ -3,7 +3,6 @@ pragma solidity ^0.8.10;
 
 import {IMaker, HasMgvEvents, MgvStructs, Bin, BinLib, Leaf, Field, TickLib, OLKey} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {TickConversionLib} from "mgv_lib/TickConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
@@ -48,7 +47,7 @@ contract MgvOfferMaking is MgvHasOffers {
     returns (uint offerId)
   {
     unchecked {
-      return newOfferByTick(olKey, TickConversionLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice);
+      return newOfferByTick(olKey, TickLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice);
     }
   }
 
@@ -104,7 +103,7 @@ contract MgvOfferMaking is MgvHasOffers {
     payable
   {
     unchecked {
-      updateOfferByTick(olKey, TickConversionLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
+      updateOfferByTick(olKey, TickLib.tickFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
     }
   }
 

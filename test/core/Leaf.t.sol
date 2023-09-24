@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 
 import "mgv_lib/Test2.sol";
 import "mgv_src/MgvLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 import "mgv_test/lib/MangroveTest.sol";
 
 // In these tests, the testing contract is the market maker.
@@ -213,17 +212,17 @@ contract TickAndBinTest is MangroveTest {
 
   // note that tick(p) is max {t | ratio(t) <= p}
   function test_tickFromVolumes() public {
-    assertEq(TickConversionLib.tickFromVolumes(1, 1), Tick.wrap(0));
-    assertEq(TickConversionLib.tickFromVolumes(2, 1), Tick.wrap(6931));
-    assertEq(TickConversionLib.tickFromVolumes(1, 2), Tick.wrap(-6932));
-    assertEq(TickConversionLib.tickFromVolumes(1e18, 1), Tick.wrap(414486));
-    assertEq(TickConversionLib.tickFromVolumes(type(uint96).max, 1), Tick.wrap(665454));
-    assertEq(TickConversionLib.tickFromVolumes(1, type(uint96).max), Tick.wrap(-665455));
-    assertEq(TickConversionLib.tickFromVolumes(type(uint72).max, 1), Tick.wrap(499090));
-    assertEq(TickConversionLib.tickFromVolumes(1, type(uint72).max), Tick.wrap(-499091));
-    assertEq(TickConversionLib.tickFromVolumes(999999, 1000000), Tick.wrap(-1));
-    assertEq(TickConversionLib.tickFromVolumes(1000000, 999999), Tick.wrap(0));
-    assertEq(TickConversionLib.tickFromVolumes(1000000 * 1e18, 999999 * 1e18), Tick.wrap(0));
+    assertEq(TickLib.tickFromVolumes(1, 1), Tick.wrap(0));
+    assertEq(TickLib.tickFromVolumes(2, 1), Tick.wrap(6931));
+    assertEq(TickLib.tickFromVolumes(1, 2), Tick.wrap(-6932));
+    assertEq(TickLib.tickFromVolumes(1e18, 1), Tick.wrap(414486));
+    assertEq(TickLib.tickFromVolumes(type(uint96).max, 1), Tick.wrap(665454));
+    assertEq(TickLib.tickFromVolumes(1, type(uint96).max), Tick.wrap(-665455));
+    assertEq(TickLib.tickFromVolumes(type(uint72).max, 1), Tick.wrap(499090));
+    assertEq(TickLib.tickFromVolumes(1, type(uint72).max), Tick.wrap(-499091));
+    assertEq(TickLib.tickFromVolumes(999999, 1000000), Tick.wrap(-1));
+    assertEq(TickLib.tickFromVolumes(1000000, 999999), Tick.wrap(0));
+    assertEq(TickLib.tickFromVolumes(1000000 * 1e18, 999999 * 1e18), Tick.wrap(0));
   }
 
   function test_ratioFromTick() public {
@@ -259,13 +258,13 @@ contract TickAndBinTest is MangroveTest {
   }
 
   function inner_test_ratioFromTick(Tick tick, uint expected_sig, uint expected_exp) internal {
-    (uint sig, uint exp) = TickConversionLib.ratioFromTick(tick);
+    (uint sig, uint exp) = TickLib.ratioFromTick(tick);
     assertEq(expected_sig, sig, "wrong sig");
     assertEq(expected_exp, exp, "wrong exp");
   }
 
   function showTickApprox(uint wants, uint gives) internal pure {
-    Tick tick = TickConversionLib.tickFromVolumes(wants, gives);
+    Tick tick = TickLib.tickFromVolumes(wants, gives);
     uint wants2 = tick.inboundFromOutbound(gives);
     uint gives2 = tick.outboundFromInbound(wants);
     console.log("tick  ", toString(tick));
@@ -398,7 +397,7 @@ contract FieldTest is MangroveTest {
 
   function ratio_ratioFromVolumes_not_zero_div() public {
     // should not revert
-    (uint man,) = TickConversionLib.ratioFromVolumes(1, type(uint).max);
+    (uint man,) = TickLib.ratioFromVolumes(1, type(uint).max);
     assertTrue(man != 0, "mantissa cannot be 0");
   }
 
@@ -406,7 +405,7 @@ contract FieldTest is MangroveTest {
     vm.assume(inbound != 0);
     vm.assume(outbound != 0);
     // should not revert
-    (uint man,) = TickConversionLib.ratioFromVolumes(inbound, outbound);
+    (uint man,) = TickLib.ratioFromVolumes(inbound, outbound);
     assertTrue(man != 0, "mantissa cannot be 0");
   }
 
@@ -496,15 +495,15 @@ contract FieldTest is MangroveTest {
     uint exp;
 
     //inboundFromOutboundUp
-    (sig, exp) = TickConversionLib.nonNormalizedRatioFromTick(tick);
+    (sig, exp) = TickLib.nonNormalizedRatioFromTick(tick);
     assertEq(tick.inboundFromOutboundUp(amt), divExpUp_spec(sig * amt, exp));
 
     //outboundFromInboundUp
-    (sig, exp) = TickConversionLib.nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
+    (sig, exp) = TickLib.nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
     assertEq(tick.outboundFromInboundUp(amt), divExpUp_spec(sig * amt, exp));
   }
 
   function test_divExpUp(uint a, uint exp) public {
-    assertEq(divExpUp(a, exp), divExpUp_spec(a, exp));
+    assertEq(TickLib.divExpUp(a, exp), divExpUp_spec(a, exp));
   }
 }

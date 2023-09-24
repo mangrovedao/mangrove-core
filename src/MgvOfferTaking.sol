@@ -20,7 +20,6 @@ import {
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {BinLib} from "mgv_lib/BinLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
@@ -58,7 +57,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
-    Tick maxTick = TickConversionLib.tickFromVolumes(takerGives, takerWants);
+    Tick maxTick = TickLib.tickFromVolumes(takerGives, takerWants);
     return marketOrderByTick(olKey, maxTick, fillVolume, fillWants);
   }
 

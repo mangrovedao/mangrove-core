@@ -49,7 +49,6 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
-import "mgv_lib/TickConversionLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
@@ -88,7 +87,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function marketOrderFor(uint value, address who) internal returns (uint, uint, uint, uint) {
-    Tick tick = TickConversionLib.tickFromRatio(1, 0);
+    Tick tick = TickLib.tickFromRatio(1, 0);
     return mgv.marketOrderForByTick(olKey, tick, value, true, who);
   }
 

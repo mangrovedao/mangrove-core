@@ -9,6 +9,6 @@ ${preamble}
 
 ${structs.map(s => {
   return `
-import {${s.Packed}, ${s.Unpacked}, ${s.Lib}}  from "./${s.filenames.src}";
+import {${s.Packed}, ${s.Unpacked}, ${s.Lib}}  from "./${s.filenames.src}";`;
 })}`;
 };

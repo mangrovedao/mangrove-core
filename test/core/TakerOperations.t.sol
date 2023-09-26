@@ -662,35 +662,24 @@ contract TakerOperationsTest is MangroveTest {
   // max price using volumes: 1<<MAX_RATIO_MANTISSA
   // min price using volumes: 1/(1<<RATIO_FROM_VOLUMES_SHIFT)
   function test_marketOrderByVolume_takerGives_extrema_ok() public {
-    uint GB = OfferLib.gives_bits;
-    mgv.marketOrderByVolume(olKey, 1, MAX_RATIO_MANTISSA, true);
-    mgv.marketOrderByVolume(olKey, 1, MAX_RATIO_MANTISSA, false);
-    mgv.marketOrderByVolume(olKey, 1 << RATIO_FROM_VOLUMES_SHIFT, 1, true);
-    mgv.marketOrderByVolume(olKey, 1 << MAX_RATIO_MANTISSA, 1, false);
-    mgv.marketOrderByVolume(olKey, 1 << GB, 1 << (GB - 1), false);
-    mgv.marketOrderByVolume(olKey, 1 << (GB - 1), 1 << GB, true);
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME, 1, true);
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME, 1, false);
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME, true);
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME, false);
   }
 
   function test_marketOrderByVolume_takerGives_extrema_ko() public {
-    uint GB = OfferLib.gives_bits;
+    vm.expectRevert("mgv/tickFromVol/inbound/tooBig");
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, true);
 
-    vm.expectRevert("mgv/ratioFromVol/ratioTooHigh");
-    mgv.marketOrderByVolume(olKey, 1, MAX_RATIO_MANTISSA + 1, true);
+    vm.expectRevert("mgv/tickFromVol/outbound/tooBig");
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, true);
 
-    vm.expectRevert("mgv/ratioFromVol/ratioTooLow");
-    mgv.marketOrderByVolume(olKey, (1 << RATIO_FROM_VOLUMES_SHIFT) + 1, 1, true);
+    vm.expectRevert("mgv/tickFromVol/inbound/tooBig");
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, false);
 
-    vm.expectRevert("mgv/ratioFromVol/ratioTooHigh");
-    mgv.marketOrderByVolume(olKey, 1, MAX_RATIO_MANTISSA + 1, false);
-
-    vm.expectRevert("mgv/ratioFromVol/ratioTooLow");
-    mgv.marketOrderByVolume(olKey, (1 << RATIO_FROM_VOLUMES_SHIFT) + 1, 1, false);
-
-    vm.expectRevert("mgv/mOrder/fillVolume/tooBig");
-    mgv.marketOrderByVolume(olKey, 1 << GB, 1 << (GB - 1), true);
-
-    vm.expectRevert("mgv/mOrder/fillVolume/tooBig");
-    mgv.marketOrderByVolume(olKey, 1 << (GB - 1), 1 << GB, false);
+    vm.expectRevert("mgv/tickFromVol/outbound/tooBig");
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, false);
   }
 
   function test_clean_with_0_wants_ejects_offer() public {

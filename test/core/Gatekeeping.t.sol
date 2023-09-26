@@ -185,24 +185,19 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGasmax(uint(type(uint24).max) + 1);
   }
 
-  function test_makerGives_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/writeOffer/gives/tooBig");
-    mkr.newOfferByVolume(1 << 159, 1 << 160, 10_000);
-  }
-
   function test_makerWants_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/mulDiv/overflow");
-    mkr.newOfferByVolume(1 << 160, 1, 100_000, 0);
+    mgv.setDensity96X32(olKey, 0);
+    // check no revert
+    mkr.newOfferByVolume(MAX_SAFE_VOLUME, 1, 100_000, 0);
+    vm.expectRevert("mgv/tickFromVol/inbound/tooBig");
+    mkr.newOfferByVolume(MAX_SAFE_VOLUME + 1, 1, 100_000, 0);
   }
 
-  function test_ratio_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/ratioFromVol/ratioTooHigh");
-    mkr.newOfferByVolume(MAX_RATIO_MANTISSA + 1, 1, 100_000, 0);
-  }
-
-  function test_ratio_too_small_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/ratioFromVol/ratioTooLow");
-    mkr.newOfferByVolume(1, MAX_RATIO_MANTISSA + 1, 100_000, 0);
+  function test_makerGives_too_small_fails_newOfferByVolume() public {
+    // check no revert
+    mkr.newOfferByVolume(1, MAX_SAFE_VOLUME, 100_000, 0);
+    vm.expectRevert("mgv/tickFromVol/outbound/tooBig");
+    mkr.newOfferByVolume(1, MAX_SAFE_VOLUME + 1, 100_000, 0);
   }
 
   function test_newOfferByTick_extrema_tick() public {

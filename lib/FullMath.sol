@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Credit to Uniswap Labs under MIT license 
+// For mulDiv[roundingUp], credit to Uniswap Labs under MIT license 
 // https://github.com/Uniswap/v3-core/blob/d8b1c635c275d2a9450bd6a78f3fa2484fef73eb/contracts/libraries/FullMath.sol
 
 pragma solidity ^0.8.17;

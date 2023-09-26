@@ -70,29 +70,30 @@ library TickLib {
   // returns a normalized ratio within the max/min ratio range
   // returns max_ratio if at least outboundAmt==0
   // returns min_ratio if only inboundAmt==0
-  function ratioFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
-    if (outboundAmt == 0) {
-      return (MAX_RATIO_MANTISSA,uint(MAX_RATIO_EXP));
-    } else if (inboundAmt == 0) {
-      return (MIN_RATIO_MANTISSA,uint(MIN_RATIO_EXP));
-    }
-    uint ratio = FullMath.mulDiv(inboundAmt,1 << RATIO_FROM_VOLUMES_SHIFT, outboundAmt); 
-    require(ratio != 0,"mgv/ratioFromVol/ratioTooLow");
-    // Relies on the fact that MAX_RATIO_EXP=0
-    require(ratio <= MAX_RATIO_MANTISSA<<RATIO_FROM_VOLUMES_SHIFT,"mgv/ratioFromVol/ratioTooHigh");
-    uint log2 = BitLib.fls(ratio);
-    if (log2 > MANTISSA_BITS_MINUS_ONE) {
-      uint diff = log2 - MANTISSA_BITS_MINUS_ONE;
-      return (ratio >> diff, RATIO_FROM_VOLUMES_SHIFT - diff);
-    } else {
-      uint diff = MANTISSA_BITS_MINUS_ONE - log2;
-      return (ratio << diff, RATIO_FROM_VOLUMES_SHIFT + diff);
-    }
-  }
-
+  // max values for inbound and outbound are 128 bits (leads to code simplicity)
   function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick tick) {
-    (uint man, uint exp) = ratioFromVolumes(inboundAmt, outboundAmt);
-    return tickFromNormalizedRatio(man,exp);
+    if (outboundAmt == 0) {
+      return Tick.wrap(MAX_TICK);
+    } else if (inboundAmt == 0) {
+      return Tick.wrap(MIN_TICK);
+    }
+    require(inboundAmt <= MAX_SAFE_VOLUME, "mgv/tickFromVol/inbound/tooBig");
+    require(outboundAmt <= MAX_SAFE_VOLUME, "mgv/tickFromVol/outbound/tooBig");
+    uint ratio = FullMath.mulDiv(inboundAmt,1<<MAX_SAFE_VOLUME_BITS, outboundAmt); 
+    // Since MAX_RATIO_MANTISSA > 2^128 (and MAX_RATIO_EXP=0), the resulting ratio cannot be above the maximum ratio
+    uint exp = BitLib.fls(ratio);
+    uint mantissa;
+    if (exp > MANTISSA_BITS_MINUS_ONE) {
+      uint diff = exp - MANTISSA_BITS_MINUS_ONE;
+      mantissa = ratio >> diff;
+      // no underflow since (255-MANTISSA_BITS_MINUS_ONE < MAX_SAFE_VOLUME_BITS)
+      exp = MAX_SAFE_VOLUME_BITS - diff;
+    } else {
+      uint diff = MANTISSA_BITS_MINUS_ONE - exp;
+      mantissa = ratio << diff;
+      exp = MAX_SAFE_VOLUME_BITS + diff;
+    }
+    tick = tickFromNormalizedRatio(mantissa,exp);
   }
 
   // expects a normalized ratio float

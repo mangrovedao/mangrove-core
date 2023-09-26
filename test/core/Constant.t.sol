@@ -76,5 +76,19 @@ contract ConstantsTest is MangroveTest {
     assertEq(MAX_SAFE_GIVES, type(uint).max / MAX_RATIO_MANTISSA, "MAX_SAFE_GIVES");
     assertEq(MIN_BIN_ALLOWED, MIN_TICK, "MIN_BIN_ALLOWED");
     assertEq(MAX_BIN_ALLOWED, MAX_TICK, "MAX_BIN_ALLOWED");
+    assertEq(MAX_SAFE_VOLUME, (1 << MAX_SAFE_VOLUME_BITS) - 1);
+  }
+
+  // For the ratio computed in TickLib.tickFromVolumes to be valid, it must represent a number less than the maximum ratio. Since it is computed by (inbound << MAX_SAFE_VOLUME_BITS) / outbound and inbound <= MAX_SAFE_VOLUME,
+  function test_tickFromVolumes_is_maxRatio_safe() public {
+    assertTrue(MAX_SAFE_VOLUME <= MAX_RATIO_MANTISSA, "MAX_SAFE_VOLUME is too big");
+    // The check above only holds because it can ignore MAX_RATIO_EXP;
+    assertTrue(MAX_RATIO_EXP == 0, "max ratio exp must be 0 for the check above to hold");
+  }
+
+  // In TickLib.tickFromVolumes, the (uint) exp of a normalized float is computed by MAX_SAFE_VOLUME_BITS - log2(number) + MANTISSA_BITS_MINUS_ONE
+  // Lack of underflow is only guaranteed if the maximum possible log2 does not yield a < 0 exp.
+  function test_tickFromVolumes_underflow_safe() public {
+    assertTrue(255 - MANTISSA_BITS_MINUS_ONE < MAX_SAFE_VOLUME_BITS, "risk of underflow in TickLib.tickFromVolumes");
   }
 }

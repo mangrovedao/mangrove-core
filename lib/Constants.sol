@@ -54,8 +54,8 @@ uint constant MAX_SAFE_GIVES = 33645117837968510856504196905370;
 // Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe.
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
-// Chosen so that ratio is easy to compare to MAX_RATIO_MANTISSA << RATIO_FROM_VOLUMES_SHIFT
-uint constant RATIO_FROM_VOLUMES_SHIFT = 256-MANTISSA_BITS;
+uint constant MAX_SAFE_VOLUME = 340282366920938463463374607431768211455;
+uint constant MAX_SAFE_VOLUME_BITS = 128;
 
 // Price math limits the allowed ticks to a subset of the full range
 int constant MIN_BIN_ALLOWED = -1048575;

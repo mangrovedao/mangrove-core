@@ -5,7 +5,6 @@ import {Bin} from "mgv_lib/BinLib.sol";
 import "mgv_lib/BitLib.sol";
 import "mgv_lib/Constants.sol";
 import "mgv_lib/FullMath.sol";
-import {console2 as csf} from "forge-std/console2.sol";
 
 type Tick is int;
 using TickLib for Tick global;

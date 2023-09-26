@@ -659,8 +659,6 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   // none should revert
-  // max price using volumes: 1<<MAX_RATIO_MANTISSA
-  // min price using volumes: 1/(1<<RATIO_FROM_VOLUMES_SHIFT)
   function test_marketOrderByVolume_takerGives_extrema_ok() public {
     mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME, 1, true);
     mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME, 1, false);

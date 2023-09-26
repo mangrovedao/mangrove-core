@@ -64,20 +64,6 @@ contract FieldTest is MangroveTest {
     assertEq(Field.wrap(field).firstOnePosition(), pos);
   }
 
-  function ratio_ratioFromVolumes_not_zero_div() public {
-    // should not revert
-    (uint man,) = TickLib.ratioFromVolumes(1, type(uint).max);
-    assertTrue(man != 0, "mantissa cannot be 0");
-  }
-
-  function ratio_ratioFromVolumes_not_zero_div_fuzz(uint inbound, uint outbound) public {
-    vm.assume(inbound != 0);
-    vm.assume(outbound != 0);
-    // should not revert
-    (uint man,) = TickLib.ratioFromVolumes(inbound, outbound);
-    assertTrue(man != 0, "mantissa cannot be 0");
-  }
-
   /* Field dirty/clean */
 
   function test_clean_field_idempotent(DirtyField field) public {

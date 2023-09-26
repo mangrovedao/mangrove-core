@@ -41,9 +41,42 @@ contract FullMathTest is Test2 {
     }
   }
 
+  function test_above_uint_max_den() public {
+    bool floor = false;
+    bool ceil = true;
+
+    // forgefmt: disable-start
+    mEq(             1,      1, 256, floor,          0);
+    mEq(             1,      1, 256,  ceil,          1);
+    mEq(type(uint).max,      1, 256, floor,          0);
+    mEq(type(uint).max,      1, 256,  ceil,          1);
+    mEq(type(uint).max,      2, 256, floor,          1);
+    mEq(type(uint).max,      2, 256,  ceil,          2);
+    mEq(type(uint).max, 1<<255, 256, floor, (1<<255)-1);
+    mEq(type(uint).max, 1<<255, 256,  ceil,     1<<255);
+    mEq(type(uint).max, 1<<255, 512, floor,          0);
+    mEq(type(uint).max, 1<<255, 512,  ceil,          1);
+    // forgefmt: disable-end
+  }
+
   /* ************
     Utility
   ************* */
+
+  function mEq(uint a, uint b, uint e, bool roundUp, uint expected) internal {
+    uint actual = FullMath.mulDivPow2(a, b, e, roundUp);
+
+    if (expected != actual) {
+      string memory roundUpStr = roundUp ? "ceil" : "floor";
+      emit log(string.concat("Error: wrong mulDiv(", roundUpStr, ")"));
+      emit log_named_string("       a", vm.toString(a));
+      emit log_named_string("       b", vm.toString(b));
+      emit log_named_string("    expn", vm.toString(e));
+      emit log_named_string("expected", vm.toString(expected));
+      emit log_named_string("  actual", vm.toString(actual));
+      fail();
+    }
+  }
 
   function assertMul(uint a, uint b, uint e, bool roundUp, string memory err) internal {
     require(e <= 255, "e>255 not valid for FullMath.mulDiv[roundingUp]");
@@ -82,6 +115,7 @@ contract FullMathTest is Test2 {
         emit log_named_string("    mulDiv", vm.toString(expected));
         emit log_named_string("mulDivPow2", vm.toString(actual));
       }
+      fail();
     }
   }
 

@@ -4,6 +4,8 @@ pragma solidity ^0.8.17;
 import {Bin} from "mgv_lib/BinLib.sol";
 import "mgv_lib/BitLib.sol";
 import "mgv_lib/Constants.sol";
+import "mgv_lib/FullMath.sol";
+import {console2 as csf} from "forge-std/console2.sol";
 
 type Tick is int;
 using TickLib for Tick global;
@@ -37,7 +39,8 @@ library TickLib {
   // rounds down
   function inboundFromOutbound(Tick tick, uint outboundAmt) internal pure returns (uint) {
     (uint sig, uint exp) = nonNormalizedRatioFromTick(tick);
-    return (sig * outboundAmt) >> exp;
+
+    return FullMath.mulDivPow2({a:sig,b:outboundAmt,expn:exp,roundUp:false});
   }
 
   // no overflow if outboundAmt is on 104 bits
@@ -45,7 +48,7 @@ library TickLib {
   function inboundFromOutboundUp(Tick tick, uint outboundAmt) internal pure returns (uint) {
     unchecked {
       (uint sig, uint exp) = nonNormalizedRatioFromTick(tick);
-      return divExpUp(sig*outboundAmt,exp);
+      return FullMath.mulDivPow2({a:sig,b:outboundAmt,expn:exp,roundUp:true});
     }
   }
 
@@ -54,13 +57,13 @@ library TickLib {
   // rounds down
   function outboundFromInbound(Tick tick, uint inboundAmt) internal pure returns (uint) {
     (uint sig, uint exp) = nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
-    return (sig * inboundAmt) >> exp;
+    return FullMath.mulDivPow2({a:sig,b:inboundAmt,expn:exp,roundUp:false});
   }
 
   function outboundFromInboundUp(Tick tick, uint inboundAmt) internal pure returns (uint) {
     unchecked {
       (uint sig, uint exp) = nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
-      return divExpUp(sig*inboundAmt,exp);
+      return FullMath.mulDivPow2({a:sig,b:inboundAmt,expn:exp,roundUp:true});
     }
   }
 
@@ -68,23 +71,22 @@ library TickLib {
   // returns max_ratio if at least outboundAmt==0
   // returns min_ratio if only inboundAmt==0
   function ratioFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
-    require(inboundAmt <= MAX_SAFE_VOLUME, "ratioFromVolumes/inbound/tooBig");
-    require(outboundAmt <= MAX_SAFE_VOLUME, "ratioFromVolumes/outbound/tooBig");
     if (outboundAmt == 0) {
       return (MAX_RATIO_MANTISSA,uint(MAX_RATIO_EXP));
     } else if (inboundAmt == 0) {
       return (MIN_RATIO_MANTISSA,uint(MIN_RATIO_EXP));
     }
-    uint ratio = (inboundAmt << MANTISSA_BITS) / outboundAmt; 
-    // ratio cannot be 0 as long as (1<<MANTISSA_BITS)/MAX_SAFE_VOLUME > 0
+    uint ratio = FullMath.mulDiv(inboundAmt,1 << RATIO_FROM_VOLUMES_SHIFT, outboundAmt); 
+    require(ratio != 0,"mgv/ratioFromVol/ratioTooLow");
+    // Relies on the fact that MAX_RATIO_EXP=0
+    require(ratio <= MAX_RATIO_MANTISSA<<RATIO_FROM_VOLUMES_SHIFT,"mgv/ratioFromVol/ratioTooHigh");
     uint log2 = BitLib.fls(ratio);
-    require(ratio != 0,"ratioFromVolumes/zeroRatio");
     if (log2 > MANTISSA_BITS_MINUS_ONE) {
       uint diff = log2 - MANTISSA_BITS_MINUS_ONE;
-      return (ratio >> diff, MANTISSA_BITS - diff);
+      return (ratio >> diff, RATIO_FROM_VOLUMES_SHIFT - diff);
     } else {
       uint diff = MANTISSA_BITS_MINUS_ONE - log2;
-      return (ratio << diff, MANTISSA_BITS + diff);
+      return (ratio << diff, RATIO_FROM_VOLUMES_SHIFT + diff);
     }
   }
 
@@ -104,10 +106,10 @@ library TickLib {
   // does not expect a normalized ratio float
   function tickFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (Tick tick) {
     if (floatLt(mantissa, int(exp), MIN_RATIO_MANTISSA, MIN_RATIO_EXP)) {
-      revert("mgv/ratio/tooLow");
+      revert("mgv/tickFromRatio/ratioTooLow");
     }
     if (floatLt(MAX_RATIO_MANTISSA, MAX_RATIO_EXP, mantissa, int(exp))) {
-      revert("mgv/ratio/tooHigh");
+      revert("mgv/tickFromRatio/ratioTooHigh");
     }
     int log2ratio = int(MANTISSA_BITS_MINUS_ONE) - int(exp) << 64;
     uint mpow = mantissa >> MANTISSA_BITS_MINUS_ONE - 127; // give 129 bits of room left
@@ -207,7 +209,7 @@ library TickLib {
   // return ratio from tick, as a non-normalized float (meaning the leftmost set bit is not always in the  same position)
   // first return value is the mantissa, second value is the opposite of the exponent
   function nonNormalizedRatioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
-    uint absTick = Tick.unwrap(tick) < 0 ? uint(-int(Tick.unwrap(tick))) : uint(Tick.unwrap(tick));
+    uint absTick = Tick.unwrap(tick) < 0 ? uint(-Tick.unwrap(tick)) : uint(Tick.unwrap(tick));
     require(absTick <= uint(MAX_TICK), "absTick/outOfBounds");
 
     // each 1.0001^(2^i) below is shifted 128+(an additional shift value)
@@ -282,10 +284,13 @@ library TickLib {
       extra_shift += 75;
     }
     if (Tick.unwrap(tick) > 0) {
+      // Note: when man>1 (which is always?), could use could use trick described here:
+      // https://xn--2-umb.com/17/512-bit-division/
+      // man := add(div(sub(0, man), man), 1)
       man = type(uint).max / man;
       extra_shift = -extra_shift;
     }
-    // 18 ensures exp>= 0
+    // 18 ensures exp>= 0, simpler code elsewhere
     man = man << 18;
     exp = uint(128 + 18 + extra_shift);
   }
@@ -329,23 +334,5 @@ library TickLib {
       revert("mgv/normalizeRatio/lowExp");
     }
     return (mantissa,uint(exp));
-  }
-
-  // Return a/2**e rounded up
-  function divExpUp(uint a, uint e) internal pure returns (uint) {
-    unchecked {
-      uint rem;
-      /* 
-      Let mask be (1<<e)-1, rem is 1 if a & mask > 0, and 0 otherwise.
-      Explanation:
-      * if a is 0 then rem must be 0. 0 & mask is 0.
-      * else if e > 255 then 0 < a < 2^e, so rem must be 1. (1<<e)-1 is type(uint).max, so a & mask is a > 0.
-      * else a & mask is a % 2**e
-      */
-      assembly("memory-safe") {
-        rem := gt(and(a,sub(shl(e,1),1)),0)
-      }
-      return (a>>e) + rem;
-    }
   }
 }

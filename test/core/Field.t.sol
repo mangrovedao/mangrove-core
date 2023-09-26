@@ -132,33 +132,4 @@ contract FieldTest is MangroveTest {
   function field_isDirty(DirtyField field) public {
     assertEq(field.isDirty(), DirtyField.unwrap(field) & TOPBIT == TOPBIT);
   }
-
-  // non-optimized divExpUp
-  function divExpUp_spec(uint a, uint exp) internal pure returns (uint) {
-    if (a == 0) return 0;
-    if (exp > 255) return 1;
-    uint den = 2 ** exp;
-    uint carry = a % den == 0 ? 0 : 1;
-    return a / den + carry;
-  }
-
-  function test_inboundFromOutboundUp_and_converse(Tick tick, uint amt) public {
-    amt = bound(amt, 0, MAX_SAFE_VOLUME);
-    tick = Tick.wrap(bound(Tick.unwrap(tick), MIN_TICK, MAX_TICK));
-
-    uint sig;
-    uint exp;
-
-    //inboundFromOutboundUp
-    (sig, exp) = TickLib.nonNormalizedRatioFromTick(tick);
-    assertEq(tick.inboundFromOutboundUp(amt), divExpUp_spec(sig * amt, exp));
-
-    //outboundFromInboundUp
-    (sig, exp) = TickLib.nonNormalizedRatioFromTick(Tick.wrap(-Tick.unwrap(tick)));
-    assertEq(tick.outboundFromInboundUp(amt), divExpUp_spec(sig * amt, exp));
-  }
-
-  function test_divExpUp(uint a, uint exp) public {
-    assertEq(TickLib.divExpUp(a, exp), divExpUp_spec(a, exp));
-  }
 }

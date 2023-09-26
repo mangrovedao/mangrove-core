@@ -51,6 +51,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   The market order stops when the ratio has become too high, or when the end of the book has been reached, or:
   * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any ratio, set `takerWants` to the amount desired and `takerGives` to $2^{104}-1$.
   * If `fillWants` is false, the taker is filling `gives` instead: the market order stops when `takerGives` units of `inbound_tkn` have been sold. With `fillWants` set to false, to sell a specific volume of `inbound_tkn` at any ratio, set `takerGives` to the amount desired and `takerWants` to $0$. */
+  // 0 has a special meaning here (takerWants and takerGives)
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
@@ -155,8 +156,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint maxGasreqForFailingOffers
   ) internal returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
     unchecked {
-      /* Checking that `takerWants` and `takerGives` fit in 104 bits prevents overflow during the main market order loop. */
-      require(fillVolume <= MAX_SAFE_VOLUME, "mgv/mOrder/fillVolume/tooBig");
+      /* Checking that `takerWants` and `takerGives` fit in the size of an offer */
+      require(OfferLib.gives_check(fillVolume), "mgv/mOrder/fillVolume/tooBig");
       require(maxTick.inRange(), "mgv/mOrder/tick/outOfRange");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
@@ -399,7 +400,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.maxTick = tick;
       }
       {
-        require(uint96(takerWants) == takerWants, "mgv/clean/takerWants/96bits");
+        require(OfferLib.gives_check(takerWants), "mgv/clean/takerWants/tooBig");
         mor.fillVolume = takerWants;
       }
       mor.taker = taker;
@@ -536,14 +537,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
 
         /* We update the totals in the multiorder based on the adjusted `sor.takerWants`/`sor.takerGives`. */
-        /* no overflow: sor.takerWants is on <= 104 bits */
         mor.totalGot += sor.takerWants;
-        /* sor.takerGives can be on 248 bits (max offer.gives * max ratio). Very remote overflow chances here. You would need both:
-        a) sum of offer.wants() so far to > 256 bits. With a max offerGives volume on 96 bits and a max tick of 2^20-1, wants is on 248 bits. So you'd need to go through 2^(256-248)=256 offers, which is currently above the max possible number of taken offers.
-        b) taker able to transfer more than 2^255-1 tokens, since this value is updated after the execution of the offer. It is theoretically possible if the maker sends the tokens back to the taker for instance.
-
-        Even then, you'd only be returning an undervalued totalGave value. */
+        // Not sure how to trigger this require in tests
+        require(mor.totalGot >= sor.takerWants, "mgv/totalGot/overflow");
         mor.totalGave += sor.takerGives;
+        // Not sure how to trigger this require in tests
+        require(mor.totalGot >= sor.takerWants, "mgv/totalGave/overflow");
       } else {
         /* In case of failure, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (mgvData, gasused, makerData) = innerDecode(retdata);

@@ -1059,4 +1059,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.retractOffer(olKey, ofr0, true);
     assertEq(mgv.leafs(olKey, bin.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
+
+  function test_bad_gives_tick_combo() public {
+    vm.expectRevert("mgv/mulDivPow2/overflow");
+    mkr.newOfferByTick(Tick.wrap(MAX_TICK), MAX_SAFE_GIVES + 1, 100_000, 0);
+  }
 }

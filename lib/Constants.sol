@@ -48,11 +48,14 @@ uint constant MAX_RATIO_MANTISSA = 344157181422158190903584850125349735412557414
 int constant MAX_RATIO_EXP = 0;
 uint constant MANTISSA_BITS = 152;
 uint constant MANTISSA_BITS_MINUS_ONE = 151;
-// Maximum volume that can be multiplied by a ratio mantissa
-uint constant MAX_SAFE_VOLUME = 20282409603651670423947251286015;
+// Maximum volume that can be multiplied by a max ratio mantissa without overflow (MAX_SAFE_GIVES * MAX_RATIO <= type(uint).max)
+// Higher gives value can still work, at lower prices
+uint constant MAX_SAFE_GIVES = 33645117837968510856504196905370;
 // Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe.
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
+// Chosen so that ratio is easy to compare to MAX_RATIO_MANTISSA << RATIO_FROM_VOLUMES_SHIFT
+uint constant RATIO_FROM_VOLUMES_SHIFT = 256-MANTISSA_BITS;
 
 // Price math limits the allowed ticks to a subset of the full range
 int constant MIN_BIN_ALLOWED = -1048575;

@@ -185,14 +185,24 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGasmax(uint(type(uint24).max) + 1);
   }
 
-  function test_makerWants_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("ratioFromVolumes/inbound/tooBig");
-    mkr.newOfferByVolume(MAX_SAFE_VOLUME + 1, 1 ether, 10_000, 0);
+  function test_makerGives_too_big_fails_newOfferByVolume() public {
+    vm.expectRevert("mgv/writeOffer/gives/tooBig");
+    mkr.newOfferByVolume(1 << 159, 1 << 160, 10_000);
   }
 
-  function test_makerGives_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("ratioFromVolumes/outbound/tooBig");
-    mkr.newOfferByVolume(1 ether, MAX_SAFE_VOLUME + 1, 10_000, 0);
+  function test_makerWants_too_big_fails_newOfferByVolume() public {
+    vm.expectRevert("mgv/mulDiv/overflow");
+    mkr.newOfferByVolume(1 << 160, 1, 100_000, 0);
+  }
+
+  function test_ratio_too_big_fails_newOfferByVolume() public {
+    vm.expectRevert("mgv/ratioFromVol/ratioTooHigh");
+    mkr.newOfferByVolume(MAX_RATIO_MANTISSA + 1, 1, 100_000, 0);
+  }
+
+  function test_ratio_too_small_fails_newOfferByVolume() public {
+    vm.expectRevert("mgv/ratioFromVol/ratioTooLow");
+    mkr.newOfferByVolume(1, MAX_RATIO_MANTISSA + 1, 100_000, 0);
   }
 
   function test_newOfferByTick_extrema_tick() public {
@@ -247,11 +257,6 @@ contract GatekeepingTest is MangroveTest {
     // try new offer now that we set the last id to uint32.max
     vm.expectRevert("mgv/offerIdOverflow");
     mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
-  }
-
-  function test_makerGives_wider_than_96_bits_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/writeOffer/gives/96bits");
-    mkr.newOfferByVolume(1, 1 << 96, 10_000);
   }
 
   function test_makerGasreq_wider_than_24_bits_fails_newOfferByVolume() public {

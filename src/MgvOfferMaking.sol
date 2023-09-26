@@ -236,14 +236,22 @@ contract MgvOfferMaking is MgvHasOffers {
         "mgv/writeOffer/density/tooLow"
       );
 
-      /* The following checks are for the maker's convenience only. */
-      require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
+      require(OfferLib.gives_check(ofp.gives), "mgv/writeOffer/gives/tooBig");
 
       uint tickSpacing = ofp.olKey.tickSpacing;
       // normalize tick to tickSpacing
       Bin insertionBin = insertionTick.nearestBin(tickSpacing);
       insertionTick = insertionBin.tick(tickSpacing);
       require(insertionTick.inRange(), "mgv/writeOffer/tick/outOfRange");
+
+      // Check that the wants derived from (gives,tick) fits in 256 bits.
+      // For gives <= MAX_SAFE_GIVES, this is always true. Otherwise we do a full mulDiv to be sure.
+      {
+        if (ofp.gives > MAX_SAFE_GIVES) {
+          // may revert when taken if ceil of wants overflows
+          insertionTick.inboundFromOutboundUp(ofp.gives);
+        }
+      }
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;

@@ -4,9 +4,8 @@ pragma solidity ^0.8.10;
 import {MgvLib, IMgvMonitor, IERC20, Leaf, Field, Density, DensityLib, OLKey, DirtyFieldLib} from "./MgvLib.sol";
 import "mgv_src/MgvCommon.sol";
 
-// Contains gov functions, to reduce Mangrove contract size
+/* Contains governance functions, to reduce Mangrove contract size */
 contract MgvGovernable is MgvCommon {
-  /* Admin functions */
   /* ## `authOnly` check */
 
   function authOnly() internal view {

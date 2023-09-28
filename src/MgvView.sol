@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "mgv_src/MgvLib.sol";
 import "mgv_src/MgvCommon.sol";
 
-// Contains view functions, to reduce Mangrove contract size
+/* Contains view functions, to reduce Mangrove contract size */
 contract MgvView is MgvCommon {
   /* # Configuration Reads */
   /* Reading the configuration for an offer list involves reading the config global to all offerLists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
@@ -36,7 +36,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  // # Tick tree view functions
+  /* # Tick tree view functions */
 
   function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
     unchecked {
@@ -97,7 +97,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  // # Offer list view functions
+  /* # Offer list view functions */
 
   /* Function to check whether given an offer list is locked. Contrary to other offer list view functions, this does not revert if the offer list is locked. */
   function locked(OLKey memory olKey) external view returns (bool) {
@@ -123,7 +123,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  // # Offer view functions
+  /* # Offer view functions */
 
   /* Get an offer in packed format */
   function offers(OLKey memory olKey, uint offerId) external view returns (Offer offer) {
@@ -171,7 +171,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  // Note: the accessor for DOMAIN_SEPARATOR is defined in MgvStorage
+  /* Note: the accessor for `DOMAIN_SEPARATOR` is defined in `MgvOfferTakingWithPermit` */
   function PERMIT_TYPEHASH() external pure returns (bytes32) {
     unchecked {
       return _PERMIT_TYPEHASH;

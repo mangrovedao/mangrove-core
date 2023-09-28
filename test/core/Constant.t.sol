@@ -77,5 +77,7 @@ contract ConstantsTest is MangroveTest {
     assertEq(MAX_SAFE_VOLUME, (1 << (256 - MANTISSA_BITS - 1)) - 1, "MAX_SAFE_VOLUME");
     assertEq(MIN_BIN, -NUM_BINS / 2, "MIN_BIN");
     assertEq(MAX_BIN, NUM_BINS / 2 - 1, "MAX_BIN");
+
+    assertEq(DensityLib.BITS, LocalLib.density_bits, "Density bits");
   }
 }

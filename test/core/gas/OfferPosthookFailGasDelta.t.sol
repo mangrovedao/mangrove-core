@@ -6,27 +6,30 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import "mgv_src/MgvLib.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MIDDLE_BIN} from "./GasTestBase.t.sol";
 import "mgv_lib/Debug.sol";
-import {AbstractMangrove, TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
+import {TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
 import {Test2} from "mgv_lib/Test2.sol";
 
 /// A mangrove instrumented to measure gas usage during posthook
-contract BeforePosthookGasMeasuringMangrove is AbstractMangrove, Test2 {
+contract BeforePosthookGasMeasuringMangrove is Mangrove, Test2 {
   uint internal numberCall;
 
-  constructor(address governance, uint gasprice, uint gasmax)
-    AbstractMangrove(governance, gasprice, gasmax, "Mangrove")
-  {
+  constructor(address governance, uint gasprice, uint gasmax) Mangrove(governance, gasprice, gasmax) {
     // Warmup
     numberCall = 1;
   }
 
-  function executeEnd(MultiOrder memory, MgvLib.SingleOrder memory) internal override {}
-
-  function beforePosthook(MgvLib.SingleOrder memory) internal override {
+  function postExecute(
+    MultiOrder memory mor,
+    MgvLib.SingleOrder memory sor,
+    uint gasused,
+    bytes32 makerData,
+    bytes32 mgvData
+  ) internal virtual override {
     // We expect two calls, one for each successful offer, and then measure gas between them.
     if (numberCall == 1) {
       _gas();
@@ -34,31 +37,7 @@ contract BeforePosthookGasMeasuringMangrove is AbstractMangrove, Test2 {
       gas_();
     }
     ++numberCall;
-  }
-
-  // Identical to the one in Mangrove.sol
-  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
-    external
-    override
-    returns (uint gasused, bytes32 makerData)
-  {
-    unchecked {
-      /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
-      require(msg.sender == address(this), "mgv/flashloan/protected");
-      /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
-       mgv->maker. With a direct taker->maker transfer, if one of taker/maker
-       is blacklisted, we can't tell which one. We need to know which one:
-       if we incorrectly blame the taker, a blacklisted maker can block an offer list forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
-      if (transferTokenFrom(sor.olKey.inbound, taker, address(this), sor.takerGives)) {
-        if (transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.takerGives)) {
-          (gasused, makerData) = makerExecute(sor);
-        } else {
-          innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
-        }
-      } else {
-        innerRevert([bytes32("mgv/takerTransferFail"), "", ""]);
-      }
-    }
+    super.postExecute(mor, sor, gasused, makerData, mgvData);
   }
 }
 

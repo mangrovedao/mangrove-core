@@ -9,13 +9,6 @@
 
    The sequence diagram of a market order is as follows:
    <img src="./sequenceChart.png" width="190%"></img>
-
-   There is a secondary mode of operation in which the _maker_ flashloans the sold amount to the taker.
-
-   The Mangrove contract is `abstract` and accomodates both modes. Two contracts, `Mangrove` and `InvertedMangrove` inherit from it, one per mode of operation.
-
-   The contract structure is as follows:
-   <img src="./modular_mangrove.svg" width="180%"> </img>
  */
 
 pragma solidity ^0.8.10;

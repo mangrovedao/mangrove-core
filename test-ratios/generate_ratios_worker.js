@@ -47,7 +47,6 @@ parentPort.on("message", ({ worker_index, num_workers }) => {
 
   let current_tick = start_tick;
   let num_lines = 0;
-  const ret = [];
   let current_price = M.pow(M.bignumber("1.0001"), M.bignumber(current_tick));
 
   console.log(

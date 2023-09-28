@@ -40,8 +40,10 @@
   ],
   "devDependencies": {
     "@types/node": "^20.6.0",
+    "bn.js": "^5.2.1",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.1",
+    "mathjs": "^11.11.1",
     "micromatch": "^4.0.5",
     "pinst": "^3.0.0",
     "prettier": "^3.0.3",
@@ -51,9 +53,7 @@
     "solhint": "^3.6.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2",
-    "yargs": "^17.7.2",
-    "bn.js": "^5.2.1",
-    "mathjs": "^11.11.1"
+    "yargs": "^17.7.2"
   },
   "packageManager": "yarn@3.5.0"
 }

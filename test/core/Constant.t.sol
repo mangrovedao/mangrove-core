@@ -24,11 +24,6 @@ contract ConstantsTest is MangroveTest {
     assertEq(tick, Tick.wrap(MAX_TICK));
   }
 
-  // Since "Only direct number constants and references to such constants are supported by inline assembly", NOT_TOPBIT is not defined in terms of TOPBIT. Here we check that its definition is correct.
-  function test_not_topbit_is_negation_of_topbit() public {
-    assertEq(TOPBIT, ~NOT_TOPBIT, "TOPBIT != ~NOT_TOPBIT");
-  }
-
   // Some BitLib.ctz64 relies on specific level sizes
   function test_level_sizes() public {
     assertLe(ROOT_SIZE, int(MAX_FIELD_SIZE), "level size too big");
@@ -64,7 +59,8 @@ contract ConstantsTest is MangroveTest {
 
   // Since constant expressions are (as of solidity 0.8.21) not evaluated at compile time, we write all constants in Constants.sol as literals and test their values here:
   function test_constant_expressions() public {
-    assertEq(MAX_BIN, -MIN_BIN - 1, "MAX_BIN");
+    assertEq(TOPBIT, 1 << 255, "TOPBIT");
+    assertEq(NOT_TOPBIT, ~TOPBIT, "TOPBIT != ~NOT_TOPBIT");
     assertEq(LEAF_SIZE, int(2 ** LEAF_SIZE_BITS), "LEAF_SIZE");
     assertEq(LEVEL_SIZE, int(2 ** LEVEL_SIZE_BITS), "LEVEL_SIZE");
     assertEq(ROOT_SIZE, int(2 ** ROOT_SIZE_BITS), "ROOT_SIZE");
@@ -79,7 +75,7 @@ contract ConstantsTest is MangroveTest {
     assertEq(OFFER_MASK, ONES >> (256 - OFFER_BITS), "OFFER_MASK");
     assertEq(MANTISSA_BITS_MINUS_ONE, MANTISSA_BITS - 1, "MANTISSA_BITS_MINUS_ONE");
     assertEq(MAX_SAFE_VOLUME, (1 << (256 - MANTISSA_BITS - 1)) - 1, "MAX_SAFE_VOLUME");
-    assertEq(MIN_BIN_ALLOWED, MIN_TICK, "MIN_BIN_ALLOWED");
-    assertEq(MAX_BIN_ALLOWED, MAX_TICK, "MAX_BIN_ALLOWED");
+    assertEq(MIN_BIN, -NUM_BINS / 2, "MIN_BIN");
+    assertEq(MAX_BIN, NUM_BINS / 2 - 1, "MAX_BIN");
   }
 }

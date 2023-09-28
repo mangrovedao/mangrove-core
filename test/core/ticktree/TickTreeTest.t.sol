@@ -19,7 +19,9 @@ import {
   MAX_ROOT_POS,
   MID_LEAF_POS,
   MID_LEVEL_POS,
-  MID_ROOT_POS
+  MID_ROOT_POS,
+  MIN_BIN_ALLOWED,
+  MAX_BIN_ALLOWED
 } from "mgv_test/lib/TestTickTree.sol";
 import {TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";

@@ -63,8 +63,6 @@ function toString(Bin bin) pure returns (string memory ret) {
   string memory suffix;
   if (MIN_BIN > Bin.unwrap(bin) || Bin.unwrap(bin) > MAX_BIN) {
     suffix = "out of range";
-  } else if (MIN_BIN_ALLOWED > Bin.unwrap(bin) || Bin.unwrap(bin) > MAX_BIN_ALLOWED) {
-    suffix = "out of bin range";
   } else {
     suffix = toString(bin.tick(1));
   }
@@ -73,10 +71,14 @@ function toString(Bin bin) pure returns (string memory ret) {
 }
 
 function toString(Tick tick) pure returns (string memory ret) {
-  (uint man, uint exp)  = TickLib.ratioFromTick(tick);
-  string memory str = toFixed(man,exp);
+  if (!tick.inRange()) {
+    ret = unicode"⦗out of range⦘";
+  } else {
+    (uint man, uint exp)  = TickLib.ratioFromTick(tick);
+    string memory str = toFixed(man,exp);
 
-  ret = string.concat(unicode"⦗ ",vm.toString(Tick.unwrap(tick)),"|", str,unicode":1 ⦘");
+    ret = string.concat(unicode"⦗ ",vm.toString(Tick.unwrap(tick)),"|", str,unicode":1 ⦘");
+  }
 }
 
 function toString(Leaf leaf) pure returns (string memory ret) {

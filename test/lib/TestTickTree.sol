@@ -30,6 +30,10 @@ uint constant MID_LEAF_POS = MAX_LEAF_POS / 2;
 uint constant MID_LEVEL_POS = MAX_LEVEL_POS / 2;
 uint constant MID_ROOT_POS = MAX_ROOT_POS / 2;
 
+/* Since the tick range is slightly smaller than the bin range, those values are used to constraint the bins being used */
+int constant MIN_BIN_ALLOWED = MIN_TICK;
+int constant MAX_BIN_ALLOWED = MAX_TICK;
+
 library TickTreeUtil {
   function setBit(Field field, uint pos) public pure returns (Field) {
     return Field.wrap(Field.unwrap(field) | (1 << pos));

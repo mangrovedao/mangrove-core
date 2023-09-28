@@ -594,7 +594,7 @@ contract GatekeepingTest is MangroveTest {
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(mgv.leafs(olKey, ofr.bin(olKey.tickSpacing).leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(olKey, ofr.bin(olKey.tickSpacing).leafIndex()).bestOfferId(), id2);
     // high-level check
     assertTrue(mgv.best(olKey) == id2, "2nd market order must have emptied mgv");
   }

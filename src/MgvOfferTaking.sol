@@ -139,7 +139,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         local = local.level3(field);
         leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
       }
-      uint bestNonEmptyBinPos = leaf.firstOfferPosition();
+      uint bestNonEmptyBinPos = leaf.bestNonEmptyBinPos();
       local = local.binPosInLeaf(bestNonEmptyBinPos);
       nextId = leaf.firstOfPos(bestNonEmptyBinPos);
     }
@@ -183,7 +183,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
       mor.leaf = offerList.leafs[sor.local.bestBin().leafIndex()].clean();
-      sor.offerId = mor.leaf.getNextOfferId();
+      sor.offerId = mor.leaf.bestOfferId();
       sor.offer = offerList.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
       mor.fillVolume = fillVolume;

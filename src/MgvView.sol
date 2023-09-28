@@ -112,7 +112,7 @@ contract MgvView is MgvCommon {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
       unlockedOfferListOnly(_local);
-      return offerList.leafs[_local.bestBin().leafIndex()].clean().getNextOfferId();
+      return offerList.leafs[_local.bestBin().leafIndex()].clean().bestOfferId();
     }
   }
 

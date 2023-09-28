@@ -217,7 +217,7 @@ contract MgvHasOffers is MgvCommon {
       }
       /* Since `offer`'s bin became empty if we have to update the branch, load the position of the first non-empty bin in the current leaf in `local`. */
       if (shouldUpdateBranch) {
-        local = local.binPosInLeaf(leaf.firstOfferPosition());
+        local = local.binPosInLeaf(leaf.bestNonEmptyBinPos());
       }
     }
     return (local, shouldUpdateBranch);

@@ -271,7 +271,7 @@ contract MgvReader {
         }
         leaf = MGV.leafs(olKey, field.firstLeafIndex(index));
       }
-      nextId = leaf.getNextOfferId();
+      nextId = leaf.bestOfferId();
     }
     return nextId;
   }
@@ -323,7 +323,7 @@ contract MgvReader {
         }
         leaf = MGV.leafs(olKey, field.lastLeafIndex(index));
       }
-      prevId = leaf.getNextOfferId();
+      prevId = leaf.bestOfferId();
     }
     return prevId;
   }

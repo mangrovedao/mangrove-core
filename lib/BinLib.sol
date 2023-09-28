@@ -151,7 +151,7 @@ library LeafLib {
   Note that unlike in fields, have their low bin on the most significant bits.
   `pos` is initially 1 if `leaf` has some nonzero bit in its MSB half, 0 otherwise. Then `pos` is `A | B`, where `A` is `1<<iszero(ret)`, so `A` is 0 if leaf has some nonzero bit in its MSB half, 2 otherwise. And `B` is 0 if `leaf >> (pos << 7)` has some nonzero bit in its most significant 192 bits, 0 otherwise.
   */
-  function firstOfferPosition(Leaf leaf) internal pure returns (uint pos) {
+  function bestNonEmptyBinPos(Leaf leaf) internal pure returns (uint pos) {
     assembly("memory-safe") {
       pos := gt(leaf,0xffffffffffffffffffffffffffffffff)
       pos := or(shl(1,iszero(pos)),iszero(gt(shr(shl(7,pos),leaf),0xffffffffffffffff)))
@@ -159,9 +159,9 @@ library LeafLib {
   }
 
   /* Return the offer id of the first offer of the first non-empty pair in `leaf`. */
-  function getNextOfferId(Leaf leaf) internal pure returns (uint offerId) {
+  function bestOfferId(Leaf leaf) internal pure returns (uint offerId) {
     unchecked {
-      return firstOfPos(leaf,firstOfferPosition(leaf));
+      return firstOfPos(leaf,bestNonEmptyBinPos(leaf));
     }
   }
 }

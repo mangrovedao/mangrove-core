@@ -38,37 +38,37 @@ contract LeafTest is MangroveTest {
     assertStr(leaf, "[32,0][19992,711][4,1][0,1208]");
   }
 
-  function test_firstOfferPosition_invalid_leaf_half_1s_lsb() public {
+  function test_bestNonEmptyBinPos_invalid_leaf_half_1s_lsb() public {
     Leaf leaf = Leaf.wrap((1 << 128) - 1);
-    assertEq(leaf.firstOfferPosition(), 2);
+    assertEq(leaf.bestNonEmptyBinPos(), 2);
   }
 
-  function test_firstOfferPosition_leaf_quarter_1s_lsb() public {
+  function test_bestNonEmptyBinPos_leaf_quarter_1s_lsb() public {
     Leaf leaf;
     leaf = Leaf.wrap((1 << 64) - 1);
-    assertEq(leaf.firstOfferPosition(), 3);
+    assertEq(leaf.bestNonEmptyBinPos(), 3);
 
     leaf = Leaf.wrap(((1 << 64) - 1) << 64);
-    assertEq(leaf.firstOfferPosition(), 2);
+    assertEq(leaf.bestNonEmptyBinPos(), 2);
 
     leaf = Leaf.wrap(((1 << 64) - 1) << 128);
-    assertEq(leaf.firstOfferPosition(), 1);
+    assertEq(leaf.bestNonEmptyBinPos(), 1);
 
     leaf = Leaf.wrap(((1 << 64) - 1) << 192);
-    assertEq(leaf.firstOfferPosition(), 0);
+    assertEq(leaf.bestNonEmptyBinPos(), 0);
   }
 
-  function test_firstOfferPosition() public {
+  function test_bestNonEmptyBinPos() public {
     Leaf leaf = LeafLib.EMPTY;
     leaf = leaf.setBinFirst(Bin.wrap(1), 31);
     leaf = leaf.setBinFirst(Bin.wrap(2), 14);
     leaf = leaf.setBinFirst(Bin.wrap(3), 122);
-    assertEq(leaf.firstOfferPosition(), 1, "should be 1");
+    assertEq(leaf.bestNonEmptyBinPos(), 1, "should be 1");
     leaf = leaf.setBinFirst(Bin.wrap(0), 89);
-    assertEq(leaf.firstOfferPosition(), 0, "should be 0");
+    assertEq(leaf.bestNonEmptyBinPos(), 0, "should be 0");
     leaf = LeafLib.EMPTY;
     leaf = leaf.setBinFirst(Bin.wrap(3), 91);
-    assertEq(leaf.firstOfferPosition(), 3, "should be 3");
+    assertEq(leaf.bestNonEmptyBinPos(), 3, "should be 3");
   }
 
   int constant BP = 1.0001 * 1e18;
@@ -82,16 +82,16 @@ contract LeafTest is MangroveTest {
     assertEq(leaf.lastOfPos(pos), lastId, "last id");
   }
 
-  function test_firstOfferPosition_on_invalid_leaf() public {
+  function test_bestNonEmptyBinPos_on_invalid_leaf() public {
     Leaf leaf = LeafLib.EMPTY;
     leaf = leaf.setPosFirstOrLast(0, 1, true);
     leaf = leaf.setPosFirstOrLast(1, 2, false);
-    assertEq(leaf.firstOfferPosition(), 0, "first offer position should be 0 (despite leaf being invalid)");
+    assertEq(leaf.bestNonEmptyBinPos(), 0, "first offer position should be 0 (despite leaf being invalid)");
   }
 
   function test_next_offer_id() public {
     Leaf leaf = LeafLib.EMPTY;
-    assertEq(leaf.getNextOfferId(), 0);
+    assertEq(leaf.bestOfferId(), 0);
     Leaf leaf2 = leaf.setPosFirstOrLast(0, 32, false);
     checkFirstOffer(leaf2, 32);
     leaf2 = leaf.setPosFirstOrLast(0, 12, true);
@@ -181,6 +181,6 @@ contract LeafTest is MangroveTest {
 
   // HELPER FUNCTIONS
   function checkFirstOffer(Leaf leaf, uint id) internal {
-    assertEq(leaf.getNextOfferId(), id, toString(leaf));
+    assertEq(leaf.bestOfferId(), id, toString(leaf));
   }
 }

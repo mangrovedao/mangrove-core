@@ -164,7 +164,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* If the user wants to get their provision back, we compute its provision from the offer's `gasprice`, `offer_gasbase` and `gasreq`. */
       if (deprovision) {
-        provision = 10 ** 9 * offerDetail.gasprice() //gasprice is 0 if offer was deprovisioned
+        provision = 1e6 * offerDetail.gasprice() //gasprice is 0 if offer was deprovisioned
           * (offerDetail.gasreq() + offerDetail.offer_gasbase());
         // credit `balanceOf` and log transfer
         creditWei(msg.sender, provision);
@@ -219,8 +219,8 @@ contract MgvOfferMaking is MgvHasOffers {
 
   function writeOffer(OfferList storage offerList, OfferPack memory ofp, Tick insertionTick, bool update) internal {
     unchecked {
-      /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
-      require(GlobalLib.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
+      /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 26 bits. Otherwise it could be that `uint26(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint26(gasprice)` (using pseudocode here since the type uint26 does not exist). */
+      require(GlobalLib.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/tooBig");
 
       if (ofp.gasprice < ofp.global.gasprice()) {
         ofp.gasprice = ofp.global.gasprice();
@@ -258,7 +258,7 @@ contract MgvOfferMaking is MgvHasOffers {
         OfferDetail offerDetail = offerData.detail;
         if (update) {
           require(msg.sender == offerDetail.maker(), "mgv/updateOffer/unauthorized");
-          oldProvision = 10 ** 9 * offerDetail.gasprice() * (offerDetail.gasreq() + offerDetail.offer_gasbase());
+          oldProvision = 1e6 * offerDetail.gasprice() * (offerDetail.gasreq() + offerDetail.offer_gasbase());
         }
 
         /* If the offer is new, has a new `gasprice`, `gasreq`, or if Mangrove's `offer_gasbase` configuration parameter has changed, we also update `offerDetails`. */
@@ -276,7 +276,7 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         /* With every change to an offer, a maker may deduct provisions from its `balanceOf` balance. It may also get provisions back if the updated offer requires fewer provisions than before. */
-        uint provision = (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.gasprice * 10 ** 9;
+        uint provision = (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.gasprice * 1e6;
         if (provision > oldProvision) {
           debitWei(msg.sender, provision - oldProvision);
         } else if (provision < oldProvision) {

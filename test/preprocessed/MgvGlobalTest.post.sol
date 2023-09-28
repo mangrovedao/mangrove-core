@@ -23,7 +23,7 @@ contract MgvGlobalTest is Test2 {
     assertEq(packed.monitor(),monitor,"bad monitor");
     assertEq(packed.useOracle(),useOracle,"bad useOracle");
     assertEq(packed.notify(),notify,"bad notify");
-    assertEq(packed.gasprice(),cast(gasprice,16),"bad gasprice");
+    assertEq(packed.gasprice(),cast(gasprice,26),"bad gasprice");
     assertEq(packed.gasmax(),cast(gasmax,24),"bad gasmax");
     assertEq(packed.dead(),dead,"bad dead");
     assertEq(packed.maxRecursionDepth(),cast(maxRecursionDepth,8),"bad maxRecursionDepth");
@@ -90,7 +90,7 @@ contract MgvGlobalTest is Test2 {
 
       Global modified = packed.gasprice(gasprice);
 
-      assertEq(modified.gasprice(),cast(gasprice,16),"modified: bad gasprice");
+      assertEq(modified.gasprice(),cast(gasprice,26),"modified: bad gasprice");
 
       assertEq(modified.monitor(),packed.monitor(),"modified: bad monitor");
       assertEq(modified.useOracle(),packed.useOracle(),"modified: bad useOracle");

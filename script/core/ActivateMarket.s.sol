@@ -12,8 +12,8 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  TKN1=USDC \
  TKN2=WETH \
  TICK_SPACING=1 \
- TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) gwei) \
- TKN2_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) gwei) \
+ TKN1_IN_MWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) mwei) \
+ TKN2_IN_MWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) mwei) \
  FEE=30 \
  forge script --fork-url mumbai ActivateMarket*/
 
@@ -27,8 +27,8 @@ contract ActivateMarket is Deployer {
         tkn1: envAddressOrName("TKN2"),
         tickSpacing: vm.envUint("TICK_SPACING")
       }),
-      tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
-      tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
+      tkn1_in_mwei: vm.envUint("TKN1_IN_MWEI"),
+      tkn2_in_mwei: vm.envUint("TKN2_IN_MWEI"),
       fee: vm.envUint("FEE")
     });
   }
@@ -39,16 +39,16 @@ contract ActivateMarket is Deployer {
     tkn1: first tokens
     tkn2: second tokens,
     tickSpacing: tick spacing,
-    tkn1_in_gwei: price of one tkn1 (display units) in gwei
-    tkn2_in_gwei: price of one tkn2 (display units) in gwei
+    tkn1_in_mwei: price of one tkn1 (display units) in mwei (1mwei = 1e-12 eth = 1e6 wei)
+    tkn2_in_mwei: price of one tkn2 (display units) in mwei 
     fee: fee in per 10_000
   */
 
   /* 
-    tknX_in_gwei should be obtained like this:
+    tknX_in_mwei should be obtained like this:
     1. Get the price of one tknX display unit in native token, in display units.
-       For instance, on ethereum, the price of 1 WETH is 1e9 gwei
-    2. Multiply by 1e9
+       For instance, on ethereum, the price of 1 WETH is 1e12 mwei
+    2. Multiply by 1e12
     3. Round to nearest integer
   */
 
@@ -56,12 +56,12 @@ contract ActivateMarket is Deployer {
     IMangrove mgv,
     MgvReader reader,
     Market memory market,
-    uint tkn1_in_gwei,
-    uint tkn2_in_gwei,
+    uint tkn1_in_mwei,
+    uint tkn2_in_mwei,
     uint fee
   ) public {
     Global global = mgv.global();
-    innerRun(mgv, global.gasprice(), reader, market, tkn1_in_gwei, tkn2_in_gwei, fee);
+    innerRun(mgv, global.gasprice(), reader, market, tkn1_in_mwei, tkn2_in_mwei, fee);
   }
 
   /**
@@ -73,15 +73,15 @@ contract ActivateMarket is Deployer {
     uint gaspriceOverride,
     MgvReader reader,
     Market memory market,
-    uint tkn1_in_gwei,
-    uint tkn2_in_gwei,
+    uint tkn1_in_mwei,
+    uint tkn2_in_mwei,
     uint fee
   ) public {
     new ActivateSemibook().innerRun({
       mgv: mgv,
       gaspriceOverride: gaspriceOverride,
       olKey: toOLKey(market),
-      outbound_in_gwei: tkn1_in_gwei,
+      outbound_in_mwei: tkn1_in_mwei,
       fee: fee
     });
 
@@ -89,7 +89,7 @@ contract ActivateMarket is Deployer {
       mgv: mgv,
       gaspriceOverride: gaspriceOverride,
       olKey: toOLKey(flipped(market)),
-      outbound_in_gwei: tkn2_in_gwei,
+      outbound_in_mwei: tkn2_in_mwei,
       fee: fee
     });
 

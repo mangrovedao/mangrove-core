@@ -167,8 +167,10 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_setGasprice_ceiling() public {
-    vm.expectRevert("mgv/config/gasprice/16bits");
-    mgv.setGasprice(uint(type(uint16).max) + 1);
+    // check no revert
+    mgv.setGasprice((1 << 26) - 1);
+    vm.expectRevert("mgv/config/gasprice/26bits");
+    mgv.setGasprice(1 << 26);
   }
 
   function test_set_zero_gasbase() public {
@@ -314,8 +316,9 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerGasprice_wider_than_16_bits_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/writeOffer/gasprice/16bits");
-    mkr.newOfferByVolume(1, 1, 1, 1 << 16);
+    mgv.setDensity96X32(olKey, 0);
+    vm.expectRevert("mgv/writeOffer/gasprice/tooBig");
+    mkr.newOfferByVolume(1, 1, 1, 1 << 26);
   }
 
   function test_initial_allowance_is_zero() public {

@@ -819,7 +819,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setDensity96X32(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     tkr.clean(ofr, 0.1 ether);
-    assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
+    assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 1e6, "Wrong gasbase deducted");
   }
 
   function test_gasbase_is_deducted_2() public {
@@ -830,7 +830,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setDensity96X32(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     tkr.clean(ofr, 0.1 ether);
-    assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
+    assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 1e6, "Wrong gasbase deducted");
   }
 
   function test_penalty_gasprice_is_mgv_gasprice() public {

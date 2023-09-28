@@ -299,9 +299,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit Credit($(refusemkr), 81680000000000);
+    emit Credit($(refusemkr), 81680000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 11278320000000000, "mgv/makerTransferFail");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 11278320000000, "mgv/makerTransferFail");
     (uint successes,) =
       mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, tick, 100_000, 1 ether)), $(this));
     assertEq(successes, 1, "clean should succeed");
@@ -333,9 +333,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit Credit($(mkr), 1126680000000000);
+    emit Credit($(mkr), 1126680000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 10233320000000000, "mgv/makerTransferFail");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 10233320000000, "mgv/makerTransferFail");
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick(olKey, tick, 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -356,9 +356,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit Credit($(mkr), 2654520000000000);
+    emit Credit($(mkr), 2654520000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 8705480000000000, "mgv/makerReceiveFail");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 8705480000000, "mgv/makerReceiveFail");
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick(olKey, tick, 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -388,9 +388,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit Credit($(failmkr), 1422160000000000);
+    emit Credit($(failmkr), 1422160000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 9937840000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, 9937840000000, "mgv/makerRevert");
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick(olKey, tick, 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -900,9 +900,9 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(quote));
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
-    emit Credit($(failmkr), 1422160000000000);
+    emit Credit($(failmkr), 1422160000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(this), ofr, 0 ether, 0 ether, 9937840000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr, 0 ether, 0 ether, 9937840000000, "mgv/makerRevert");
 
     expectFrom($(mgv));
     emit CleanComplete();
@@ -933,18 +933,18 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(quote));
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
-    emit Credit($(failmkr), 1422160000000000);
+    emit Credit($(failmkr), 1422160000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(this), ofr, 0 ether, 0 ether, 9937840000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr, 0 ether, 0 ether, 9937840000000, "mgv/makerRevert");
 
     expectFrom($(quote));
     emit Transfer($(this), $(mgv), 0 ether);
     expectFrom($(quote));
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
-    emit Credit($(failmkr), 1902160000000000);
+    emit Credit($(failmkr), 1902160000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(this), ofr2, 0 ether, 0 ether, 9457840000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr2, 0 ether, 0 ether, 9457840000000, "mgv/makerRevert");
 
     expectFrom($(mgv));
     emit CleanComplete();
@@ -1038,9 +1038,9 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(quote));
     emit Transfer($(mgv), $(failNonZeroMkr), 1);
     expectFrom($(mgv));
-    emit Credit($(failNonZeroMkr), 1411600000000000);
+    emit Credit($(failNonZeroMkr), 1411600000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(otherTkr), ofr, 1, 1, 9948400000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(otherTkr), ofr, 1, 1, 9948400000000, "mgv/makerRevert");
     expectFrom($(mgv));
     emit CleanComplete();
 

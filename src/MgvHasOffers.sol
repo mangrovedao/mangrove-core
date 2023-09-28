@@ -108,14 +108,14 @@ contract MgvHasOffers is MgvCommon {
           field = local.level3().flipBitAtLevel3(offerBin);
           local = local.level3(field);
           if (shouldUpdateBranch && field.isEmpty()) {
-            if (!offerList.level3[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-              offerList.level3[index] = DirtyFieldLib.DIRTY_EMPTY;
+            if (!offerList.level3s[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+              offerList.level3s[index] = DirtyFieldLib.DIRTY_EMPTY;
             }
           }
         } else {
           // note: useless dirty/clean cycle here
-          field = offerList.level3[index].clean().flipBitAtLevel3(offerBin);
-          offerList.level3[index] = field.dirty();
+          field = offerList.level3s[index].clean().flipBitAtLevel3(offerBin);
+          offerList.level3s[index] = field.dirty();
         }
         if (field.isEmpty()) {
           index = offerBin.level2Index(); // level3Index or level2Index
@@ -123,14 +123,14 @@ contract MgvHasOffers is MgvCommon {
             field = local.level2().flipBitAtLevel2(offerBin);
             local = local.level2(field);
             if (shouldUpdateBranch && field.isEmpty()) {
-              if (!offerList.level2[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-                offerList.level2[index] = DirtyFieldLib.DIRTY_EMPTY;
+              if (!offerList.level2s[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+                offerList.level2s[index] = DirtyFieldLib.DIRTY_EMPTY;
               }
             }
           } else {
             // note: useless dirty/clean cycle here
-            field = offerList.level2[index].clean().flipBitAtLevel2(offerBin);
-            offerList.level2[index] = field.dirty();
+            field = offerList.level2s[index].clean().flipBitAtLevel2(offerBin);
+            offerList.level2s[index] = field.dirty();
           }
           if (field.isEmpty()) {
             index = offerBin.level1Index(); // level3Index or level2Index
@@ -139,12 +139,12 @@ contract MgvHasOffers is MgvCommon {
               local = local.level1(field);
               if (shouldUpdateBranch && field.isEmpty()) {
                 // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
-                offerList.level1[index] = field.dirty();
+                offerList.level1s[index] = field.dirty();
               }
             } else {
               // note: useless dirty/clean cycle here
-              field = offerList.level1[index].clean().flipBitAtLevel1(offerBin);
-              offerList.level1[index] = field.dirty();
+              field = offerList.level1s[index].clean().flipBitAtLevel1(offerBin);
+              offerList.level1s[index] = field.dirty();
             }
             if (field.isEmpty()) {
               field = local.root().flipBitAtRoot(offerBin);
@@ -155,19 +155,19 @@ contract MgvHasOffers is MgvCommon {
               }
               if (shouldUpdateBranch) {
                 index = field.firstLevel1Index();
-                field = offerList.level1[index].clean();
+                field = offerList.level1s[index].clean();
                 local = local.level1(field);
               }
             }
             if (shouldUpdateBranch) {
               index = field.firstLevel2Index(index);
-              field = offerList.level2[index].clean();
+              field = offerList.level2s[index].clean();
               local = local.level2(field);
             }
           }
           if (shouldUpdateBranch) {
             index = field.firstLevel3Index(index);
-            field = offerList.level3[index].clean();
+            field = offerList.level3s[index].clean();
             local = local.level3(field);
           }
         }

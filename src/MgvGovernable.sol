@@ -42,8 +42,8 @@ contract MgvGovernable is MgvCommon {
       setDensity96X32(olKey, density96X32);
       setGasbase(olKey, offer_gasbase);
       // warm level1s
-      offerList.level1[-1] = DirtyFieldLib.DIRTY_EMPTY;
-      offerList.level1[0] = DirtyFieldLib.DIRTY_EMPTY;
+      offerList.level1s[-1] = DirtyFieldLib.DIRTY_EMPTY;
+      offerList.level1s[0] = DirtyFieldLib.DIRTY_EMPTY;
     }
   }
 

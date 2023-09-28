@@ -620,7 +620,7 @@ contract GatekeepingTest is MangroveTest {
     // (if it had originally been empty, the test would always succeed)
     mgv.retractOffer(olKey, ofr1, true);
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level3 nodes");
-    assertEq(mgv.level3(olKey, index1), FieldLib.EMPTY, "ofr1's level3 should be empty");
+    assertEq(mgv.level3s(olKey, index1), FieldLib.EMPTY, "ofr1's level3 should be empty");
   }
 
   /* Clean failure */
@@ -687,11 +687,11 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.leafs(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level3(olKey, 0);
+    mgv.level3s(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level2(olKey, 0);
+    mgv.level2s(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level1(olKey, 0);
+    mgv.level1s(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.root(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
@@ -723,9 +723,9 @@ contract GatekeepingTest is MangroveTest {
     mgv.local(olKey);
     mgv.global();
     mgv.leafs(olKey, 0);
-    mgv.level3(olKey, 0);
-    mgv.level2(olKey, 0);
-    mgv.level1(olKey, 0);
+    mgv.level3s(olKey, 0);
+    mgv.level2s(olKey, 0);
+    mgv.level1s(olKey, 0);
     mgv.root(olKey);
     mgv.best(olKey);
     mgv.offers(olKey, 0);

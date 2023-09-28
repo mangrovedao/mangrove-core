@@ -300,9 +300,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit Credit($(this), 19191495960000000);
+    emit Credit($(this), 19191492440000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8504040000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8507560000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(!success, "market order should fail");
     assertTrue(called, "PostHook not called");
@@ -389,9 +389,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit Credit($(this), 19191495960000000);
+    emit Credit($(this), 19191492440000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8504040000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8507560000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
 

@@ -46,7 +46,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  function level3(OLKey memory olKey, int index) external view returns (Field) {
+  function level3s(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
@@ -55,12 +55,12 @@ contract MgvView is MgvCommon {
       if (_local.bestBin().level3Index() == index) {
         return _local.level3();
       } else {
-        return offerList.level3[index].clean();
+        return offerList.level3s[index].clean();
       }
     }
   }
 
-  function level2(OLKey memory olKey, int index) external view returns (Field) {
+  function level2s(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
@@ -69,12 +69,12 @@ contract MgvView is MgvCommon {
       if (_local.bestBin().level2Index() == index) {
         return _local.level2();
       } else {
-        return offerList.level2[index].clean();
+        return offerList.level2s[index].clean();
       }
     }
   }
 
-  function level1(OLKey memory olKey, int index) external view returns (Field) {
+  function level1s(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
@@ -83,7 +83,7 @@ contract MgvView is MgvCommon {
       if (_local.bestBin().level1Index() == index) {
         return _local.level1();
       } else {
-        return offerList.level1[index].clean();
+        return offerList.level1s[index].clean();
       }
     }
   }

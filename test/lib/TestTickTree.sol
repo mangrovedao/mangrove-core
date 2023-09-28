@@ -120,7 +120,7 @@ contract TestTickTree is MangroveTest {
       }
 
       int level1Index = TickTreeUtil.level1IndexFromRootPos(levelPoss[3]);
-      Field level1 = mgv.level1(olKey, level1Index);
+      Field level1 = mgv.level1s(olKey, level1Index);
       level1s[level1Index] = level1;
       for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         if (!TickTreeUtil.isBitSet(level1, levelPoss[2])) {
@@ -128,7 +128,7 @@ contract TestTickTree is MangroveTest {
         }
 
         int level2Index = TickTreeUtil.level2IndexFromLevel1IndexAndPos(level1Index, levelPoss[2]);
-        Field level2 = mgv.level2(olKey, level2Index);
+        Field level2 = mgv.level2s(olKey, level2Index);
         level2s[level2Index] = level2;
         for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           if (!TickTreeUtil.isBitSet(level2, levelPoss[1])) {
@@ -136,7 +136,7 @@ contract TestTickTree is MangroveTest {
           }
 
           int level3Index = TickTreeUtil.level3IndexFromLevel2IndexAndPos(level2Index, levelPoss[1]);
-          Field level3 = mgv.level3(olKey, level3Index);
+          Field level3 = mgv.level3s(olKey, level3Index);
           level3s[level3Index] = level3;
           for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL_POS; ++levelPoss[0]) {
             if (!TickTreeUtil.isBitSet(level3, levelPoss[0])) {
@@ -167,7 +167,7 @@ contract TestTickTree is MangroveTest {
     for (levelPoss[3] = 0; levelPoss[3] <= MAX_ROOT_POS; ++levelPoss[3]) {
       bool rootPosIsSet = TickTreeUtil.isBitSet(root, levelPoss[3]);
       int level1Index = TickTreeUtil.level1IndexFromRootPos(levelPoss[3]);
-      Field level1 = mgv.level1(olKey, level1Index);
+      Field level1 = mgv.level1s(olKey, level1Index);
 
       if (!rootPosIsSet) {
         assertTrue(
@@ -189,7 +189,7 @@ contract TestTickTree is MangroveTest {
       for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         bool level1PosIsSet = TickTreeUtil.isBitSet(level1, levelPoss[2]);
         int level2Index = TickTreeUtil.level2IndexFromLevel1IndexAndPos(level1Index, levelPoss[2]);
-        Field level2 = mgv.level2(olKey, level2Index);
+        Field level2 = mgv.level2s(olKey, level2Index);
 
         if (!level1PosIsSet) {
           assertTrue(
@@ -214,7 +214,7 @@ contract TestTickTree is MangroveTest {
         for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           bool level2PosIsSet = TickTreeUtil.isBitSet(level2, levelPoss[1]);
           int level3Index = TickTreeUtil.level3IndexFromLevel2IndexAndPos(level2Index, levelPoss[1]);
-          Field level3 = mgv.level3(olKey, level3Index);
+          Field level3 = mgv.level3s(olKey, level3Index);
 
           if (!level2PosIsSet) {
             assertTrue(
@@ -327,7 +327,7 @@ contract TestTickTree is MangroveTest {
       }
 
       int level1Index = TickTreeUtil.level1IndexFromRootPos(levelPoss[3]);
-      Field level1 = mgv.level1(olKey, level1Index);
+      Field level1 = mgv.level1s(olKey, level1Index);
       for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL_POS; ++levelPoss[2]) {
         assertEq(
           TickTreeUtil.isBitSet(level1, levelPoss[2]),
@@ -339,7 +339,7 @@ contract TestTickTree is MangroveTest {
         }
 
         int level2Index = TickTreeUtil.level2IndexFromLevel1IndexAndPos(level1Index, levelPoss[2]);
-        Field level2 = mgv.level2(olKey, level2Index);
+        Field level2 = mgv.level2s(olKey, level2Index);
         for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL_POS; ++levelPoss[1]) {
           assertEq(
             TickTreeUtil.isBitSet(level2, levelPoss[1]),
@@ -351,7 +351,7 @@ contract TestTickTree is MangroveTest {
           }
 
           int level3Index = TickTreeUtil.level3IndexFromLevel2IndexAndPos(level2Index, levelPoss[1]);
-          Field level3 = mgv.level3(olKey, level3Index);
+          Field level3 = mgv.level3s(olKey, level3Index);
           for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL_POS; ++levelPoss[0]) {
             assertEq(
               TickTreeUtil.isBitSet(level3, levelPoss[0]),

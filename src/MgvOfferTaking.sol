@@ -99,20 +99,20 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         int index = offerBin.level3Index();
         Field field = local.level3().flipBitAtLevel3(offerBin);
         if (field.isEmpty()) {
-          if (!offerList.level3[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-            offerList.level3[index] = DirtyFieldLib.DIRTY_EMPTY;
+          if (!offerList.level3s[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+            offerList.level3s[index] = DirtyFieldLib.DIRTY_EMPTY;
           }
           index = offerBin.level2Index();
           field = local.level2().flipBitAtLevel2(offerBin);
           if (field.isEmpty()) {
-            if (!offerList.level2[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-              offerList.level2[index] = DirtyFieldLib.DIRTY_EMPTY;
+            if (!offerList.level2s[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+              offerList.level2s[index] = DirtyFieldLib.DIRTY_EMPTY;
             }
             index = offerBin.level1Index();
             field = local.level1().flipBitAtLevel1(offerBin);
             if (field.isEmpty()) {
               // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
-              offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
+              offerList.level1s[index] = DirtyFieldLib.DIRTY_EMPTY;
               field = local.root().flipBitAtRoot(offerBin);
               local = local.root(field);
               if (field.isEmpty()) {
@@ -124,17 +124,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
               }
               index = field.firstLevel1Index();
               // Top bit cleaning will be done by level1(field) + field cannot be empty
-              field = Field.wrap(DirtyField.unwrap(offerList.level1[index]));
+              field = Field.wrap(DirtyField.unwrap(offerList.level1s[index]));
             }
             local = local.level1(field);
             index = field.firstLevel2Index(index);
             // Top bit cleaning will be done by level2(field) + field cannot be empty
-            field = Field.wrap(DirtyField.unwrap(offerList.level2[index]));
+            field = Field.wrap(DirtyField.unwrap(offerList.level2s[index]));
           }
           local = local.level2(field);
           index = field.firstLevel3Index(index);
           // Top bit cleaning will be done by level3(field) + field cannot be empty
-          field = Field.wrap(DirtyField.unwrap(offerList.level3[index]));
+          field = Field.wrap(DirtyField.unwrap(offerList.level3s[index]));
         }
         local = local.level3(field);
         leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
@@ -308,7 +308,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           // no need to test whether level1 has been reached since by default it's stored in local
 
           // no need to test whether mor.level1 != offerList.level1 since update is ~free
-          // ! local.level3[sor.local.bestBin().level3Index()] is now wrong
+          // ! local.level3s[sor.local.bestBin().level3Index()] is now wrong
           // sor.local = sor.local.level3(mor.level3);
 
           int index = bin.leafIndex();

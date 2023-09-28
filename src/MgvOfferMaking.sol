@@ -334,16 +334,16 @@ contract MgvOfferMaking is MgvHasOffers {
         int currentIndex = cachedLocalBin.level3Index();
         // Get insertion level3
         if (insertionIndex != currentIndex) {
-          field = offerList.level3[insertionIndex].clean();
+          field = offerList.level3s[insertionIndex].clean();
           // Save current level3
           if (insertionIndex < currentIndex) {
             Field localLevel3 = ofp.local.level3();
             bool shouldSaveLevel3 = !localLevel3.isEmpty();
             if (!shouldSaveLevel3) {
-              shouldSaveLevel3 = !offerList.level3[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
+              shouldSaveLevel3 = !offerList.level3s[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
             }
             if (shouldSaveLevel3) {
-              offerList.level3[currentIndex] = localLevel3.dirty();
+              offerList.level3s[currentIndex] = localLevel3.dirty();
             }
           }
         } else {
@@ -354,7 +354,7 @@ contract MgvOfferMaking is MgvHasOffers {
         if (insertionIndex <= currentIndex) {
           ofp.local = ofp.local.level3(field.flipBitAtLevel3(insertionBin));
         } else {
-          offerList.level3[insertionIndex] = field.flipBitAtLevel3(insertionBin).dirty();
+          offerList.level3s[insertionIndex] = field.flipBitAtLevel3(insertionBin).dirty();
         }
 
         if (field.isEmpty()) {
@@ -362,15 +362,15 @@ contract MgvOfferMaking is MgvHasOffers {
           currentIndex = cachedLocalBin.level2Index();
 
           if (insertionIndex != currentIndex) {
-            field = offerList.level2[insertionIndex].clean();
+            field = offerList.level2s[insertionIndex].clean();
             if (insertionIndex < currentIndex) {
               Field localLevel2 = ofp.local.level2();
               bool shouldSaveLevel2 = !localLevel2.isEmpty();
               if (!shouldSaveLevel2) {
-                shouldSaveLevel2 = !offerList.level2[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
+                shouldSaveLevel2 = !offerList.level2s[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
               }
               if (shouldSaveLevel2) {
-                offerList.level2[currentIndex] = localLevel2.dirty();
+                offerList.level2s[currentIndex] = localLevel2.dirty();
               }
             }
           } else {
@@ -380,7 +380,7 @@ contract MgvOfferMaking is MgvHasOffers {
           if (insertionIndex <= currentIndex) {
             ofp.local = ofp.local.level2(field.flipBitAtLevel2(insertionBin));
           } else {
-            offerList.level2[insertionIndex] = field.flipBitAtLevel2(insertionBin).dirty();
+            offerList.level2s[insertionIndex] = field.flipBitAtLevel2(insertionBin).dirty();
           }
           // if level2 was empty, flip bin on at level1
           if (field.isEmpty()) {
@@ -388,10 +388,10 @@ contract MgvOfferMaking is MgvHasOffers {
             currentIndex = cachedLocalBin.level1Index();
 
             if (insertionIndex != currentIndex) {
-              field = offerList.level1[insertionIndex].clean();
+              field = offerList.level1s[insertionIndex].clean();
               if (insertionIndex < currentIndex) {
                 // unlike level3&2, level1 cannot be CLEAN_EMPTY (dirtied in activate())
-                offerList.level1[currentIndex] = ofp.local.level1().dirty();
+                offerList.level1s[currentIndex] = ofp.local.level1().dirty();
               }
             } else {
               field = ofp.local.level1();
@@ -400,7 +400,7 @@ contract MgvOfferMaking is MgvHasOffers {
             if (insertionIndex <= currentIndex) {
               ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionBin));
             } else {
-              offerList.level1[insertionIndex] = field.flipBitAtLevel1(insertionBin).dirty();
+              offerList.level1s[insertionIndex] = field.flipBitAtLevel1(insertionBin).dirty();
             }
             // if level1 was empty, flip bin on at root
             if (field.isEmpty()) {

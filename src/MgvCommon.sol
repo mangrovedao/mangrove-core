@@ -28,12 +28,12 @@ contract MgvCommon is HasMgvEvents {
   struct OfferList {
     /* `local` is the Mangrove configuration specific to the `outbound,inbound,tickSpacing` offerList. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.*/
     Local local;
-    /* `level1` maps a level1 index to a (dirty) field. Each field holds 64 bits marking the (non)empty state of 64 level2 fields. */
-    mapping(int => DirtyField) level1;
-    /* `level2` maps a level2 index to a (dirty) field. Each field holds 64 bits marking the (non)empty state of 64 level3 fields. */
-    mapping(int => DirtyField) level2;
-    /* `level3` maps a level3 index to a (dirty) field. Each field holds 64 bits marking the (non)empty state of 64 leaves. */
-    mapping(int => DirtyField) level3;
+    /* `level1s` maps a level1 index to a (dirty) field. Each field holds 64 bits marking the (non)empty state of 64 level2 fields. */
+    mapping(int => DirtyField) level1s;
+    /* `level2s` maps a level2 index to a (dirty) field. Each field holds 64 bits marking the (non)empty state of 64 level3 fields. */
+    mapping(int => DirtyField) level2s;
+    /* `level3s` maps a level3 index to a (dirty) field. Each field holds 64 bits marking the (non)empty state of 64 leaves. */
+    mapping(int => DirtyField) level3s;
     /* `leafs` (intentionally not `leaves` for clarity) maps a leaf index to a leaf. Each leaf holds the first&last offer id of 4 bins. */
     mapping(int => DirtyLeaf) leafs;
     /* OfferData maps an offer id to a struct that holds the two storage words where the packed offer information resides. For more information see `Offer` and `OfferDetail`. */

@@ -904,15 +904,6 @@ contract GatekeepingTest is MangroveTest {
     mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);
   }
 
-  function test_inverted_mangrove_flashloan_fail_if_not_self(address caller) public {
-    InvertedMangrove imgv = new InvertedMangrove(address(this),0,0);
-    vm.assume(caller != address(imgv));
-    MgvLib.SingleOrder memory sor;
-    vm.prank(caller);
-    vm.expectRevert("mgv/invertedFlashloan/protected");
-    imgv.flashloan(sor, address(0));
-  }
-
   function test_mangrove_flashloan_fail_if_not_self(address caller) public {
     vm.assume(caller != address(mgv));
     MgvLib.SingleOrder memory sor;

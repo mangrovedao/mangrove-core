@@ -17,7 +17,7 @@ contract MgvGovernable is MgvCommon {
 
   /* ## Transfer ERC20 tokens to governance.
 
-    If this function is called while an order is executing, the reentrancy may prevent a party (taker in normal Mangrove, maker in inverted Mangrove) from receiving their tokens. This is fine as the order execution will then fail, and the tx will revert. So the most a malicious governance can do is render Mangrove unusable.
+    If this function is called while an order is executing, the reentrancy may prevent a taker from receiving their tokens. This is fine as the order execution will then fail, and the tx will revert. So the most a malicious governance can do is render Mangrove unusable.
   */
   function withdrawERC20(address tokenAddress, uint value) external {
     authOnly();

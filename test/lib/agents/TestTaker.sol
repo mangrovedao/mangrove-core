@@ -7,7 +7,7 @@ import "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
-contract TestTaker is ITaker, Script2 {
+contract TestTaker is Script2 {
   IMangrove mgv;
   OLKey olKey;
   bool acceptNative = true;
@@ -84,8 +84,6 @@ contract TestTaker is ITaker, Script2 {
     );
     return bounty;
   }
-
-  function takerTrade(OLKey calldata, uint, uint) external pure override {}
 
   function marketOrderWithSuccess(uint takerWants) external returns (bool success) {
     (uint got,,,) = mgv.marketOrderByVolume(olKey, takerWants, type(uint96).max, true);

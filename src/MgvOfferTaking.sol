@@ -329,9 +329,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* `payTakerMinusFees` keeps the fee in Mangrove, proportional to the amount purchased, and gives the rest to the taker */
         payTakerMinusFees(mor, sor);
-
-        /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
-        executeEnd(mor, sor);
       }
     }
   }
@@ -451,9 +448,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* No fees are paid since offer execution failed. */
 
-        /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
-        executeEnd(mor, sor);
-
         /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and snipes, it lives in its own `postExecute` function. */
         postExecute(mor, sor, gasused, makerData, mgvData);
       }
@@ -571,14 +565,39 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  /* ## flashloan (abstract) */
-  /* Externally called by `execute`, flashloan lends money (from the taker to the maker, or from the maker to the taker, depending on the implementation) then calls `makerExecute` to run the maker liquidity fetching code. If `makerExecute` is unsuccessful, `flashloan` reverts (but the larger orderbook traversal will continue). 
+  /* ## Flashloan */
+  /* Externally called by `execute`, flashloan lends money to the maker then calls `makerExecute` to run the maker liquidity fetching code. If `makerExecute` is unsuccessful, `flashloan` reverts (but the larger orderbook traversal will continue). 
 
-  All `flashloan` implementations must `require(msg.sender) == address(this))`. */
+  In detail:
+  1. Flashloans `takerGives` `inbound_tkn` from the taker to the maker and returns false if the loan fails.
+  2. Runs `offerDetail.maker`'s `execute` function.
+  3. Returns the result of the operations, with optional makerData to help the maker debug.
+
+  Made virtual so tests can instrument the function.
+  */
   function flashloan(MgvLib.SingleOrder calldata sor, address taker)
     external
     virtual
-    returns (uint gasused, bytes32 makerData);
+    returns (uint gasused, bytes32 makerData)
+  {
+    unchecked {
+      /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
+      require(msg.sender == address(this), "mgv/flashloan/protected");
+      /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
+       mgv->maker. With a direct taker->maker transfer, if one of taker/maker
+       is blacklisted, we can't tell which one. We need to know which one:
+       if we incorrectly blame the taker, a blacklisted maker can block an offer list forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
+      if (transferTokenFrom(sor.olKey.inbound, taker, address(this), sor.takerGives)) {
+        if (transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.takerGives)) {
+          (gasused, makerData) = makerExecute(sor);
+        } else {
+          innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
+        }
+      } else {
+        innerRevert([bytes32("mgv/takerTransferFail"), "", ""]);
+      }
+    }
+  }
 
   /* ## Maker Execute */
   /* Called by `flashloan`, `makerExecute` runs the maker code and checks that it can safely send the desired assets to the taker. */
@@ -613,14 +632,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  /* ## executeEnd (abstract) */
-  /* Called by `internalSnipes` and `internalMarketOrder`, `executeEnd` may run implementation-specific code after all makers have been called once. In [`InvertedMangrove`](#InvertedMangrove), the function calls the taker once so they can act on their flashloan. In [`Mangrove`], it does nothing. */
-  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal virtual;
-
   /* ## Post execute */
   /* At this point, we know an offer execution was attempted. After executing an offer (whether in a market order or in snipes), we
      1. Call the maker's posthook and sum the total gas used.
      2. If offer failed: sum total penalty due to msg.sender and give remainder to maker.
+
+     Made virtual so tests can instrument it.
    */
   function postExecute(
     MultiOrder memory mor,
@@ -628,12 +645,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint gasused,
     bytes32 makerData,
     bytes32 mgvData
-  ) internal {
+  ) internal virtual {
     unchecked {
-      if (mgvData == "mgv/tradeSuccess") {
-        beforePosthook(sor);
-      }
-
       uint gasreq = sor.offerDetail.gasreq();
 
       /* We are about to call back the maker, giving it its unused gas (`gasreq - gasused`). Since the gas used so far may exceed `gasreq`, we prevent underflow in the subtraction below by bounding `gasused` above with `gasreq`. We could have decided not to call back the maker at all when there is no gas left, but we do it for uniformity. */
@@ -665,11 +678,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
     }
   }
-
-  /* ## beforePosthook (abstract) */
-  /* Called by `makerPosthook`, this function can run implementation-specific code before calling the maker has been called a second time. In [`InvertedMangrove`](#InvertedMangrove), all makers are called once so the taker gets all of its money in one shot. Then makers are traversed again and the money is sent back to each taker using `beforePosthook`. In [`Mangrove`](#Mangrove), `beforePosthook` does nothing. */
-
-  function beforePosthook(MgvLib.SingleOrder memory sor) internal virtual;
 
   /* ## Maker Posthook */
   function makerPosthook(MgvLib.SingleOrder memory sor, uint gasLeft, bytes32 makerData, bytes32 mgvData)

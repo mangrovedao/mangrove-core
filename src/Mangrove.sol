@@ -3,45 +3,50 @@ pragma solidity ^0.8.10;
 
 import "mgv_src/MgvLib.sol";
 
-import {AbstractMangrove} from "./AbstractMangrove.sol";
+import {MgvOfferMaking} from "./MgvOfferMaking.sol";
+import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
+import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
+import {MgvGovernable} from "mgv_src/MgvGovernable.sol";
 
-/* <a id="Mangrove"></a> The `Mangrove` contract implements the "normal" version of Mangrove, where the taker flashloans the desired amount to each maker. Each time, makers are called after the loan. When the order is complete, each maker is called once again (with the orderbook unlocked). */
-contract Mangrove is AbstractMangrove {
-  constructor(address governance, uint gasprice, uint gasmax)
-    AbstractMangrove(governance, gasprice, gasmax, "Mangrove")
-  {}
+/* <a id="Mangrove"></a> The `Mangrove` contract inherits both the maker and taker functionality. It also deploys `MgvAppendix` and delegatescall to the appendix when it receives a call with an unknown selector. That appendix is dedicated to view and governance functions. `MgvAppendix` exists due to bytecode size constraints. */
+contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
+  address internal immutable APPENDIX;
 
-  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal override {}
-
-  function beforePosthook(MgvLib.SingleOrder memory sor) internal override {}
-
-  /* ## Flashloan */
-  /*
-     `flashloan` is for the 'normal' mode of operation. It:
-     1. Flashloans `takerGives` `inbound_tkn` from the taker to the maker and returns false if the loan fails.
-     2. Runs `offerDetail.maker`'s `execute` function.
-     3. Returns the result of the operations, with optional makerData to help the maker debug.
-   */
-  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
-    external
-    override
-    returns (uint gasused, bytes32 makerData)
-  {
+  constructor(address governance, uint gasprice, uint gasmax) MgvOfferTakingWithPermit("Mangrove") {
     unchecked {
-      /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
-      require(msg.sender == address(this), "mgv/flashloan/protected");
-      /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
-       mgv->maker. With a direct taker->maker transfer, if one of taker/maker
-       is blacklisted, we can't tell which one. We need to know which one:
-       if we incorrectly blame the taker, a blacklisted maker can block an offer list forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
-      if (transferTokenFrom(sor.olKey.inbound, taker, address(this), sor.takerGives)) {
-        if (transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.takerGives)) {
-          (gasused, makerData) = makerExecute(sor);
-        } else {
-          innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
-        }
-      } else {
-        innerRevert([bytes32("mgv/takerTransferFail"), "", ""]);
+      emit NewMgv();
+
+      APPENDIX = address(new MgvAppendix());
+
+      /* Initially, governance is open to anyone. */
+      /* Set initial gasprice and gasmax. */
+      bool success;
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasprice, (gasprice)));
+      require(success, "mgv/ctor/gasprice");
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasmax, (gasmax)));
+      require(success, "mgv/ctor/gasmax");
+      (success,) =
+        APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxRecursionDepth, (INITIAL_MAX_RECURSION_DEPTH)));
+      require(success, "mgv/ctor/maxRecursionDepth");
+      (success,) = APPENDIX.delegatecall(
+        abi.encodeCall(
+          MgvGovernable.setMaxGasreqForFailingOffers, (INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER * gasmax)
+        )
+      );
+      require(success, "mgv/ctor/maxGasreqForFailingOffers");
+      /* Initialize governance to `governance` after parameter setting. */
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGovernance, (governance)));
+      require(success, "mgv/ctor/governance");
+    }
+  }
+
+  fallback(bytes calldata callData) external returns (bytes memory) {
+    (bool success, bytes memory res) = APPENDIX.delegatecall(callData);
+    if (success) {
+      return res;
+    } else {
+      assembly ("memory-safe") {
+        revert(add(res, 32), mload(res))
       }
     }
   }

@@ -8,14 +8,6 @@
      2. Call an arbitrary `execute` function on that address.
      3. Transfer back some `outbound_tkn`.
      4. Call back the `maker` so they can update their offers.
-   * There is an inverted operation mode (called InvertedMangrove for Taker Mangrove), the flashloan is reversed (from the maker to the taker).
-   * Offer are just promises. They can fail.
-   * If an offer fails to transfer the right amount back, the loan is reverted.
-   * A penalty mechanism incentivizes keepers to keep the book clean of failing offers.
-   * A penalty provision must be posted with each offer.
-   * If the offer succeeds, the provision returns to the maker.
-   * If the offer fails, the provision is given to the taker as penalty.
-   * The penalty should overcompensate for the taker's lost gas.
     
    **Let the devs know about any error, typo etc, by contacting 	devs@mangrove.exchange**
  */

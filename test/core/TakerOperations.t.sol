@@ -1102,14 +1102,8 @@ contract TakerOperationsTest is MangroveTest {
   }
 }
 
-contract BadMangrove is AbstractMangrove {
-  constructor(address governance, uint gasprice, uint gasmax)
-    AbstractMangrove(governance, gasprice, gasmax, "BadMangrove")
-  {}
-
-  function executeEnd(MultiOrder memory, MgvLib.SingleOrder memory) internal override {}
-
-  function beforePosthook(MgvLib.SingleOrder memory) internal override {}
+contract BadMangrove is Mangrove {
+  constructor(address governance, uint gasprice, uint gasmax) Mangrove(governance, gasprice, gasmax) {}
 
   function flashloan(MgvLib.SingleOrder calldata, address) external pure override returns (uint, bytes32) {
     revert("badRevert");

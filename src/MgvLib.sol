@@ -422,18 +422,6 @@ interface IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external;
 }
 
-/* # ITaker interface */
-interface ITaker {
-  /* Inverted mangrove only: call to taker after loans went through */
-  function takerTrade(
-    OLKey calldata olKey,
-    // total amount of outbound_tkn token that was flashloaned to the taker
-    uint totalGot,
-    // total amount of inbound_tkn token that should be made available
-    uint totalGives
-  ) external;
-}
-
 /* # Monitor interface
 If enabled, the monitor receives notification after each offer execution and is read for each offerList's `gasprice` and `density`. */
 interface IMgvMonitor {

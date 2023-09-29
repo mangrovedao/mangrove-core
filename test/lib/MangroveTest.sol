@@ -10,11 +10,9 @@ import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
-import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {MgvOfferTakingWithPermit} from "mgv_src/MgvOfferTakingWithPermit.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
 import {TickLib} from "mgv_lib/TickLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import "mgv_src/MgvLib.sol";
@@ -39,7 +37,6 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   struct MangroveTestOptions {
-    bool invertedMangrove;
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
@@ -58,7 +55,6 @@ contract MangroveTest is Test2, HasMgvEvents {
   OLKey lo; //quote,base
 
   MangroveTestOptions internal options = MangroveTestOptions({
-    invertedMangrove: false,
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
@@ -92,7 +88,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     olKey = OLKey($(base), $(quote), options.defaultTickSpacing);
     lo = OLKey($(quote), $(base), options.defaultTickSpacing);
 
-    mgv = setupMangrove(olKey, options.invertedMangrove);
+    mgv = setupMangrove(olKey);
     reader = new MgvReader($(mgv));
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
@@ -191,44 +187,22 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove
-  function setupMangrove() public returns (IMangrove) {
-    return setupMangrove(false);
-  }
-
-  // Deploy mangrove, inverted or not
-  function setupMangrove(bool inverted) public returns (IMangrove _mgv) {
-    if (inverted) {
-      _mgv = IMangrove(
-        $(
-          new InvertedMangrove({
-          governance: $(this),
-          gasprice: options.gasprice,
-          gasmax: options.gasmax
-          })
-        )
-      );
-    } else {
-      _mgv = IMangrove(
-        $(
-          new Mangrove({
-          governance: $(this),
-          gasprice: options.gasprice,
-          gasmax: options.gasmax
-          })
-        )
-      );
-    }
+  function setupMangrove() public returns (IMangrove _mgv) {
+    _mgv = IMangrove(
+      $(
+        new Mangrove({
+        governance: $(this),
+        gasprice: options.gasprice,
+        gasmax: options.gasmax
+        })
+      )
+    );
     vm.label($(_mgv), "Mangrove");
   }
 
   // Deploy mangrove with an offerList
-  function setupMangrove(OLKey memory _ol) public returns (IMangrove) {
-    return setupMangrove(_ol, false);
-  }
-
-  // Deploy mangrove with an offerList
-  function setupMangrove(OLKey memory _ol, bool inverted) public returns (IMangrove _mgv) {
-    _mgv = setupMangrove(inverted);
+  function setupMangrove(OLKey memory _ol) public returns (IMangrove _mgv) {
+    _mgv = setupMangrove();
     setupMarket(IMangrove($(_mgv)), _ol);
   }
 
@@ -337,7 +311,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   /* **** Sugar for address conversion */
-  function $(AbstractMangrove t) internal pure returns (address payable) {
+  function $(Mangrove t) internal pure returns (address payable) {
     return payable(address(t));
   }
 

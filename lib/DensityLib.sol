@@ -116,32 +116,33 @@ library DensityLib {
   }}
 
   // Convenience function: get a fixed-point density from the given parameters. Computes the price of gas in outbound base tokens, then multiplies by cover_factor.
-  // Warning: multiply input prices by 100
+  // Warning: you must multiply input usd prices by 100
   // not supposed to be gas optimized
   function paramsTo96X32(
     uint outbound_decimals, 
-    uint gasprice_in_gwei, 
-    uint eth_in_usdx100, 
-    uint outbound_display_in_usdx100, 
+    uint gasprice_in_mwei, 
+    uint eth_in_centiusd, 
+    uint outbound_display_in_centiusd, 
     uint cover_factor
   ) internal pure returns (uint) {
     // Do not use unchecked here
     require(uint8(outbound_decimals) == outbound_decimals,"DensityLib/fixedFromParams1/decimals/wrong");
-    uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals) * eth_in_usdx100;
+    uint num = cover_factor * gasprice_in_mwei * (10**outbound_decimals) * eth_in_centiusd;
     // use * instead of << to trigger overflow check
-    return (num * (1 << 32)) / (outbound_display_in_usdx100 * 1e9);
+    return (num * (1 << 32)) / (outbound_display_in_centiusd * 1e12);
   }
 
+  // Version with token in mwei instead of usd
   function paramsTo96X32(
     uint outbound_decimals, 
-    uint gasprice_in_gwei, 
-    uint outbound_display_in_gwei, 
+    uint gasprice_in_mwei, 
+    uint outbound_display_in_mwei, 
     uint cover_factor
   ) internal pure returns (uint) {
     // Do not use unchecked here
     require(uint8(outbound_decimals) == outbound_decimals,"DensityLib/fixedFromParams2/decimals/wrong");
-    uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals);
+    uint num = cover_factor * gasprice_in_mwei * (10**outbound_decimals);
     // use * instead of << to trigger overflow check
-    return (num * (1 << 32)) / outbound_display_in_gwei;
+    return (num * (1 << 32)) / outbound_display_in_mwei;
   }
 }

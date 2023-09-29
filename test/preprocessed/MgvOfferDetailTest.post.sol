@@ -23,7 +23,7 @@ contract MgvOfferDetailTest is Test2 {
     assertEq(packed.maker(),maker,"bad maker");
     assertEq(packed.gasreq(),cast(gasreq,24),"bad gasreq");
     assertEq(packed.kilo_offer_gasbase(),cast(kilo_offer_gasbase,9),"bad kilo_offer_gasbase");
-    assertEq(packed.gasprice(),cast(gasprice,16),"bad gasprice");
+    assertEq(packed.gasprice(),cast(gasprice,26),"bad gasprice");
   }
 
   /* test_set_x tests:
@@ -74,7 +74,7 @@ contract MgvOfferDetailTest is Test2 {
 
       OfferDetail modified = packed.gasprice(gasprice);
 
-      assertEq(modified.gasprice(),cast(gasprice,16),"modified: bad gasprice");
+      assertEq(modified.gasprice(),cast(gasprice,26),"modified: bad gasprice");
 
       assertEq(modified.maker(),packed.maker(),"modified: bad maker");
       assertEq(modified.gasreq(),packed.gasreq(),"modified: bad gasreq");

@@ -734,7 +734,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     unchecked {
       uint gasreq = sor.offerDetail.gasreq();
 
-      uint provision = 10 ** 9 * sor.offerDetail.gasprice() * (gasreq + sor.offerDetail.offer_gasbase());
+      uint provision = 1e6 * sor.offerDetail.gasprice() * (gasreq + sor.offerDetail.offer_gasbase());
 
       /* We set `gasused = min(gasused,gasreq)` since `gasreq < gasused` is possible e.g. with `gasreq = 0` (all calls consume nonzero gas). */
       if (gasused > gasreq) {
@@ -742,7 +742,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/tradeSuccess", "mgv/notEnoughGasForMakerTrade","mgv/takerTransferFail"] */
-      uint penalty = 10 ** 9 * sor.global.gasprice() * (gasused + sor.local.offer_gasbase());
+      uint penalty = 1e6 * sor.global.gasprice() * (gasused + sor.local.offer_gasbase());
 
       if (penalty > provision) {
         penalty = provision;

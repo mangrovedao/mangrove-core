@@ -37,30 +37,34 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
     gasDeltaTest.setUpTokens(base, quote);
 
     // Create naked offers with 0 gasreq
-    address maker = freshAddress("Maker");
-    deal($(base), maker, 200000 ether);
-    deal($(quote), maker, 200000 ether);
-    deal(maker, 1000 ether);
+    address makerBase = freshAddress("makerBase");
+    address makerQuote = freshAddress("makerQuote");
+    deal($(base), makerBase, 200000 ether);
+    deal($(quote), makerQuote, 200000 ether);
+    deal(makerBase, 1000 ether);
+    deal(makerQuote, 1000 ether);
     // Make offers 2 times minimum, but only approve minimum, thus allow for failure to deliver
     offerGivesOl = 2 * reader.minVolume(olKey, 100000);
     offerGivesLo = 2 * reader.minVolume(lo, 100000);
 
-    vm.prank(maker);
+    vm.prank(makerBase);
     mgv.fund{value: 10 ether}();
-    vm.prank(maker);
+    vm.prank(makerQuote);
+    mgv.fund{value: 10 ether}();
+    vm.prank(makerBase);
     TransferLib.approveToken(base, $(mgv), offerGivesOl / 2);
-    vm.prank(maker);
+    vm.prank(makerQuote);
     TransferLib.approveToken(quote, $(mgv), offerGivesLo / 2);
-    vm.prank(maker);
+    vm.prank(makerBase);
     mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), offerGivesOl, 100000, 0);
-    vm.prank(maker);
+    vm.prank(makerQuote);
     mgv.newOfferByTick(lo, lo.tick(MIDDLE_BIN), offerGivesLo, 100000, 0);
   }
 
   function gasbase_to_empty_book(OLKey memory _olKey, bool failure) internal {
     uint volume = failure ? type(uint96).max : 1;
     (IMangrove _mgv,,,) = getStored();
-    vm.prank($(taker));
+    prankTaker(_olKey);
     _gas();
     (uint takerGot,,, uint fee) = _mgv.marketOrderByTick(_olKey, _olKey.tick(MIDDLE_BIN), volume, true);
     gas_();

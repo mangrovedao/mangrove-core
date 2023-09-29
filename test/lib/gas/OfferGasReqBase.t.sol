@@ -11,11 +11,15 @@ import {GasTestBaseStored} from "./GasTestBase.t.sol";
 
 ///@notice base class for creating tests of gasreq for contracts. Compare results to implementors of OfferGasBaseBaseTest.
 abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
-  TestTaker internal taker;
   GenericFork internal fork;
+  mapping(bytes32 => TestTaker) internal takers;
+
+  function prankTaker(OLKey memory _olKey) internal {
+    vm.prank($(takers[_olKey.hash()]));
+  }
 
   function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
-    return (mgv, taker, olKey, 0);
+    return (mgv, takers[olKey.hash()], olKey, 0);
   }
 
   function setUpGeneric() public virtual {
@@ -49,10 +53,16 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
     setupMarket(olKey);
     setupMarket(lo);
 
-    taker = setupTaker(olKey, "Taker");
-    deal($(base), address(taker), 200000 ether);
-    deal($(quote), address(taker), 200000 ether);
-    taker.approveMgv(quote, 200000 ether);
-    taker.approveMgv(base, 200000 ether);
+    // Create taker for taking quote
+    TestTaker takerLo = setupTaker(lo, "TakerSell");
+    takerLo.approveMgv(base, type(uint).max);
+    deal($(base), $(takerLo), 200000 ether);
+    takers[lo.hash()] = takerLo;
+
+    // Create taker for taking base
+    TestTaker takerOl = setupTaker(olKey, "TakerBuy");
+    takerOl.approveMgv(quote, type(uint).max);
+    deal($(quote), $(takerOl), 200000 ether);
+    takers[olKey.hash()] = takerOl;
   }
 }

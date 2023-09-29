@@ -1059,4 +1059,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.retractOffer(olKey, ofr0, true);
     assertEq(mgv.leafs(olKey, bin.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
+
+  function test_cannot_update_offer_with_no_owner(uint32 ofrId) public {
+    vm.assume(mgv.offerDetails(olKey, ofrId).maker() == address(0));
+
+    vm.expectRevert("mgv/updateOffer/unauthorized");
+    mgv.updateOfferByTick(olKey, Tick.wrap(0), 1 ether, 100_000, 30, ofrId);
+  }
 }

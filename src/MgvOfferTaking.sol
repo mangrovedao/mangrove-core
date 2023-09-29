@@ -121,7 +121,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
                 return (0, local);
               }
               index = field.firstLevel1Index();
-              field = offerList.level1[index].clean();
+              // Top bit cleaning will be done by level1(field) + field cannot be empty
+              field = Field.wrap(DirtyField.unwrap(offerList.level1[index]));
             }
             local = local.level1(field);
             index = field.firstLevel2Index(index);

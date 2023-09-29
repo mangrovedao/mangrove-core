@@ -74,11 +74,6 @@ contract MgvHasOffers is MgvCommon {
         // with
         // offerId == local.best() (but best will maybe go away in the future)
 
-        // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
-        // if local.bin < offerBin then a better branch is already cached. note that local.bin >= offerBin implies local.bin = offerTick
-        // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-        shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestBin.strictlyBetter(offerBin);
-
         if (prevId == 0) {
           // offer was tick's first. new first offer is offer.next (may be 0)
           leaf = leaf.setBinFirst(offerBin, nextId);
@@ -97,8 +92,10 @@ contract MgvHasOffers is MgvCommon {
           nextOfferData.offer = nextOfferData.offer.prev(prevId);
         }
         if (prevId != 0 && nextId != 0) {
-          return (local, shouldUpdateBranch);
+          return (local, false);
         }
+
+        shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestBin.strictlyBetter(offerBin);
       }
 
       // offer.bin's first or last offer changed, must update leaf

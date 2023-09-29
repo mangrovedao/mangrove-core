@@ -347,7 +347,7 @@ contract MgvReader {
       } else {
         gp = ofr_gasprice;
       }
-      return (ofr_gasreq + _local.offer_gasbase()) * gp * 10 ** 9;
+      return (ofr_gasreq + _local.offer_gasbase()) * gp * 1e6;
     }
   }
 

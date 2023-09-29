@@ -56,7 +56,7 @@ library OfferDetailLib {
   uint constant maker_bits              = 160;
   uint constant gasreq_bits             = 24;
   uint constant kilo_offer_gasbase_bits = 9;
-  uint constant gasprice_bits           = 16;
+  uint constant gasprice_bits           = 26;
 
   // number of bits before each field
   uint constant maker_before              = 0                         + 0;
@@ -86,7 +86,7 @@ library OfferDetailLib {
   string constant maker_size_error              = "mgv/config/maker/160bits";
   string constant gasreq_size_error             = "mgv/config/gasreq/24bits";
   string constant kilo_offer_gasbase_size_error = "mgv/config/kilo_offer_gasbase/9bits";
-  string constant gasprice_size_error           = "mgv/config/gasprice/16bits";
+  string constant gasprice_size_error           = "mgv/config/gasprice/26bits";
 
   // from packed to in-memory struct
   function to_struct(OfferDetail __packed) internal pure returns (OfferDetailUnpacked memory __s) { unchecked {

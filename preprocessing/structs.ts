@@ -73,7 +73,7 @@ uni.hospitable(true);
 
 const fields = {
   gives: { name: "gives", bits: 96, type: "uint" },
-  gasprice: { name: "gasprice", bits: 16, type: "uint" },
+  gasprice: { name: "gasprice", bits: 26, type: "uint" },
   gasreq: { name: "gasreq", bits: 24, type: "uint" },
   kilo_offer_gasbase: { name: "kilo_offer_gasbase", bits: 9, type: "uint" },
 };
@@ -178,7 +178,7 @@ They have the following fields: */
       
     (There is an inefficiency here. The overhead could be split into an "offer-local overhead" and a "general overhead". That general overhead gas penalty could be spread between all offers executed during an order, or all failing offers. It would still be possible for a cleaner to execute a failing offer alone and make them pay the entire general gas overhead. For the sake of simplicity we keep only one "offer overhead" value.)
 
-    If an offer fails, `gasprice` wei is taken from the
+    If an offer fails, `gasprice` mwei is taken from the
     provision per unit of gas used. `gasprice` should approximate the average gas
     ratio at offer creation time.
 
@@ -190,7 +190,7 @@ They have the following fields: */
     So, when an offer is created, the maker is asked to provision the
     following amount of wei:
     ```
-    (gasreq + offer_gasbase) * gasprice
+    (gasreq + offer_gasbase) * gasprice * 1e6
     ```
 
       where `offer_gasbase` and `gasprice` are Mangrove's current configuration values (or a higher value for `gasprice` if specified by the maker).
@@ -198,14 +198,14 @@ They have the following fields: */
 
       When an offer fails, the following amount is given to the taker as compensation:
     ```
-    (gasused + offer_gasbase) * gasprice
+    (gasused + offer_gasbase) * gasprice * 1e6
     ```
 
     where `offer_gasbase` and `gasprice` are Mangrove's current configuration values.  The rest is given back to the maker.
 
       */
       fields.kilo_offer_gasbase,
-      /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
+      /* * `gasprice` is in mwei/gas and _26 bits wide_, which accomodates 0.001 to ~67k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
       fields.gasprice,
     ],
     additionalDefinitions: (struct) => `
@@ -244,7 +244,7 @@ library OfferDetailUnpackedExtra {
       { name: "useOracle", bits: 1, type: "bool" },
       /* * If `notify` is true, the dex will notify the monitor address after every offer execution. */
       { name: "notify", bits: 1, type: "bool" },
-      /* * The `gasprice` is the amount of penalty paid by failed offers, in gwei per gas used. `gasprice` should approximate the average gas price and will be subject to regular updates. */
+      /* * The `gasprice` is the amount of penalty paid by failed offers, in mwei per gas used. `gasprice` should approximate the average gas price and will be subject to regular updates. */
       fields.gasprice,
       /* * `gasmax` specifies how much gas an offer may ask for at execution time. An offer which asks for more gas than the block limit would live forever on the book. Nobody could take it or remove it, except its creator (who could cancel it). In practice, we will set this parameter to a reasonable limit taking into account both practical transaction sizes and the complexity of maker contracts.
       */

@@ -39,7 +39,7 @@ library GlobalLib {
   uint constant monitor_bits                   = 160;
   uint constant useOracle_bits                 = 1;
   uint constant notify_bits                    = 1;
-  uint constant gasprice_bits                  = 16;
+  uint constant gasprice_bits                  = 26;
   uint constant gasmax_bits                    = 24;
   uint constant dead_bits                      = 1;
   uint constant maxRecursionDepth_bits         = 8;
@@ -89,7 +89,7 @@ library GlobalLib {
   string constant monitor_size_error                   = "mgv/config/monitor/160bits";
   string constant useOracle_size_error                 = "mgv/config/useOracle/1bits";
   string constant notify_size_error                    = "mgv/config/notify/1bits";
-  string constant gasprice_size_error                  = "mgv/config/gasprice/16bits";
+  string constant gasprice_size_error                  = "mgv/config/gasprice/26bits";
   string constant gasmax_size_error                    = "mgv/config/gasmax/24bits";
   string constant dead_size_error                      = "mgv/config/dead/1bits";
   string constant maxRecursionDepth_size_error         = "mgv/config/maxRecursionDepth/8bits";

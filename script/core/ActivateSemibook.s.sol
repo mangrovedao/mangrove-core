@@ -13,12 +13,12 @@ uint constant COVER_FACTOR = 1000;
   Activates a semibook on mangrove.
     outbound: outbound token
     inbound: inbound token,
-    outbound_in_gwei: price of one outbound token (display units) in gwei of native token
+    outbound_in_mwei: price of one outbound token (display units) in mwei of native token
     fee: fee in per 10_000
 
-  outbound_in_gwei should be obtained like this:
+  outbound_in_mwei should be obtained like this:
   1. Get the price of one outbound token display unit in native token
-  2. Multiply by 10^9
+  2. Multiply by 10^12
   3. Round to nearest integer*/
 
 contract ActivateSemibook is Test2, Deployer {
@@ -30,21 +30,21 @@ contract ActivateSemibook is Test2, Deployer {
         inbound: envAddressOrName("INBOUND_TKN"),
         tickSpacing: vm.envUint("TICK_SPACING")
       }),
-      outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
+      outbound_in_mwei: vm.envUint("OUTBOUND_IN_MWEI"),
       fee: vm.envUint("FEE")
     });
   }
 
-  function innerRun(IMangrove mgv, OLKey memory olKey, uint outbound_in_gwei, uint fee) public {
+  function innerRun(IMangrove mgv, OLKey memory olKey, uint outbound_in_mwei, uint fee) public {
     Global global = mgv.global();
-    innerRun(mgv, global.gasprice(), olKey, outbound_in_gwei, fee);
+    innerRun(mgv, global.gasprice(), olKey, outbound_in_mwei, fee);
   }
 
   function innerRun(
     IMangrove mgv,
     uint gaspriceOverride, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
     OLKey memory olKey,
-    uint outbound_in_gwei,
+    uint outbound_in_mwei,
     uint fee
   ) public {
     /*
@@ -65,27 +65,27 @@ contract ActivateSemibook is Test2, Deployer {
     The density is the minimal amount of tokens bought per unit of gas spent.
     The heuristic is: The gas cost of executing an order should represent at
     most 1/COVER_FACTOR the value being bought. In other words: multiply the
-    price of gas in tokens (obtained from the price of gas in gwei and the price
-    of tokens in gwei) by COVER_FACTOR to get the density.
+    price of gas in tokens (obtained from the price of gas in mwei and the price
+    of tokens in mwei) by COVER_FACTOR to get the density.
     
     Units:
-       - outbound_in_gwei is in gwei/display token units
+       - outbound_in_mwei is in mwei/display token units
        - COVER_FACTOR is unitless
        - decN is in (base token units)/(display token units)
-       - global.gasprice() is in gwei/gas
+       - global.gasprice() is in mwei/gas
        - so density is in (base token units token)/gas
     */
     uint outbound_decimals = IERC20(olKey.outbound).decimals();
     uint density96X32 = DensityLib.paramsTo96X32({
       outbound_decimals: outbound_decimals,
-      gasprice_in_gwei: gaspriceOverride,
-      outbound_display_in_gwei: outbound_in_gwei,
+      gasprice_in_mwei: gaspriceOverride,
+      outbound_display_in_mwei: outbound_in_mwei,
       cover_factor: COVER_FACTOR
     });
 
     // min density of at least 1 wei of outbound token
     density96X32 = density96X32 == 0 ? 1 << 32 : density96X32;
-    console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
+    console.log("With gasprice: %d mwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
     console.log(
       "Derived density %s %s per gas unit", toFixed(density96X32, outbound_decimals), IERC20(olKey.outbound).symbol()
     );

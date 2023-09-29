@@ -8,7 +8,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
   uint gasreq = 200_000;
   uint ofr;
-  uint _gasprice = 50; // will cover for a gasprice of 50 gwei/gas uint
+  uint _gasprice = 50 * 1e3; // will cover for a gasprice of 50 gwei/gas uint
   uint weiBalMaker;
   bool willFail = false;
   bool makerRevert = false;
@@ -300,9 +300,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit Credit($(this), 10695960000000000);
+    emit Credit($(this), 19191495960000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8504040000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8504040000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(!success, "market order should fail");
     assertTrue(called, "PostHook not called");
@@ -389,9 +389,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit Credit($(this), 10695960000000000);
+    emit Credit($(this), 19191495960000000);
     expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8504040000000000, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8504040000000, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
 

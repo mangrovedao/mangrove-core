@@ -89,9 +89,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     Bin offerBin = offer.bin(tickSpacing);
     uint nextId = offer.next();
 
+    Leaf leaf = mor.leaf;
+    leaf = leaf.setBinFirst(offerBin, nextId);
+
     if (nextId == 0) {
-      Leaf leaf = mor.leaf;
-      leaf = leaf.setBinFirst(offerBin, 0).setBinLast(offerBin, 0);
+      leaf = leaf.setBinLast(offerBin, 0);
       if (leaf.isEmpty()) {
         offerList.leafs[offerBin.leafIndex()] = leaf.dirty();
         int index = offerBin.level3Index();
@@ -136,9 +138,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         local = local.level3(field);
         leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
       }
-      mor.leaf = leaf;
-      nextId = leaf.getNextOfferId();
+      uint bestNonEmptyBinPos = leaf.firstOfferPosition();
+      local = local.binPosInLeaf(bestNonEmptyBinPos);
+      nextId = leaf.firstOfPos(bestNonEmptyBinPos);
     }
+    mor.leaf = leaf;
     return (nextId, local);
   }
   /* # General Market Order */
@@ -298,12 +302,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           // Note: important to not update offer.prev before now or this test will fail spuriously
           if (offer.prev() != 0) {
             offerList.offerData[sor.offerId].offer = sor.offer.prev(0);
-            mor.leaf = mor.leaf.setBinFirst(bin, sor.offerId);
           }
 
           // no need to test whether level1 has been reached since by default it's stored in local
 
-          sor.local = sor.local.binPosInLeaf(mor.leaf.firstOfferPosition());
           // no need to test whether mor.level1 != offerList.level1 since update is ~free
           // ! local.level3[sor.local.bestBin().level3Index()] is now wrong
           // sor.local = sor.local.level3(mor.level3);

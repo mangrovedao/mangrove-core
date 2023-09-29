@@ -294,12 +294,9 @@ library TickLib {
   // first return value is the mantissa, second value is -exp
   function ratioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
     (man, exp) = nonNormalizedRatioFromTick(tick);
-
-    uint log_bp_2X232 = 47841652135324370225811382070797757678017615758549045118126590952295589692;
-    // log_1.0001(ratio) * log_2(1.0001)
-    int log2ratio = (int(Tick.unwrap(tick)) << 232) / int(log_bp_2X232);
+    int log2ratio = (int(Tick.unwrap(tick)) << LOG_BP_SHIFT) / int(LOG_BP_2X235);
     // floor(log) towards negative infinity
-    if (Tick.unwrap(tick) < 0 && int(Tick.unwrap(tick)) << 232 % log_bp_2X232 != 0) {
+    if (Tick.unwrap(tick) < 0 && int(Tick.unwrap(tick)) << LOG_BP_SHIFT % LOG_BP_2X235 != 0) {
       log2ratio = log2ratio - 1;
     }
     // MANTISSA_BITS was chosen so that diff cannot be <0 

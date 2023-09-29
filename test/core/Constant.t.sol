@@ -52,6 +52,12 @@ contract ConstantsTest is MangroveTest {
     assertEq(OFFER_BITS, LocalLib.last_bits);
   }
 
+  // in `TickLib.ratioFromTick`, for maximum precision log_{1.0001}(2) is given shifted 235 bits left, and the tick is shifted by the same amount. This is only possible if the tick is on 21 bits or less.
+  function test_log_bp_shift() public {
+    assertLe(BitLib.fls(uint(MAX_TICK)), 256 - LOG_BP_SHIFT, "MAX_TICK");
+    assertLe(BitLib.fls(uint(-MIN_TICK)), 256 - LOG_BP_SHIFT, "MIN_TICK");
+  }
+
   // Since constant expressions are (as of solidity 0.8.21) not evaluated at compile time, we write all constants in Constants.sol as literals and test their values here:
   function test_constant_expressions() public {
     assertEq(MAX_BIN, -MIN_BIN - 1, "MAX_BIN");

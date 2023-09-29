@@ -57,3 +57,7 @@ uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
 // Price math limits the allowed ticks to a subset of the full range
 int constant MIN_BIN_ALLOWED = -1048575;
 int constant MAX_BIN_ALLOWED = 1048575;
+
+// log_1.0001(2)
+uint constant LOG_BP_SHIFT = 235;
+uint constant LOG_BP_2X235 = 382733217082594961806491056566382061424140926068392360945012727618364717537;

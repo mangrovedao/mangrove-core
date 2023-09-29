@@ -129,3 +129,7 @@ We do not expect clean to be used from maker contracts, so only external calls.
 
 - `external`
   - same scenarios as `retractOffer` named `ExternalCleanOtherOfferList_*` instead of `ExternalRetractOfferOtherOfferList_*`.
+
+### `gasreq`
+
+Strats will need to set a gasreq, for this the `OfferGasReqBaseTest` in `mgv_test/lib/gas/OfferGasReqBase.t.sol` can be implemented. See examples in the strat library. Results should be compared to output for the `OfferGasBaseBaseTest` implementors.

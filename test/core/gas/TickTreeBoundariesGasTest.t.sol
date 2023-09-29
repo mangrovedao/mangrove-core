@@ -15,7 +15,7 @@ import {
   LEVEL1_HIGHER_BIN,
   ROOT_LOWER_BIN,
   ROOT_HIGHER_BIN
-} from "./GasTestBase.t.sol";
+} from "mgv_test/lib/gas/GasTestBase.t.sol";
 
 import {IMangrove, TestTaker, OLKey} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Debug.sol";

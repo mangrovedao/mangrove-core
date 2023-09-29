@@ -401,6 +401,16 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
+  ///@notice calculates the amount of gas used based on the penalty. Assumes a single offer failed for this penalty, and enough provision.
+  ///@param _olKey the OLKey for the offer list where the offer failed.
+  ///@param penalty the penalty/bounty paid to taker
+  ///@return gasused the amount of gas used (excluding offer_gasbase)
+  function penaltyToGasreq(OLKey memory _olKey, uint penalty) internal view returns (uint gasused) {
+    // Formula from `applyPenalty`: uint penalty = 10 ** 9 * sor.global.gasprice() * (gasused + sor.local.offer_gasbase());
+    (Global global_, Local local) = mgv.config(_olKey);
+    gasused = (penalty / (10 ** 9 * global_.gasprice())) - local.offer_gasbase();
+  }
+
   function assertEq(Tick a, Tick b) internal {
     if (!a.eq(b)) {
       emit log("Error: a == b not satisfied [Tick]");

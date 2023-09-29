@@ -8,10 +8,10 @@ import {TransferLib} from "mgv_lib/TransferLib.sol";
 import "mgv_src/MgvLib.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MIDDLE_BIN} from "./GasTestBase.t.sol";
+import {MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
 import "mgv_lib/Debug.sol";
 import {TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
-import {GasTestBaseStored} from "./GasTestBase.t.sol";
+import {GasTestBaseStored} from "mgv_test/lib/gas/GasTestBase.t.sol";
 import {Test2} from "mgv_lib/Test2.sol";
 
 /// A mangrove instrumented to measure gas usage during posthook

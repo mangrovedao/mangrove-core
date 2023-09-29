@@ -42,7 +42,7 @@ jobs:
 
   # ==== Job: Build and test mangrove-core
   mangrove-core:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.0-4core
 
     steps:
 

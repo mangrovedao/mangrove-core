@@ -10,38 +10,41 @@ import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/BinLib.sol";
 import "mgv_lib/TickLib.sol";
 
-using OLLib for OLKey global;
-// OLKey is OfferList
-
+/* `OLKey` (for "OfferListKey") contains the information that characterizes an offer list:
+  * `outbound_tkn`, token that goes from the maker to the taker (to remember the direction, imagine the token as going out of the Mangrove offer, towards the taker)
+  * `inbound_tkn`, token that goes from the taker to the maker (to rememberthe direction, imagine the token as going into Mangrove from the taker)
+  * `tickSpacing`, how many ticks should be jumped between available price points. More volatile outbound/inbound pairs should have a larger `tickSpacing`. */
 struct OLKey {
   address outbound;
   address inbound;
   uint tickSpacing;
 }
 
+/* Globally enable `olKey.method(...)` */
+using OLLib for OLKey global;
+
 library OLLib {
-  // The id should be keccak256(abi.encode(olKey))
-  // To save gas, id() directly hashes the memory (which matches the ABI encoding)
-  // If the memory layout changes, this function must be updated
+  /* The id of an `OLKey` should be `keccak256(abi.encode(olKey))`
+  To save gas, `id()` directly hashes the memory (which matches the ABI encoding; there is a fuzz test on that). If the memory layout changes, this function must be updated. */
   function hash(OLKey memory olKey) internal pure returns (bytes32 _id) {
     assembly ("memory-safe") {
       _id := keccak256(olKey, 96)
     }
   }
 
-  // Creates a flipped copy of the `olKey` with same `tickSpacing`.
+  /* Creates a flipped copy of the `olKey` with same `tickSpacing`. */
   function flipped(OLKey memory olKey) internal pure returns (OLKey memory) {
     return OLKey(olKey.inbound, olKey.outbound, olKey.tickSpacing);
   }
 
-  // Convert tick to bin according to olKey's tickSpacing
+  /* Convert `tick` to bin according to `olKey.tickSpacing` */
   function nearestBin(OLKey memory olKey, Tick _tick) internal pure returns (Bin) {
     return _tick.nearestBin(olKey.tickSpacing);
   }
 
-  // Convert bin to tick according to olKey's tickSpacing
-  function tick(OLKey memory olKey, Bin _bin) internal pure returns (Tick) {
-    return _bin.tick(olKey.tickSpacing);
+  /* Convert `bin` to `tick` according to `olKey.tickSpacing` */
+  function tick(OLKey memory olKey, Bin bin) internal pure returns (Tick) {
+    return bin.tick(olKey.tickSpacing);
   }
 }
 
@@ -53,10 +56,11 @@ library MgvLib {
    Some miscellaneous data types useful to `Mangrove` and external contracts */
   //+clear+
 
-  /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` (and some of its nested functions) to avoid stack too deep errors. */
+  /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` (and some of its nested functions) to avoid stack too deep errors. It is used in market order and cleaning. */
   struct SingleOrder {
     OLKey olKey;
     uint offerId;
+    /* The `offer` given to the maker will be cleaned of `prev`/`next` pointers. */
     Offer offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's ratio and volume. */
     uint takerWants;
@@ -64,19 +68,20 @@ library MgvLib {
     /* `offerDetail` is only populated when necessary. */
     OfferDetail offerDetail;
     Global global;
+    /* The `local` given to the maker will be cleaned of tick tree information. */
     Local local;
   }
 
   /* <a id="MgvLib/OrderResult"></a> `OrderResult` holds additional data for the maker and is given to them _after_ they fulfilled an offer. It gives them their own returned data from the previous call, and an `mgvData` specifying whether Mangrove encountered an error. */
 
   struct OrderResult {
-    /* `makerdata` holds a message that was either returned by the maker or passed as revert message at the end of the trade execution*/
+    /* `makerData` holds a message that was either returned by the maker or passed as revert message at the end of the trade execution*/
     bytes32 makerData;
     /* `mgvData` is an [internal Mangrove status code](#MgvOfferTaking/statusCodes) code. */
     bytes32 mgvData;
   }
 
-  /* `CleanTarget` holds data about an offer that should be cleaned, i.e. made to fail by executing it with the specified volume. */
+  /* `CleanTarget` holds data about an offer that should be cleaned, i.e. made to fail by executing it with the specified volume. It is used in `MgvOfferTaking.cleanByImpersonation`. */
   struct CleanTarget {
     uint offerId;
     Tick tick;
@@ -101,10 +106,12 @@ interface HasMgvEvents {
     We have therefore tried to find a solution that is a good balance between the all 3 points.
   */
 
-  /* * Emitted at the creation of the new Mangrove contract */
+  /* ### Mangrove Creation
+
+  Emitted at the creation of the new Mangrove contract */
   event NewMgv();
 
-  /* Mangrove adds or removes wei from `maker`'s account */
+  /* ### Mangrove adds or removes wei from `maker`'s account */
   /* 
     * Credit event occurs when an offer is removed from Mangrove or when the `fund` function is called
       This is emitted when a user's account on Mangrove is credited with some native funds, to be used as provision for offers.
@@ -146,7 +153,7 @@ interface HasMgvEvents {
   */
   event Debit(address indexed maker, uint amount);
 
-  /* * Mangrove reconfiguration */
+  /* ### Mangrove reconfiguration */
   /*  
   This event is emitted when an offerList is activated or deactivated. Meaning one half of a market is opened.
 
@@ -254,7 +261,7 @@ interface HasMgvEvents {
   No fields are indexed as there is no need for RPC calls to filter on this.
   */
   event SetGasprice(uint value);
-  /* Clean order execution */
+  /* ### Clean order execution */
   /*
   This event is emitted when a user tries to clean offers on Mangrove, using the build in clean functionality.
 
@@ -275,7 +282,7 @@ interface HasMgvEvents {
   */
   event CleanComplete();
 
-  /* Market order execution */
+  /* ### Market order execution */
   /*
   This event is emitted when a market order is started on Mangrove.
 
@@ -298,7 +305,7 @@ interface HasMgvEvents {
   */
   event OrderComplete(bytes32 indexed olKeyHash, address indexed taker, uint fee);
 
-  /* * Offer execution */
+  /* ### Offer execution */
   /*
   This event is emitted when an offer is successfully taken. Meaning both maker and taker has gotten their funds.
 
@@ -369,7 +376,7 @@ interface HasMgvEvents {
   );
 
   /* 
-  * After `permit` and `approve` 
+  ### After `permit` and `approve` 
     This is emitted when a user permits another address to use a certain amount of its funds to do market orders, or when a user revokes another address to use a certain amount of its funds.
 
     Approvals are based on the pair of outbound and inbound token. Be aware that it is not offerList bases, as an offerList also holds the tickspacing.
@@ -382,10 +389,10 @@ interface HasMgvEvents {
     address indexed outbound_tkn, address indexed inbound_tkn, address indexed owner, address spender, uint value
   );
 
-  /* * Mangrove closure */
+  /* ### Mangrove closure */
   event Kill();
 
-  /* * An offer was created or updated.
+  /* ### An offer was created or updated.
   This event is emitted when an offer is posted on Mangrove.
 
   It emits the `olKeyHash`, the `maker` address, the `tick`, the `gives`, the `gasprice`, `gasreq` and the offers `id`.

@@ -1067,7 +1067,16 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.updateOfferByTick(olKey, Tick.wrap(0), 1 ether, 100_000, 30, ofrId);
   }
 
-  function test_new_offer_extremas() public {
+  function test_new_offer_extremas_ok() public {
+    mkr.provisionMgv(1 ether);
+    mgv.setDensity96X32(olKey, 0);
+    uint ofr = mkr.newOfferByTick(Tick.wrap(0), MAX_SAFE_VOLUME, 100_000, 0);
+    mkr.updateOfferByTick(Tick.wrap(0), MAX_SAFE_VOLUME, 100_000, 0, ofr);
+    mkr.updateOfferByTick(Tick.wrap(MAX_TICK), 1, 100_000, 0, ofr);
+    mkr.newOfferByTick(Tick.wrap(MAX_TICK), 1, 100_000, 0);
+  }
+
+  function test_new_offer_extremas_ko() public {
     mgv.setDensity96X32(olKey, 0);
     vm.expectRevert("mgv/writeOffer/gives/tooBig");
     uint ofr = mkr.newOfferByTick(Tick.wrap(0), MAX_SAFE_VOLUME + 1, 100_000, 0);

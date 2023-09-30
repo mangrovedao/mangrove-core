@@ -47,6 +47,10 @@ contract TickAndBinTest is MangroveTest {
   }
 
   function test_ratioFromTick() public {
+    // The expected values given below are computed by doing:
+    // let price = 1.0001^tick
+    // let sig = round(price * 2^exp) with exp chosen such that sig uses 128 bits
+    // add or remove as necessary to match the error of the `ratioFromTick` function
     inner_test_ratioFromTick({
       tick: Tick.wrap(MAX_TICK),
       expected_sig: MAX_RATIO_MANTISSA,

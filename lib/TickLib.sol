@@ -293,11 +293,14 @@ library TickLib {
   // return ratio from tick, as a normalized float
   // first return value is the mantissa, second value is -exp
   function ratioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
+    unchecked {
     (man, exp) = nonNormalizedRatioFromTick(tick);
-    int log2ratio = (int(Tick.unwrap(tick)) << LOG_BP_SHIFT) / int(LOG_BP_2X235);
-    // floor(log) towards negative infinity
-    if (Tick.unwrap(tick) < 0 && int(Tick.unwrap(tick)) << LOG_BP_SHIFT % LOG_BP_2X235 != 0) {
-      log2ratio = log2ratio - 1;
+    int shiftedTick = Tick.unwrap(tick) << LOG_BP_SHIFT;
+    int log2ratio;
+    // floor log2 of ratio towards negative infinity
+    assembly ("memory-safe") {
+      log2ratio := sdiv(shiftedTick,LOG_BP_2X235)
+      log2ratio := sub(log2ratio,slt(smod(shiftedTick,LOG_BP_2X235),0))
     }
     int diff = log2ratio+int(exp)-int(MANTISSA_BITS_MINUS_ONE);
     if (diff > 0) {
@@ -308,6 +311,7 @@ library TickLib {
     }
     // For |tick| << 887272, log2ratio <= 127
     exp = uint(int(MANTISSA_BITS_MINUS_ONE)-log2ratio);
+    }
   }
 
   // normalize a ratio float

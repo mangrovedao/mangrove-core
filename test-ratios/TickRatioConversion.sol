@@ -51,12 +51,14 @@ abstract contract TickRatioConversionTest is Test2 {
         tick_counter = ref.tick;
       }
       // Check no tick missing
-      require(
-        tick_counter++ == ref.tick, string.concat("Missing tick ", vm.toString(ref.tick), " in file ", ratios_file)
-      );
+      require(tick_counter++ == ref.tick, string.concat("Missing tick ", vm.toString(ref.tick)));
+
+      (uint cur_sig, uint cur_exp) = TickLib.ratioFromTick(Tick.wrap(ref.tick));
+
+      // Check normalization
+      assertEq(BitLib.fls(cur_sig), MANTISSA_BITS_MINUS_ONE, string.concat("Wrong fls ", vm.toString(ref.tick)));
 
       // Compare to reference
-      (uint cur_sig, uint cur_exp) = TickLib.ratioFromTick(Tick.wrap(ref.tick));
       // compute abs error relative to reference
       (uint big, uint small) = cur_sig > ref_sig ? (cur_sig, ref_sig) : (ref_sig, cur_sig);
       uint absRelErr = (big - small) * RELATIVE_ERROR_THRESHOLD / ref_sig;

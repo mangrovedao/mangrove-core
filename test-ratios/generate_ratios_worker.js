@@ -11,10 +11,10 @@ const config = {
 
 const M = Math.create(Math.all, config);
 
-const MIN_TICK = -1048575;
-const MAX_TICK = 1048575;
+const MIN_TICK = -887272;
+const MAX_TICK = 887272;
 const TICK_SPAN = MAX_TICK - MIN_TICK;
-const SIGLOG2 = 151;
+const SIGLOG2 = 127;
 
 const priceToFloat = (price) => {
   const l2 = M.floor(M.log2(price));

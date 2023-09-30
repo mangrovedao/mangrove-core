@@ -184,10 +184,10 @@ library TickLib {
       log2ratio := or(log2ratio, shl(50, highbit))
     }
 
-    int log_bp_ratio = log2ratio * 127869479499801913173570;
+    int log_bp_ratio = log2ratio * 127869479499801913173571;
 
-    int tickLow = int((log_bp_ratio - 1701479891078076505009565712080972645) >> 128);
-    int tickHigh = int((log_bp_ratio + 290040965921304576580754310682015830659) >> 128);
+    int tickLow = int((log_bp_ratio - 1701496478404567508395759362389778998) >> 128);
+    int tickHigh = int((log_bp_ratio + 289637967442836606107396900709005211253) >> 128);
 
     (uint mantissaHigh, uint expHigh) = ratioFromTick(Tick.wrap(tickHigh));
 

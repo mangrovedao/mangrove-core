@@ -474,7 +474,7 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 
-  function test_fillGives_at_0_wants_works() public {
+  function test_fillGives_at_1_wants_works() public {
     uint wants = 0;
     uint ofr = mkr.newOfferByVolume(wants, 2 ether, 100_000, 0);
     Tick tick = mgv.offers(olKey, ofr).tick();
@@ -483,7 +483,7 @@ contract TakerOperationsTest is MangroveTest {
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick(olKey, tick, 10, false);
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
-    assertEq(takerGave, 0, "Incorrect declared delivered amount (maker)");
+    assertEq(takerGave, 1, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 

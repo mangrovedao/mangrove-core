@@ -38,7 +38,7 @@ contract ConstantsTest is MangroveTest {
   }
 
   // checks that there is no overflow, assert is useless but should prevent optimizing away
-  function test_maxSafeVolumeIsSafeLowLevel() public {
+  function test_max_safe_volume_is_safe_low_level() public {
     assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
   }
 
@@ -78,8 +78,7 @@ contract ConstantsTest is MangroveTest {
     assertEq(NUM_BINS, NUM_LEAFS * LEAF_SIZE, "NUM_BINS");
     assertEq(OFFER_MASK, ONES >> (256 - OFFER_BITS), "OFFER_MASK");
     assertEq(MANTISSA_BITS_MINUS_ONE, MANTISSA_BITS - 1, "MANTISSA_BITS_MINUS_ONE");
-    // With |tick|<887272 and normalized mantissas on 128 bits, the maximum possible mantissa is 340282295208261841796968287475569060645, so the max safe volume is 340282438633630198193436196978374475856. We set it to `(1<<128)-1` for simplicity.
-    assertEq(MAX_SAFE_VOLUME, (1 << (256 - MANTISSA_BITS)) - 1, "MAX_SAFE_VOLUME");
+    assertEq(MAX_SAFE_VOLUME, (1 << (256 - MANTISSA_BITS - 1)) - 1, "MAX_SAFE_VOLUME");
     assertEq(MIN_BIN_ALLOWED, MIN_TICK, "MIN_BIN_ALLOWED");
     assertEq(MAX_BIN_ALLOWED, MAX_TICK, "MAX_BIN_ALLOWED");
   }

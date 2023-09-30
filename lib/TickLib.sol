@@ -68,23 +68,24 @@ library TickLib {
   // returns max_ratio if at least outboundAmt==0
   // returns min_ratio if only inboundAmt==0
   function ratioFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
-    require(inboundAmt <= MAX_SAFE_VOLUME, "ratioFromVolumes/inbound/tooBig");
-    require(outboundAmt <= MAX_SAFE_VOLUME, "ratioFromVolumes/outbound/tooBig");
-    if (outboundAmt == 0) {
-      return (MAX_RATIO_MANTISSA,uint(MAX_RATIO_EXP));
-    } else if (inboundAmt == 0) {
-      return (MIN_RATIO_MANTISSA,uint(MIN_RATIO_EXP));
-    }
-    uint ratio = (inboundAmt << MANTISSA_BITS) / outboundAmt; 
-    // ratio cannot be 0 as long as (1<<MANTISSA_BITS)/MAX_SAFE_VOLUME > 0
-    uint log2 = BitLib.fls(ratio);
-    require(ratio != 0,"ratioFromVolumes/zeroRatio");
-    if (log2 > MANTISSA_BITS_MINUS_ONE) {
-      uint diff = log2 - MANTISSA_BITS_MINUS_ONE;
-      return (ratio >> diff, MANTISSA_BITS - diff);
-    } else {
-      uint diff = MANTISSA_BITS_MINUS_ONE - log2;
-      return (ratio << diff, MANTISSA_BITS + diff);
+    unchecked {
+      require(inboundAmt <= MAX_SAFE_VOLUME, "mgv/ratioFromVol/inbound/tooBig");
+      require(outboundAmt <= MAX_SAFE_VOLUME, "mgv/ratioFromVol/outbound/tooBig");
+      if (outboundAmt == 0) {
+        return (MAX_RATIO_MANTISSA,uint(MAX_RATIO_EXP));
+      } else if (inboundAmt == 0) {
+        return (MIN_RATIO_MANTISSA,uint(MIN_RATIO_EXP));
+      }
+      uint ratio = (inboundAmt << MANTISSA_BITS) / outboundAmt; 
+      uint log2 = BitLib.fls(ratio);
+      require(ratio != 0,"mgv/ratioFromVolumes/zeroRatio");
+      if (log2 > MANTISSA_BITS_MINUS_ONE) {
+        uint diff = log2 - MANTISSA_BITS_MINUS_ONE;
+        return (ratio >> diff, MANTISSA_BITS - diff);
+      } else {
+        uint diff = MANTISSA_BITS_MINUS_ONE - log2;
+        return (ratio << diff, MANTISSA_BITS + diff);
+      }
     }
   }
 
@@ -104,10 +105,10 @@ library TickLib {
   // does not expect a normalized ratio float
   function tickFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (Tick tick) {
     if (floatLt(mantissa, int(exp), MIN_RATIO_MANTISSA, MIN_RATIO_EXP)) {
-      revert("mgv/ratio/tooLow");
+      revert("mgv/tickFromRatio/tooLow");
     }
     if (floatLt(MAX_RATIO_MANTISSA, MAX_RATIO_EXP, mantissa, int(exp))) {
-      revert("mgv/ratio/tooHigh");
+      revert("mgv/tickFromRatio/tooHigh");
     }
     int log2ratio = int(MANTISSA_BITS_MINUS_ONE) - int(exp) << 64;
     uint mpow = mantissa >> MANTISSA_BITS_MINUS_ONE - 127; // give 129 bits of room left
@@ -208,8 +209,8 @@ library TickLib {
   // first return value is the mantissa, second value is the opposite of the exponent
   // This functions works on all ticks that hold on 21 bits but applies the MAX_TICK constraint.
   function nonNormalizedRatioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
-    uint absTick = Tick.unwrap(tick) < 0 ? uint(-int(Tick.unwrap(tick))) : uint(Tick.unwrap(tick));
-    require(absTick <= uint(MAX_TICK), "absTick/outOfBounds");
+    uint absTick = Tick.unwrap(tick) < 0 ? uint(-Tick.unwrap(tick)) : uint(Tick.unwrap(tick));
+    require(absTick <= uint(MAX_TICK), "mgv/absTick/outOfBounds");
 
     // each 1.0001^(2^i) below is shifted 128+(an additional shift value)
     int extra_shift;
@@ -322,7 +323,7 @@ library TickLib {
   // 1:1 -> normalizeRatio(1,0)
   // 1:2 -> normalizeRatio(1,1)
   function normalizeRatio(uint mantissa, int exp) internal pure returns (uint, uint) {
-    require(mantissa != 0,"normalizeRatio/mantissaIs0");
+    require(mantissa != 0,"mgv/normalizeRatio/mantissaIs0");
     uint log2ratio = BitLib.fls(mantissa);
     int shift = int(MANTISSA_BITS_MINUS_ONE) - int(log2ratio);
     if (shift < 0) {

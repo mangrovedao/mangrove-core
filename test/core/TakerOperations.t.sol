@@ -658,15 +658,65 @@ contract TakerOperationsTest is MangroveTest {
     }
   }
 
-  function test_marketOrderByVolume_takerGives_extrema() public {
-    vm.expectRevert("ratioFromVolumes/inbound/tooBig");
+  // none should revert
+  function test_marketOrderByVolume_takerGives_extrema_volumes_ok() public {
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME, 1, true);
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME, 1, false);
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME, true);
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME, false);
+    mgv.marketOrderForByVolume(olKey, MAX_SAFE_VOLUME, 1, true, address(this));
+    mgv.marketOrderForByVolume(olKey, MAX_SAFE_VOLUME, 1, false, address(this));
+    mgv.marketOrderForByVolume(olKey, 1, MAX_SAFE_VOLUME, true, address(this));
+    mgv.marketOrderForByVolume(olKey, 1, MAX_SAFE_VOLUME, false, address(this));
+  }
+
+  function test_marketOrderByVolume_takerGives_extrema_ko() public {
+    vm.expectRevert("mgv/ratioFromVol/inbound/tooBig");
     mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, true);
-    vm.expectRevert("ratioFromVolumes/outbound/tooBig");
+
+    vm.expectRevert("mgv/ratioFromVol/outbound/tooBig");
     mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, true);
-    vm.expectRevert("ratioFromVolumes/inbound/tooBig");
+
+    vm.expectRevert("mgv/ratioFromVol/inbound/tooBig");
     mgv.marketOrderByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, false);
-    vm.expectRevert("ratioFromVolumes/outbound/tooBig");
+
+    vm.expectRevert("mgv/ratioFromVol/outbound/tooBig");
     mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, false);
+
+    vm.expectRevert("mgv/ratioFromVol/inbound/tooBig");
+    mgv.marketOrderForByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, true, address(0));
+
+    vm.expectRevert("mgv/ratioFromVol/outbound/tooBig");
+    mgv.marketOrderForByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, true, address(0));
+
+    vm.expectRevert("mgv/ratioFromVol/inbound/tooBig");
+    mgv.marketOrderForByVolume(olKey, 0, MAX_SAFE_VOLUME + 1, false, address(0));
+
+    vm.expectRevert("mgv/ratioFromVol/outbound/tooBig");
+    mgv.marketOrderForByVolume(olKey, MAX_SAFE_VOLUME + 1, 0, false, address(0));
+  }
+
+  function test_marketOrderByTick_extrema_volume_ok() public {
+    mgv.marketOrderByTick(olKey, Tick.wrap(0), MAX_SAFE_VOLUME, true);
+  }
+
+  function test_marketOrderByTick_extrema_volume_ko() public {
+    vm.expectRevert("mgv/mOrder/fillVolume/tooBig");
+    mgv.marketOrderByTick(olKey, Tick.wrap(0), MAX_SAFE_VOLUME + 1, true);
+  }
+
+  function test_marketOrderByTick_extrema_ko() public {
+    vm.expectRevert("mgv/mOrder/tick/outOfRange");
+    mgv.marketOrderByTick(olKey, Tick.wrap(MAX_TICK + 1), 100, true);
+    vm.expectRevert("mgv/mOrder/tick/outOfRange");
+    mgv.marketOrderByTick(olKey, Tick.wrap(MIN_TICK - 1), 100, true);
+  }
+
+  function test_marketOrderForByTick_extrema_ko(address taker) public {
+    vm.expectRevert("mgv/mOrder/tick/outOfRange");
+    mgv.marketOrderForByTick(olKey, Tick.wrap(MAX_TICK + 1), 100, true, taker);
+    vm.expectRevert("mgv/mOrder/tick/outOfRange");
+    mgv.marketOrderForByTick(olKey, Tick.wrap(MIN_TICK - 1), 100, true, taker);
   }
 
   function test_clean_with_0_wants_ejects_offer() public {

@@ -534,7 +534,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* We update the totals in the multiorder based on the adjusted `sor.takerWants`/`sor.takerGives`. */
         mor.totalGot += sor.takerWants;
+        require(mor.totalGot >= sor.takerWants, "mgv/totalGot/overflow");
         mor.totalGave += sor.takerGives;
+        require(mor.totalGave >= sor.takerGives, "mgv/totalGot/overflow");
       } else {
         /* In case of failure, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (mgvData, gasused, makerData) = innerDecode(retdata);

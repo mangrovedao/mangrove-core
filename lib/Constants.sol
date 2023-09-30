@@ -46,7 +46,14 @@ uint constant MAX_RATIO_MANTISSA = 340256786836388094050805785052946541084;
 int constant MAX_RATIO_EXP = 0;
 uint constant MANTISSA_BITS = 128;
 uint constant MANTISSA_BITS_MINUS_ONE = 127;
-uint constant MAX_SAFE_VOLUME = 340282366920938463463374607431768211455;
+/* 
+With |tick|<=887272 and normalized mantissas on 128 bits, the maximum possible mantissa is 340282295208261841796968287475569060645, so the maximum safe volume before overflow is actually 340282438633630198193436196978374475856. 
+
+The immediate idea is to set MAX_SAFE_VOLUME to `(1<<max_safe_volume_bits)-1`, where `max_safe_volume_bits = 256-MANTISSA_BITS`, for simplicity. But we also have a `ByVolume` API, so we also need the ratios `inbound_amount/outbound_amount` to not correspond to a tick outside of the tick range. 
+
+Instead of fine-tuning MAX_SAFE_VOLUME to be exactly as big as it can be, we just set `max_safe_volume_bits = 256 - MANTISSA_BITS - 1`.
+*/
+uint constant MAX_SAFE_VOLUME = 170141183460469231731687303715884105727;
 // Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe.
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;

@@ -72,7 +72,7 @@ uni.hospitable(true);
 /* Struct fields that are common to multiple structs are factored here. Multiple field names refer to offer identifiers, so the `id` field is a function that takes a name as argument. */
 
 const fields = {
-  gives: { name: "gives", bits: 128, type: "uint" },
+  gives: { name: "gives", bits: 127, type: "uint" },
   gasprice: { name: "gasprice", bits: 26, type: "uint" },
   gasreq: { name: "gasreq", bits: 24, type: "uint" },
   kilo_offer_gasbase: { name: "kilo_offer_gasbase", bits: 9, type: "uint" },
@@ -97,7 +97,7 @@ const struct_defs = {
       /* * `next` points to the immediately worse offer. The worst offer's `next` is 0. _32 bits wide_. */
       id_field("next"),
       {name:"tick",bits:21,type:"Tick",underlyingType: "int"},
-      /* * `gives` is the amount of `outbound_tkn` the offer will give if successfully executed.  _128 bits wide_. */
+      /* * `gives` is the amount of `outbound_tkn` the offer will give if successfully executed.  _127 bits wide_. */
       fields.gives,
     ],
     additionalDefinitions: `import "mgv_lib/BinLib.sol";

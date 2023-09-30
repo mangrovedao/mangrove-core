@@ -133,6 +133,30 @@ contract TickAndBinTest is MangroveTest {
     assertEq(Bin.wrap(bin).level2Index(), index);
   }
 
+  function test_normalizeRatio_ko() public {
+    vm.expectRevert("mgv/normalizeRatio/mantissaIs0");
+    TickLib.normalizeRatio(0, 0);
+    vm.expectRevert("mgv/normalizeRatio/lowExp");
+    TickLib.normalizeRatio(type(uint).max, 0);
+  }
+
+  function test_tickFromNormalizedRatio_ko() public {
+    vm.expectRevert("mgv/tickFromRatio/tooLow");
+    TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA - 1, uint(MIN_RATIO_EXP));
+    vm.expectRevert("mgv/tickFromRatio/tooLow");
+    TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP + 1));
+    vm.expectRevert("mgv/tickFromRatio/tooHigh");
+    TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA + 1, uint(MAX_RATIO_EXP));
+    vm.expectRevert("mgv/tickFromRatio/tooHigh");
+    TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP - 1));
+  }
+
+  // check no revert
+  function test_tickFromNormalizedRatio_ok() public pure {
+    TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP));
+    TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP));
+  }
+
   function test_bestBinFromBranch_matches_positions_accessor(
     uint binPosInLeaf,
     uint _level3,

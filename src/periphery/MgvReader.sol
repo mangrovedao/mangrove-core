@@ -22,7 +22,7 @@ struct MarketConfig {
   LocalUnpacked config10;
 }
 
-/// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order.
+/// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order + a tickSpacing.
 /// @return address the lowest of the given arguments (numerically)
 /// @return address the highest of the given arguments (numerically)
 function order(address tkn0, address tkn1) pure returns (address, address) {

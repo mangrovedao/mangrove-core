@@ -8,13 +8,13 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import "mgv_src/MgvLib.sol";
 
 /**
- * Script simulates a series of snipes on the offer at coordinate (TKN_OUT, TKN_IN, OFFER_ID)
+ * Script simulates a series of cleans on the offer at coordinate (TKN_OUT, TKN_IN, OFFER_ID)
  */
 /**
  * It will try various quantities starting with taker gives 0 and outputs success or failure
  */
 
-contract EvalSnipeOffer is Test2, Deployer {
+contract EvalCleanOffer is Test2, Deployer {
   receive() external payable {}
 
   function run() public {
@@ -55,7 +55,7 @@ contract EvalSnipeOffer is Test2, Deployer {
       uint g = gas_(true);
       if (successes == 0) {
         console.log("\u274c %s fill (%s %s)", fill_str, toFixed(heap.takerWants, inbTkn.decimals()), inbTkn.symbol());
-        console.log("Snipe gas cost: %d, bounty: %s native tokens", g, toFixed(bounty, 18));
+        console.log("Clean gas cost: %d, bounty: %s native tokens", g, toFixed(bounty, 18));
       } else {
         console.log("\u2705 %s fill", fill_str);
       }

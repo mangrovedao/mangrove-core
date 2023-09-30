@@ -1136,6 +1136,61 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(emptyLeaf.isEmpty(), "leaf should not have other bin used");
   }
 
+  function test_exact_market_order_uses_roundup_price() public {
+    // forgefmt: disable-start
+    mgv.setFee(olKey,0);
+    quote.approve($(mgv),type(uint).max);
+
+    uint amount = 4901713;// arbitrary amount
+    Tick tick = Tick.wrap(13);
+
+    assertTrue(
+      tick.inboundFromOutbound(amount) != tick.inboundFromOutboundUp(amount),"rounding up should be distinguishable from not rounding up"
+    );
+
+    mkr.newOfferByTick(tick,amount,100_000,0);
+
+    (,uint gave,,)= mgv.marketOrderByTick(olKey,Tick.wrap(MAX_TICK),amount,true);
+
+    assertEq(
+      gave,
+      tick.inboundFromOutboundUp(amount),
+      "got wrong amount"
+    );
+    // forgefmt: disable-end
+  }
+
+  function test_partial_fill_market_order_uses_roundup_price() public {
+    // forgefmt: disable-start
+    mgv.setFee(olKey,0);
+    quote.approve($(mgv),type(uint).max);
+
+    uint amount = 4901713;// arbitrary amount
+    Tick tick = Tick.wrap(13);
+
+    assertTrue(
+      tick.inboundFromOutbound(amount) != tick.inboundFromOutboundUp(amount),
+      "rounding up should be distinguishable from not rounding up"
+    );
+
+    uint ofrId = mkr.newOfferByTick(tick,amount+100,100_000,0);
+    Offer ofr = mgv.offers(olKey,ofrId);
+
+    assertGt(
+      ofr.gives(), amount,
+      "market order should partial fill"
+    );
+
+    (,uint gave,,)= mgv.marketOrderByTick(olKey,Tick.wrap(MAX_TICK),amount,true);
+
+    assertEq(
+      gave,
+      tick.inboundFromOutboundUp(amount),
+      "got wrong amount"
+    );
+    // forgefmt: disable-end
+  }
+
   /* 
   An attempt to check for overflow when accumulating sor.takerGives into mor.totalGave.
   I have not found a way to actually trigger it by mutating state somewhere.

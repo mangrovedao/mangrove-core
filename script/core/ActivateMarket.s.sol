@@ -46,10 +46,11 @@ contract ActivateMarket is Deployer {
 
   /* 
     tknX_in_mwei should be obtained like this:
-    1. Get the price of one tknX display unit in native token, in display units.
-       For instance, on ethereum, the price of 1 WETH is 1e12 mwei
+    1. Get the price of one tknX display unit in native token (also in display units, so 1e18 base units for the native token).
     2. Multiply by 1e12
     3. Round to nearest integer
+
+    For instance, suppose 1ETH=$2 and 1USDT=$1, the price of 1 USDT is 1e12/2 mwei.
   */
 
   function innerRun(

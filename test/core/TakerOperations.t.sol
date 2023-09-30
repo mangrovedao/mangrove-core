@@ -708,15 +708,15 @@ contract TakerOperationsTest is MangroveTest {
   function test_marketOrderByTick_extrema_ko() public {
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
     mgv.marketOrderByTick(olKey, Tick.wrap(MAX_TICK + 1), 100, true);
+
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
     mgv.marketOrderByTick(olKey, Tick.wrap(MIN_TICK - 1), 100, true);
-  }
 
-  function test_marketOrderForByTick_extrema_ko(address taker) public {
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderForByTick(olKey, Tick.wrap(MAX_TICK + 1), 100, true, taker);
+    mgv.marketOrderForByTick(olKey, Tick.wrap(MAX_TICK + 1), 100, true, address(0));
+
     vm.expectRevert("mgv/mOrder/tick/outOfRange");
-    mgv.marketOrderForByTick(olKey, Tick.wrap(MIN_TICK - 1), 100, true, taker);
+    mgv.marketOrderForByTick(olKey, Tick.wrap(MIN_TICK - 1), 100, true, address(0));
   }
 
   function test_clean_with_0_wants_ejects_offer() public {

@@ -87,7 +87,7 @@ library OfferLib {
   uint constant prev_bits  = 32;
   uint constant next_bits  = 32;
   uint constant tick_bits  = 21;
-  uint constant gives_bits = 96;
+  uint constant gives_bits = 127;
 
   // number of bits before each field
   uint constant prev_before  = 0           + 0;
@@ -117,7 +117,7 @@ library OfferLib {
   string constant prev_size_error  = "mgv/config/prev/32bits";
   string constant next_size_error  = "mgv/config/next/32bits";
   string constant tick_size_error  = "mgv/config/tick/21bits";
-  string constant gives_size_error = "mgv/config/gives/96bits";
+  string constant gives_size_error = "mgv/config/gives/127bits";
 
   // from packed to in-memory struct
   function to_struct(Offer __packed) internal pure returns (OfferUnpacked memory __s) { unchecked {

@@ -23,7 +23,7 @@ contract MgvOfferTest is Test2 {
     assertEq(packed.prev(),cast(prev,32),"bad prev");
     assertEq(packed.next(),cast(next,32),"bad next");
     assertEq(Tick.unwrap(packed.tick()),cast(Tick.unwrap(tick),21),"bad tick");
-    assertEq(packed.gives(),cast(gives,96),"bad gives");
+    assertEq(packed.gives(),cast(gives,127),"bad gives");
   }
 
   /* test_set_x tests:
@@ -74,7 +74,7 @@ contract MgvOfferTest is Test2 {
 
       Offer modified = packed.gives(gives);
 
-      assertEq(modified.gives(),cast(gives,96),"modified: bad gives");
+      assertEq(modified.gives(),cast(gives,127),"modified: bad gives");
 
       assertEq(modified.prev(),packed.prev(),"modified: bad prev");
       assertEq(modified.next(),packed.next(),"modified: bad next");

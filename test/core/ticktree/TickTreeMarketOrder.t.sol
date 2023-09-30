@@ -166,7 +166,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     run_market_order_scenario(
       MarketOrderScenario({
         lowerBin: BinListScenario({bin: Bin.wrap(0), size: 0, offersToTake: 0}),
-        middleBin: BinListScenario({bin: Bin.wrap(-1048575), size: 2, offersToTake: 2}),
+        middleBin: BinListScenario({bin: BIN_MIN_ALLOWED, size: 2, offersToTake: 2}),
         higherBin: BinListScenario({bin: Bin.wrap(0), size: 0, offersToTake: 0})
       }),
       true

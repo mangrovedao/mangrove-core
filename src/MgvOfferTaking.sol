@@ -399,7 +399,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.maxTick = tick;
       }
       {
-        require(uint96(takerWants) == takerWants, "mgv/clean/takerWants/96bits");
+        require(takerWants <= MAX_SAFE_VOLUME, "mgv/clean/takerWants/tooBig");
         mor.fillVolume = takerWants;
       }
       mor.taker = taker;
@@ -533,14 +533,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
 
         /* We update the totals in the multiorder based on the adjusted `sor.takerWants`/`sor.takerGives`. */
-        /* no overflow: sor.takerWants is on <= 104 bits */
         mor.totalGot += sor.takerWants;
-        /* sor.takerGives can be on 248 bits (max offer.gives * max ratio). Very remote overflow chances here. You would need both:
-        a) sum of offer.wants() so far to > 256 bits. With a max offerGives volume on 96 bits and a max tick of 2^20-1, wants is on 248 bits. So you'd need to go through 2^(256-248)=256 offers, which is currently above the max possible number of taken offers.
-        b) taker able to transfer more than 2^255-1 tokens, since this value is updated after the execution of the offer. It is theoretically possible if the maker sends the tokens back to the taker for instance.
-
-        Even then, you'd only be returning an undervalued totalGave value. */
+        require(mor.totalGot >= sor.takerWants, "mgv/totalGot/overflow");
         mor.totalGave += sor.takerGives;
+        require(mor.totalGave >= sor.takerGives, "mgv/totalGot/overflow");
       } else {
         /* In case of failure, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (mgvData, gasused, makerData) = innerDecode(retdata);

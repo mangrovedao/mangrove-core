@@ -47,34 +47,45 @@ contract TickAndBinTest is MangroveTest {
   }
 
   function test_ratioFromTick() public {
+    // The expected values given below are computed by doing:
+    // let price = 1.0001^tick
+    // let sig = round(price * 2^exp) with exp chosen such that sig uses 128 bits
+    // add or remove as necessary to match the error of the `ratioFromTick` function
     inner_test_ratioFromTick({
-      tick: Tick.wrap(2 ** 20 - 1),
-      expected_sig: 3441571814221581909035848501253497354125574144,
-      expected_exp: 0
+      tick: Tick.wrap(MAX_TICK),
+      expected_sig: MAX_RATIO_MANTISSA,
+      expected_exp: uint(MAX_RATIO_EXP)
     });
 
     inner_test_ratioFromTick({
+      tick: Tick.wrap(MIN_TICK),
+      expected_sig: MIN_RATIO_MANTISSA,
+      expected_exp: uint(MIN_RATIO_EXP)
+    });
+
+    // The +12 is the error
+    inner_test_ratioFromTick({
       tick: Tick.wrap(138162),
-      expected_sig: 5444510673556857440102348422228887810808479744,
-      expected_exp: 132
+      expected_sig: 324518124673179235464474464787774551547 + 12,
+      expected_exp: 108
     });
 
     inner_test_ratioFromTick({
       tick: Tick.wrap(-1),
-      expected_sig: 5708419928830956428590284849313049240594808832,
-      expected_exp: 152
+      expected_sig: 340248342086729790484326174814286782777,
+      expected_exp: 128
     });
 
     inner_test_ratioFromTick({
       tick: Tick.wrap(0),
-      expected_sig: 2854495385411919762116571938898990272765493248,
-      expected_exp: 151
+      expected_sig: 170141183460469231731687303715884105728,
+      expected_exp: 127
     });
 
     inner_test_ratioFromTick({
       tick: Tick.wrap(1),
-      expected_sig: 2854780834950460954092783596092880171791548416,
-      expected_exp: 151
+      expected_sig: 170158197578815278654860472446255694138,
+      expected_exp: 127
     });
   }
 
@@ -124,6 +135,30 @@ contract TickAndBinTest is MangroveTest {
     int tn = NUM_BINS / 2 + bin; // normalize to positive
     int index = tn / (LEAF_SIZE * (LEVEL_SIZE ** 2)) - NUM_LEVEL2 / 2;
     assertEq(Bin.wrap(bin).level2Index(), index);
+  }
+
+  function test_normalizeRatio_ko() public {
+    vm.expectRevert("mgv/normalizeRatio/mantissaIs0");
+    TickLib.normalizeRatio(0, 0);
+    vm.expectRevert("mgv/normalizeRatio/lowExp");
+    TickLib.normalizeRatio(type(uint).max, 0);
+  }
+
+  function test_tickFromNormalizedRatio_ko() public {
+    vm.expectRevert("mgv/tickFromRatio/tooLow");
+    TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA - 1, uint(MIN_RATIO_EXP));
+    vm.expectRevert("mgv/tickFromRatio/tooLow");
+    TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP + 1));
+    vm.expectRevert("mgv/tickFromRatio/tooHigh");
+    TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA + 1, uint(MAX_RATIO_EXP));
+    vm.expectRevert("mgv/tickFromRatio/tooHigh");
+    TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP - 1));
+  }
+
+  // check no revert
+  function test_tickFromNormalizedRatio_ok() public pure {
+    TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP));
+    TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP));
   }
 
   function test_bestBinFromBranch_matches_positions_accessor(

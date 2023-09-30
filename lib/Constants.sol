@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
+/* For all the relevant constants here, the non-literal expression that computes them is checked in `Constants.t.sol`. */
+
 uint constant ONE = 1; // useful to name it for drawing attention sometimes
 uint constant ONES = type(uint).max;
 uint constant TOPBIT = 1 << 255;
@@ -37,26 +39,30 @@ int constant NUM_BINS = 2097152;
 
 uint constant OFFER_MASK = 4294967295;
 
-
-
-// +/- 2**20-1 because only 20 bits are examined by the tick->ratio function
-int constant MIN_TICK = -1048575;
-int constant MAX_TICK = 1048575;
-uint constant MIN_RATIO_MANTISSA = 4735129379934731672174804159539094721182826496;
-int constant MIN_RATIO_EXP = 303;
-uint constant MAX_RATIO_MANTISSA = 3441571814221581909035848501253497354125574144;
+// The tick range is the largest such that 1.0001^MAX_TICK fits on 128 bits (and thus can be multiplied by volumes)
+int constant MIN_TICK = -887272;
+int constant MAX_TICK = 887272;
+// These are reference values for what the function will return, not the most possible accurate values for the min and max tick.
+uint constant MIN_RATIO_MANTISSA = 170153974464283981435225617938057077692;
+int constant MIN_RATIO_EXP = 255;
+uint constant MAX_RATIO_MANTISSA = 340256786836388094050805785052946541084;
 int constant MAX_RATIO_EXP = 0;
-uint constant MANTISSA_BITS = 152;
-uint constant MANTISSA_BITS_MINUS_ONE = 151;
-// Maximum volume that can be multiplied by a ratio mantissa
-uint constant MAX_SAFE_VOLUME = 20282409603651670423947251286015;
+/* `MANTISSA_BITS is the number of bits used in the mantissa of normalized floats that represent ratios. 128 means we can multiply all allowed volumes by the mantissa and not overflow. */
+uint constant MANTISSA_BITS = 128;
+uint constant MANTISSA_BITS_MINUS_ONE = 127;
+/* 
+With |tick|<=887272 and normalized mantissas on 128 bits, the maximum possible mantissa is 340282295208261841796968287475569060645, so the maximum safe volume before overflow is actually 340282438633630198193436196978374475856. 
+
+The immediate idea is to set MAX_SAFE_VOLUME to `(1<<max_safe_volume_bits)-1`, where `max_safe_volume_bits = 256-MANTISSA_BITS`, for simplicity. But we'd have `MAX_SAFE_VOLUME > 1.0001^MAX_TICK`, so a `*ByVolume` function called with `MAX_SAFE_VOLUME` and `1` as arguments would revert. To have uniform constraints on volumes everywhere, we just set `max_safe_volume_bits = 256 - MANTISSA_BITS - 1`.
+*/
+uint constant MAX_SAFE_VOLUME = 170141183460469231731687303715884105727;
 // Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe.
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
 
-// Price math limits the allowed ticks to a subset of the full range
-int constant MIN_BIN_ALLOWED = -1048575;
-int constant MAX_BIN_ALLOWED = 1048575;
+// Tick range limits the allowed bins to a subset of the full range
+int constant MIN_BIN_ALLOWED = MIN_TICK;
+int constant MAX_BIN_ALLOWED = MAX_TICK;
 
 // log_1.0001(2)
 uint constant LOG_BP_SHIFT = 235;

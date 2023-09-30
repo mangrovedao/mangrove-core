@@ -37,8 +37,8 @@ contract ConstantsTest is MangroveTest {
     assertGt(LEVEL_SIZE, 0, "level size too small");
   }
 
-  // checks that there is no overflow
-  function test_maxSafeVolumeIsSafeLowLevel() public {
+  // checks that there is no overflow, assert is useless but should prevent optimizing away
+  function test_max_safe_volume_is_safe_low_level() public {
     assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
   }
 
@@ -58,6 +58,10 @@ contract ConstantsTest is MangroveTest {
     assertLe(BitLib.fls(uint(-MIN_TICK)), 256 - LOG_BP_SHIFT, "MIN_TICK");
   }
 
+  function test_offer_limit_is_volume_limit() public {
+    assertEq((1 << OfferLib.gives_bits) - 1, MAX_SAFE_VOLUME);
+  }
+
   // Since constant expressions are (as of solidity 0.8.21) not evaluated at compile time, we write all constants in Constants.sol as literals and test their values here:
   function test_constant_expressions() public {
     assertEq(MAX_BIN, -MIN_BIN - 1, "MAX_BIN");
@@ -73,10 +77,8 @@ contract ConstantsTest is MangroveTest {
     assertEq(NUM_LEAFS, NUM_LEVEL3 * LEVEL_SIZE, "NUM_LEAFS");
     assertEq(NUM_BINS, NUM_LEAFS * LEAF_SIZE, "NUM_BINS");
     assertEq(OFFER_MASK, ONES >> (256 - OFFER_BITS), "OFFER_MASK");
-    assertEq(MIN_TICK, -((1 << 20) - 1), "MIN_TICK");
-    assertEq(MAX_TICK, -MIN_TICK, "MAX_TICK");
     assertEq(MANTISSA_BITS_MINUS_ONE, MANTISSA_BITS - 1, "MANTISSA_BITS_MINUS_ONE");
-    assertEq(MAX_SAFE_VOLUME, (1 << (256 - MANTISSA_BITS)) - 1, "MAX_SAFE_VOLUME");
+    assertEq(MAX_SAFE_VOLUME, (1 << (256 - MANTISSA_BITS - 1)) - 1, "MAX_SAFE_VOLUME");
     assertEq(MIN_BIN_ALLOWED, MIN_TICK, "MIN_BIN_ALLOWED");
     assertEq(MAX_BIN_ALLOWED, MAX_TICK, "MAX_BIN_ALLOWED");
   }

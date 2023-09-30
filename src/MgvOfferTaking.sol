@@ -484,7 +484,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         uint offerGives = sor.offer.gives();
         uint offerWants = sor.offer.wants();
         /* <a id="MgvOfferTaking/computeVolume"></a> Volume requested depends on total gives (or wants) by taker. Let `volume = sor.takerWants` if `mor.fillWants` is true, and `volume = sor.takerGives` otherwise; note that `volume <= fillVolume` in all cases. Example with `fillWants=true`: if `offerGives < fillVolume` the first branch of the outer `if` sets `volume = offerGives` and we are done; otherwise the 1st branch of the inner if is taken and sets `volume = fillVolume` and we are done. */
-        if ((mor.fillWants && offerGives < fillVolume) || (!mor.fillWants && offerWants < fillVolume)) {
+        if ((mor.fillWants && offerGives <= fillVolume) || (!mor.fillWants && offerWants <= fillVolume)) {
           sor.takerWants = offerGives;
           sor.takerGives = offerWants;
         } else {

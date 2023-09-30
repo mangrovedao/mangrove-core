@@ -38,7 +38,7 @@ uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(OfferLib.prev_mask_inv | OfferLib.
 library OfferExtra {
   // Compute wants from tick and gives
   function wants(Offer offer) internal pure returns (uint) {
-    return offer.tick().inboundFromOutbound(offer.gives());
+    return offer.tick().inboundFromOutboundUp(offer.gives());
   }
   // Sugar to test offer liveness
   function isLive(Offer offer) internal pure returns (bool resp) {
@@ -63,7 +63,7 @@ library OfferExtra {
 library OfferUnpackedExtra {
   // Compute wants from tick and gives
   function wants(OfferUnpacked memory offer) internal pure returns (uint) {
-    return offer.tick.inboundFromOutbound(offer.gives);
+    return offer.tick.inboundFromOutboundUp(offer.gives);
   }
   // Sugar to test offer liveness
   function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {

@@ -251,11 +251,6 @@ contract GatekeepingTest is MangroveTest {
     mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
-  function test_makerGives_wider_than_96_bits_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/writeOffer/gives/96bits");
-    mkr.newOfferByVolume(1, 1 << 96, 10_000);
-  }
-
   function test_makerGasreq_wider_than_24_bits_fails_newOfferByVolume() public {
     vm.expectRevert("mgv/writeOffer/gasreq/tooHigh");
     mkr.newOfferByVolume(1, 1, 1 << 24);

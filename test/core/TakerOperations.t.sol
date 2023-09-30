@@ -802,10 +802,11 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
-  function test_gives_volume_above_96bits_fails_clean() public {
+  function test_gives_volume_tooBig_fails_clean() public {
     uint ofr = failmkr.newOfferByTick(Tick.wrap(0), 1 ether, 100_000);
-    (uint successes,) =
-      mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 0, 1 << 96)), $(this));
+    (uint successes,) = mgv.cleanByImpersonation(
+      olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.wrap(0), 0, MAX_SAFE_VOLUME + 1)), $(this)
+    );
     assertEq(successes, 0, "cleaning should have failed");
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }

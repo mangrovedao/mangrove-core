@@ -37,7 +37,7 @@ contract ConstantsTest is MangroveTest {
     assertGt(LEVEL_SIZE, 0, "level size too small");
   }
 
-  // checks that there is no overflow
+  // checks that there is no overflow, assert is useless but should prevent optimizing away
   function test_maxSafeVolumeIsSafeLowLevel() public {
     assertGt(MAX_SAFE_VOLUME * ((1 << MANTISSA_BITS) - 1), 0);
   }
@@ -56,6 +56,10 @@ contract ConstantsTest is MangroveTest {
   function test_log_bp_shift() public {
     assertLe(BitLib.fls(uint(MAX_TICK)), 256 - LOG_BP_SHIFT, "MAX_TICK");
     assertLe(BitLib.fls(uint(-MIN_TICK)), 256 - LOG_BP_SHIFT, "MIN_TICK");
+  }
+
+  function test_offer_limit_is_volume_limit() public {
+    assertEq((1 << OfferLib.gives_bits) - 1, MAX_SAFE_VOLUME);
   }
 
   // Since constant expressions are (as of solidity 0.8.21) not evaluated at compile time, we write all constants in Constants.sol as literals and test their values here:

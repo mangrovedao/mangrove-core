@@ -237,7 +237,7 @@ contract MgvOfferMaking is MgvHasOffers {
       );
 
       /* The following checks are for the maker's convenience only. */
-      require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
+      require(OfferLib.gives_check(ofp.gives), "mgv/writeOffer/gives/tooBig");
 
       uint tickSpacing = ofp.olKey.tickSpacing;
       // normalize tick to tickSpacing

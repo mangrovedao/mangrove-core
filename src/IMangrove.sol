@@ -92,7 +92,7 @@ interface IMangrove is HasMgvEvents {
     external
     payable;
 
-  function marketOrderByTick(
+  function marketOrderByTickCustom(
     OLKey memory olKey,
     Tick maxTick,
     uint fillVolume,

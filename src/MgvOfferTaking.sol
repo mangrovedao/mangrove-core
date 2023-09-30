@@ -62,7 +62,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
-      return marketOrderByTick(olKey, maxTick, fillVolume, fillWants, 0);
+      return generalMarketOrder(olKey, maxTick, fillVolume, fillWants, msg.sender, 0);
     }
   }
 
@@ -73,11 +73,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
     Tick maxTick = TickLib.tickFromVolumes(takerGives, takerWants);
-    return marketOrderByTick(olKey, maxTick, fillVolume, fillWants);
+    return generalMarketOrder(olKey, maxTick, fillVolume, fillWants, msg.sender, 0);
   }
 
   /* If the offer list is filled with failing offers such that the default `maxGasreqForFailingOffers` is inadequate, this version of the market order lets the taker specify an upper bound on the gas they are ready to spend on failing offers. */
-  function marketOrderByTick(
+  function marketOrderByTickCustom(
     OLKey memory olKey,
     Tick maxTick,
     uint fillVolume,

@@ -115,7 +115,7 @@ library DensityLib {
     return (part >> 32) + (part%(2<<32) == 0 ? 0 : 1);
   }}
 
-  // Convenience function: get a fixed-point density from the given parameters. Computes the price of gas in outbound base tokens, then multiplies by cover_factor.
+  // Convenience function: get a fixed-point density from the given parameters. Computes the price of gas in outbound tokens (base units), then multiplies by cover_factor.
   // Warning: you must multiply input usd prices by 100
   // not supposed to be gas optimized
   function paramsTo96X32(

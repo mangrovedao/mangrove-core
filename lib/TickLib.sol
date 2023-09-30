@@ -284,7 +284,10 @@ library TickLib {
       extra_shift += 75;
     }
     if (Tick.unwrap(tick) > 0) {
-      man = type(uint).max / man;
+      // Use Remco Bloemen's trick to divide 2^256 by man: https://xn--2-umb.com/17/512-bit-division/#divide-2-256-by-a-given-number
+      assembly("memory-safe") {
+        man := add(div(sub(0, man), man), 1)
+      }
       extra_shift = -extra_shift;
     }
     exp = uint(128 + extra_shift);

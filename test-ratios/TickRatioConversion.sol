@@ -78,6 +78,11 @@ abstract contract TickRatioConversionTest is Test2 {
       Tick new_tick = TickLib.tickFromRatio(cur_sig, int(cur_exp));
       assertEq(Tick.unwrap(new_tick), ref.tick, "tickFromRatio not right inverse of ratioFromTick");
 
+      // To apply Remco Bloemen's 2^256/x trick in `TickLib.nonNormalizedRatioFromTick` and get an exact result, the mantissa must always be > 1
+      // See https://xn--2-umb.com/17/512-bit-division/#divide-2-256-by-a-given-number
+      // Note that approximating by type(uint).max/x works would work for our purposes.
+      assertGt(cur_sig, 1, string.concat("Must be > 1 ", vm.toString(ref.tick)));
+
       // Memory management
       assembly ("memory-safe") {
         mstore(0x40, free_mem)

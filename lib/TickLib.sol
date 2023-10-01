@@ -5,6 +5,18 @@ import {Bin} from "mgv_lib/BinLib.sol";
 import "mgv_lib/BitLib.sol";
 import "mgv_lib/Constants.sol";
 
+/* This file is inspired by Uniswap's approach to ticks, with the following notable changes:
+- directly compute ticks base 1.0001 (not base `sqrt(1.0001)`)
+- directly compute ratios (not `sqrt(ratio)`)
+- ratios are floating-point numbers (not fixed-point numbers)
+*/
+
+
+/* # TickLib
+
+The `TickLib` file contains tick math-related code and utilities for manipulating ticks. It also holds functions related to ratios, which are represented as (mantissa,exponent) pairs. */
+
+/* Globally enable `tick.method(...)` */
 type Tick is int;
 using TickLib for Tick global;
 
@@ -20,11 +32,18 @@ library TickLib {
     }
   }
 
-  // Returns the nearest, higher bin to the given tick at the given tickSpacing
+  /* Floats are normalized to 128 bits to ensure no overflow when multiplying with amounts, and for easier comparisons */ 
+  function floatLt(uint mantissa_a, int exp_a, uint mantissa_b, int exp_b) internal pure returns (bool) {
+    return (exp_a > exp_b || (exp_a == exp_b && mantissa_a < mantissa_b));
+  }
+
+  /* Returns the nearest, higher bin to the given `tick` at the given `tickSpacing`
+    
+    We do not force ticks to fit the tickSpacing (aka `tick%tickSpacing==0`). Ratios are rounded up that the maker is always paid at least what they asked for
+  */
   function nearestBin(Tick tick, uint tickSpacing) internal pure returns (Bin bin) {
-    // Do not force ticks to fit the tickSpacing (aka tick%tickSpacing==0)
-    // Round maker ratios up such that maker is always paid at least what they asked for
     unchecked {
+      // By default division rounds towards 0. Since `smod` is signed we get the sign of `tick` and `tick%tickSpacing` in a single instruction.
       assembly("memory-safe") {
         bin := sdiv(tick,tickSpacing)
         bin := add(bin,sgt(smod(tick,tickSpacing),0))
@@ -32,16 +51,18 @@ library TickLib {
     }
   }
 
-  // bin underestimates the ratio, so we underestimate  inbound here, i.e. the inbound/outbound ratio will again be underestimated
-  // no overflow if outboundAmt is on 104 bits
-  // rounds down
+  /* ## Conversion functions */
+
+  /* ### (inbound,tick) → outbound 
+  `inboundFromOutbound[Up]` converts an outbound amount (i.e. an `offer.gives` or a `takerWants`), to an inbound amount, following the price induced by `tick`. There's a rounding-up and a rounding-down variant.
+
+  `outboundAmt` should not exceed 127 bits.
+  */
   function inboundFromOutbound(Tick tick, uint outboundAmt) internal pure returns (uint) {
     (uint sig, uint exp) = ratioFromTick(tick);
     return (sig * outboundAmt) >> exp;
   }
 
-  // no overflow if outboundAmt is on 104 bits
-  // rounds up
   function inboundFromOutboundUp(Tick tick, uint outboundAmt) internal pure returns (uint) {
     unchecked {
       (uint sig, uint exp) = ratioFromTick(tick);
@@ -49,9 +70,11 @@ library TickLib {
     }
   }
 
-  // bin underestimates the ratio, and we underestimate outbound here, so ratio will be overestimated here
-  // no overflow if inboundAmt is on 104 bits
-  // rounds down
+  /* ### (outbound,tick) → inbound */
+  /* `outboundFromInbound[Up]` converts an inbound amount (i.e. an `offer.wants` or a `takerGives`), to an outbound amount, following the price induced by `tick`. There's a rounding-up and a rounding-down variant.
+
+  `inboundAmt` should not exceed 127 bits.
+  */
   function outboundFromInbound(Tick tick, uint inboundAmt) internal pure returns (uint) {
     (uint sig, uint exp) = ratioFromTick(Tick.wrap(-Tick.unwrap(tick)));
     return (sig * inboundAmt) >> exp;
@@ -64,9 +87,14 @@ library TickLib {
     }
   }
 
-  // returns a normalized ratio within the max/min ratio range
-  // returns max_ratio if at least outboundAmt==0
-  // returns min_ratio if only inboundAmt==0
+  /* ### (outbound,inbound) → ratio */
+
+  /* `outboundFromInbound[Up]` converts an inbound amount (i.e. an `offer.wants` or a `takerGives`), to an outbound amount, following the price induced by `tick`. There's a rounding-up and a rounding-down variant.
+
+  /* Convert a pair of (inbound,outbound) volumes to a floating-point, normalized ratio.
+  * `outboundAmt = 0` has a special meaning and the highest possible ratio will be returned.
+  * `inboundAmt = 0` has a special meaning if `outboundAmt != 0` and the lowest possible ratio will be returned.
+  */
   function ratioFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
     unchecked {
       require(inboundAmt <= MAX_SAFE_VOLUME, "mgv/ratioFromVol/inbound/tooBig");
@@ -89,20 +117,30 @@ library TickLib {
     }
   }
 
+  /* ### (outbound,inbound) → ratio */
   function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick tick) {
     (uint man, uint exp) = ratioFromVolumes(inboundAmt, outboundAmt);
     return tickFromNormalizedRatio(man,exp);
   }
 
-  // expects a normalized ratio float
+  /* ### ratio → tick */
+  /* Does not require a normalized ratio. */
   function tickFromRatio(uint mantissa, int exp) internal pure returns (Tick) {
     uint normalized_exp;
     (mantissa, normalized_exp) = normalizeRatio(mantissa, exp);
     return tickFromNormalizedRatio(mantissa,normalized_exp);
   }
 
-  // return greatest tick t such that ratio(tick) <= input ratio
-  // does not expect a normalized ratio float
+  /* ### low-level ratio → tick */
+  /* Given `ratio`, return greatest tick `t` such that `ratioFromTick(t) <= ratio`. 
+  * Input ratio must be within the maximum and minimum ratios returned by the available ticks. 
+  * Does _not_ expected a normalized float.
+  
+  The function works as follows:
+  * Approximate log2(ratio) to the 13th fractional digit.
+  * Following <a href="https://hackmd.io/@mangrovedao/HJvl21zla">https://hackmd.io/@mangrovedao/HJvl21zla</a>, obtain `tickLow` and `tickHigh` such that log_1.0001(ratio) is between them
+  * Return the highest one that yields a ratio below the input ratio.
+  */
   function tickFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (Tick tick) {
     if (floatLt(mantissa, int(exp), MIN_RATIO_MANTISSA, MIN_RATIO_EXP)) {
       revert("mgv/tickFromRatio/tooLow");
@@ -112,6 +150,13 @@ library TickLib {
     }
     int log2ratio = int(MANTISSA_BITS_MINUS_ONE) - int(exp) << 64;
     uint mpow = mantissa >> MANTISSA_BITS_MINUS_ONE - 127; // give 129 bits of room left
+
+    /* How the fractional digits of the log are computed: 
+    * for a given `n` compute $n^2$. 
+    * If $\lfloor\log_2(n^2)\rfloor = 2\lfloor\log_2(n)\rfloor$ then the fractional part of $\log_2(n^2)$ was $< 0.5$ (first digit is 0). 
+    * If $\lfloor\log_2(n^2)\rfloor = 1 + 2\lfloor\log_2(n)\rfloor$ then the fractional part of $\log_2(n^2)$ was $\geq 0.5$ (first digit is 1).
+    * Apply starting with `n=mpow` repeatedly by keeping `n` on 127 bits through right-shifts (has no impact on high fractional bits).
+    */
 
     assembly ("memory-safe") {
       // 13 bits of precision
@@ -180,9 +225,12 @@ library TickLib {
       log2ratio := or(log2ratio, shl(51, highbit))
     }
 
+    // Convert log base 2 to log base 1.0001 (multiply by `log2(1.0001)^-1 << 64`), since log2ratio is x64 this yields a x128 number.
     int log_bp_ratio = log2ratio * 127869479499801913173571;
 
+    // tickLow is approx - maximum error
     int tickLow = int((log_bp_ratio - 1701496478404567508395759362389778998) >> 128);
+    // tickHigh is approx + minimum error
     int tickHigh = int((log_bp_ratio + 289637967442836606107396900709005211253) >> 128);
 
     (uint mantissaHigh, uint expHigh) = ratioFromTick(Tick.wrap(tickHigh));
@@ -195,19 +243,39 @@ library TickLib {
     }
   }
 
-  // normalized float comparison
-  function floatLt(uint mantissa_a, int exp_a, uint mantissa_b, int exp_b) internal pure returns (bool) {
-    return (exp_a > exp_b || (exp_a == exp_b && mantissa_a < mantissa_b));
+  /* ### tick → ratio conversion function */
+  /* Returns a normalized (man,exp) ratio floating-point number. The mantissa is on 128 bits to avoid overflow when mulitplying with token amounts. The exponent has no bias. for easy comparison. */
+  function ratioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
+    unchecked {
+      (man, exp) = nonNormalizedRatioFromTick(tick);
+      int shiftedTick = Tick.unwrap(tick) << LOG_BP_SHIFT;
+      int log2ratio;
+      // floor log2 of ratio towards negative infinity
+      assembly ("memory-safe") {
+        log2ratio := sdiv(shiftedTick,LOG_BP_2X235)
+        log2ratio := sub(log2ratio,slt(smod(shiftedTick,LOG_BP_2X235),0))
+      }
+      int diff = log2ratio+int(exp)-int(MANTISSA_BITS_MINUS_ONE);
+      if (diff > 0) {
+        // For |tick| <= 887272, this drops at most 5 bits of precision
+        man = man >> uint(diff);
+      } else {
+        man = man << uint(-diff);
+      }
+      // For |tick| << 887272, log2ratio <= 127
+      exp = uint(int(MANTISSA_BITS_MINUS_ONE)-log2ratio);
+    }
   }
 
-  // return ratio from tick, as a non-normalized float (meaning the leftmost set bit is not always in the  same position)
-  // first return value is the mantissa, second value is the opposite of the exponent
-  // This functions works on all ticks that hold on 21 bits but applies the MAX_TICK constraint.
+  /* ### low-level tick → ratio conversion */
+  /* Compute 1.0001^tick and returns it as a (mantissa,exponent) pair. Works by checking each set bit of `|tick|` multiplying by `1.0001^(-2**i)<<128` if the ith bit of tick is set. Since we inspect the absolute value of `tick`, `-1048576` is not a valid tick. If the tick is positive this computes `1.0001^-tick`, and we take the inverse at the end. For maximum precision some powers of 1.0001 are shifted until they occupy 128 bits. The `extra_shift` is recorded and added to the exponent.
+
+  Since the resulting mantissa is left-shifted by 128 bits, if tick was positive, we divide `2**256` by the mantissa to get the 128-bit left-shifted inverse of the mantissa.
+  */
   function nonNormalizedRatioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
     uint absTick = Tick.unwrap(tick) < 0 ? uint(-Tick.unwrap(tick)) : uint(Tick.unwrap(tick));
     require(absTick <= uint(MAX_TICK), "mgv/absTick/outOfBounds");
 
-    // each 1.0001^(2^i) below is shifted 128+(an additional shift value)
     int extra_shift;
     if (absTick & 0x1 != 0) {
       man = 0xfff97272373d413259a46990580e2139;
@@ -279,7 +347,7 @@ library TickLib {
       extra_shift += 75;
     }
     if (Tick.unwrap(tick) > 0) {
-      // Use Remco Bloemen's trick to divide 2^256 by man: https://xn--2-umb.com/17/512-bit-division/#divide-2-256-by-a-given-number
+      /* We use [Remco Bloemen's trick](https://xn--2-umb.com/17/512-bit-division/#divide-2-256-by-a-given-number) to divide `2**256` by `man`: */
       assembly("memory-safe") {
         man := add(div(sub(0, man), man), 1)
       }
@@ -289,37 +357,7 @@ library TickLib {
 
   }
 
-  // return ratio from tick, as a normalized float
-  // first return value is the mantissa, second value is -exp
-  function ratioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
-    unchecked {
-      (man, exp) = nonNormalizedRatioFromTick(tick);
-      int shiftedTick = Tick.unwrap(tick) << LOG_BP_SHIFT;
-      int log2ratio;
-      // floor log2 of ratio towards negative infinity
-      assembly ("memory-safe") {
-        log2ratio := sdiv(shiftedTick,LOG_BP_2X235)
-        log2ratio := sub(log2ratio,slt(smod(shiftedTick,LOG_BP_2X235),0))
-      }
-      int diff = log2ratio+int(exp)-int(MANTISSA_BITS_MINUS_ONE);
-      if (diff > 0) {
-        // For |tick| <= 887272, this drops at most 5 bits of precision
-        man = man >> uint(diff);
-      } else {
-        man = man << uint(-diff);
-      }
-      // For |tick| << 887272, log2ratio <= 127
-      exp = uint(int(MANTISSA_BITS_MINUS_ONE)-log2ratio);
-    }
-  }
-
-  // normalize a ratio float
-  // normalizes a representation of mantissa * 2^-exp
-  // examples:
-  // 1 ether:1 -> normalizeRatio(1 ether, 0)
-  // 1: 1 ether -> normalizeRatio(1,?)
-  // 1:1 -> normalizeRatio(1,0)
-  // 1:2 -> normalizeRatio(1,1)
+  /* Shift mantissa so it occupies exactly `MANTISSA_BITS` and adjust `exp` in consequence. */
   function normalizeRatio(uint mantissa, int exp) internal pure returns (uint, uint) {
     require(mantissa != 0,"mgv/normalizeRatio/mantissaIs0");
     uint log2ratio = BitLib.fls(mantissa);
@@ -336,16 +374,16 @@ library TickLib {
     return (mantissa,uint(exp));
   }
 
-  // Return a/2**e rounded up
+  /* Return `a/(2**e)` rounded up */
   function divExpUp(uint a, uint e) internal pure returns (uint) {
     unchecked {
       uint rem;
       /* 
-      Let mask be (1<<e)-1, rem is 1 if a & mask > 0, and 0 otherwise.
+      Let mask be `(1<<e)-1`, `rem` is 1 if `a & mask > 0`, and 0 otherwise.
       Explanation:
-      * if a is 0 then rem must be 0. 0 & mask is 0.
-      * else if e > 255 then 0 < a < 2^e, so rem must be 1. (1<<e)-1 is type(uint).max, so a & mask is a > 0.
-      * else a & mask is a % 2**e
+      * if a is 0 then `rem` must be 0. `0 & mask` is 0.
+      * else if `e > 255` then `0 < a < 2^e`, so `rem` must be 1. `(1<<e)-1` is `type(uint).max`, so `a & mask is a > 0`.
+      * else `a & mask` is `a % 2**e`
       */
       assembly("memory-safe") {
         rem := gt(and(a,sub(shl(e,1),1)),0)

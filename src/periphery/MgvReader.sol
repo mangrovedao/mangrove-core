@@ -241,22 +241,22 @@ contract MgvReader {
     if (nextId == 0) {
       int index = offerBin.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseLeafToBin(offerBin);
+      leaf = leaf.eraseBelow(offerBin);
       if (leaf.isEmpty()) {
         index = offerBin.level3Index();
         Field field = MGV.level3(olKey, index);
-        field = field.eraseLevel3ToBin(offerBin);
+        field = field.eraseBelowInLevel3(offerBin);
         if (field.isEmpty()) {
           index = offerBin.level2Index();
           field = MGV.level2(olKey, index);
-          field = field.eraseLevel2ToBin(offerBin);
+          field = field.eraseBelowInLevel2(offerBin);
           if (field.isEmpty()) {
             index = offerBin.level1Index();
             field = MGV.level1(olKey, index);
-            field = field.eraseLevel1ToBin(offerBin);
+            field = field.eraseBelowInLevel1(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseRootToBin(offerBin);
+              field = field.eraseBelowInRoot(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }
@@ -293,22 +293,22 @@ contract MgvReader {
     if (prevId == 0) {
       int index = offerBin.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseFromBin(offerBin);
+      leaf = leaf.eraseAbove(offerBin);
       if (leaf.isEmpty()) {
         index = offerBin.level3Index();
         Field field = MGV.level3(olKey, index);
-        field = field.eraseLevel3FromBin(offerBin);
+        field = field.eraseAboveInLevel3(offerBin);
         if (field.isEmpty()) {
           index = offerBin.level2Index();
           field = MGV.level2(olKey, index);
-          field = field.eraseLevel2FromBin(offerBin);
+          field = field.eraseAboveInLevel2(offerBin);
           if (field.isEmpty()) {
             index = offerBin.level1Index();
             field = MGV.level1(olKey, index);
-            field = field.eraseLevel1FromBin(offerBin);
+            field = field.eraseAboveInLevel1(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseRootFromBin(offerBin);
+              field = field.eraseAboveInRoot(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }

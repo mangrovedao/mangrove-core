@@ -59,8 +59,8 @@ contract MgvCommon is HasMgvEvents {
   Gatekeeping functions are safety checks called in various places.
   */
 
-  /* `unlockedMarketOnly` protects modifying the offerList while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the offerList.  */
-  function unlockedMarketOnly(Local local) internal pure {
+  /* `unlockedOfferListOnly` protects modifying the offerList while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the offerList.  */
+  function unlockedOfferListOnly(Local local) internal pure {
     require(!local.lock(), "mgv/reentrancyLocked");
   }
 
@@ -75,7 +75,7 @@ contract MgvCommon is HasMgvEvents {
   }
 
   /* When Mangrove is deployed, all offerLists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offerLists cannot be taken or created. They can be updated and retracted. */
-  function activeMarketOnly(Global _global, Local _local) internal pure {
+  function activeOfferListOnly(Global _global, Local _local) internal pure {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");
   }

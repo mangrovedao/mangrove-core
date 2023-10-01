@@ -189,8 +189,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       mor.fillVolume = fillVolume;
 
       /* For the market order to even start, the market needs to be both active, and not currently protected from reentrancy. */
-      activeMarketOnly(sor.global, sor.local);
-      unlockedMarketOnly(sor.local);
+      activeOfferListOnly(sor.global, sor.local);
+      unlockedOfferListOnly(sor.local);
 
       /* ### Initialization */
       /* The market order will operate as follows : it will go through offers from best to worse, starting from `offerId`, and: */
@@ -416,8 +416,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.offerDetail = offerData.detail;
 
       /* For the snipes to even start, the market needs to be both active and not currently protected from reentrancy. */
-      activeMarketOnly(sor.global, sor.local);
-      unlockedMarketOnly(sor.local);
+      activeOfferListOnly(sor.global, sor.local);
+      unlockedOfferListOnly(sor.local);
 
       /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). */
       require(sor.offer.isLive(), "mgv/clean/offerNotLive");

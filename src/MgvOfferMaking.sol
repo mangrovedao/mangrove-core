@@ -61,8 +61,8 @@ contract MgvOfferMaking is MgvHasOffers {
       OfferPack memory ofp;
       OfferList storage offerList;
       (ofp.global, ofp.local, offerList) = _config(olKey);
-      unlockedMarketOnly(ofp.local);
-      activeMarketOnly(ofp.global, ofp.local);
+      unlockedOfferListOnly(ofp.local);
+      activeOfferListOnly(ofp.global, ofp.local);
       if (msg.value > 0) {
         creditWei(msg.sender, msg.value);
       }
@@ -115,8 +115,8 @@ contract MgvOfferMaking is MgvHasOffers {
       OfferPack memory ofp;
       OfferList storage offerList;
       (ofp.global, ofp.local, offerList) = _config(olKey);
-      unlockedMarketOnly(ofp.local);
-      activeMarketOnly(ofp.global, ofp.local);
+      unlockedOfferListOnly(ofp.local);
+      activeOfferListOnly(ofp.global, ofp.local);
       if (msg.value > 0) {
         creditWei(msg.sender, msg.value);
       }
@@ -144,7 +144,7 @@ contract MgvOfferMaking is MgvHasOffers {
   function retractOffer(OLKey memory olKey, uint offerId, bool deprovision) external returns (uint provision) {
     unchecked {
       (, Local local, OfferList storage offerList) = _config(olKey);
-      unlockedMarketOnly(local);
+      unlockedOfferListOnly(local);
       OfferData storage offerData = offerList.offerData[offerId];
       Offer offer = offerData.offer;
       OfferDetail offerDetail = offerData.detail;

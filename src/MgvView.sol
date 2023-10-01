@@ -11,7 +11,7 @@ contract MgvView is MgvCommon {
   function config(OLKey memory olKey) external view returns (Global _global, Local _local) {
     unchecked {
       (_global, _local,) = _config(olKey);
-      unlockedMarketOnly(_local);
+      unlockedOfferListOnly(_local);
     }
   }
 
@@ -19,7 +19,7 @@ contract MgvView is MgvCommon {
   function local(OLKey memory olKey) external view returns (Local _local) {
     unchecked {
       (, _local,) = _config(olKey);
-      unlockedMarketOnly(_local);
+      unlockedOfferListOnly(_local);
     }
   }
 
@@ -41,7 +41,7 @@ contract MgvView is MgvCommon {
   function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(offerList.local);
+      unlockedOfferListOnly(offerList.local);
       return offerList.leafs[index].clean();
     }
   }
@@ -50,7 +50,7 @@ contract MgvView is MgvCommon {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
-      unlockedMarketOnly(_local);
+      unlockedOfferListOnly(_local);
 
       if (_local.bestBin().level3Index() == index) {
         return _local.level3();
@@ -64,7 +64,7 @@ contract MgvView is MgvCommon {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
-      unlockedMarketOnly(_local);
+      unlockedOfferListOnly(_local);
 
       if (_local.bestBin().level2Index() == index) {
         return _local.level2();
@@ -78,7 +78,7 @@ contract MgvView is MgvCommon {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
-      unlockedMarketOnly(_local);
+      unlockedOfferListOnly(_local);
 
       if (_local.bestBin().level1Index() == index) {
         return _local.level1();
@@ -92,7 +92,7 @@ contract MgvView is MgvCommon {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
-      unlockedMarketOnly(_local);
+      unlockedOfferListOnly(_local);
       return _local.root();
     }
   }
@@ -111,7 +111,7 @@ contract MgvView is MgvCommon {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       Local _local = offerList.local;
-      unlockedMarketOnly(_local);
+      unlockedOfferListOnly(_local);
       return offerList.leafs[_local.bestBin().leafIndex()].clean().getNextOfferId();
     }
   }
@@ -129,7 +129,7 @@ contract MgvView is MgvCommon {
   function offers(OLKey memory olKey, uint offerId) external view returns (Offer offer) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(offerList.local);
+      unlockedOfferListOnly(offerList.local);
       return offerList.offerData[offerId].offer;
     }
   }
@@ -138,7 +138,7 @@ contract MgvView is MgvCommon {
   function offerDetails(OLKey memory olKey, uint offerId) external view returns (OfferDetail offerDetail) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(offerList.local);
+      unlockedOfferListOnly(offerList.local);
       return offerList.offerData[offerId].detail;
     }
   }
@@ -147,7 +147,7 @@ contract MgvView is MgvCommon {
   function offerData(OLKey memory olKey, uint offerId) external view returns (Offer offer, OfferDetail offerDetail) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(offerList.local);
+      unlockedOfferListOnly(offerList.local);
       OfferData storage _offerData = offerList.offerData[offerId];
       return (_offerData.offer, _offerData.detail);
     }

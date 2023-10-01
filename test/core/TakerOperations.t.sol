@@ -1214,7 +1214,7 @@ contract TakerOperationsTest is MangroveTest {
     deal($(base), address(mkr), type(uint).max);
     deal($(quote), address(this), type(uint).max);
 
-    uint ofrId = mkr.newOfferByTick(Tick.wrap(MAX_TICK), MAX_SAFE_VOLUME, 100_000);
+    mkr.newOfferByTick(Tick.wrap(MAX_TICK), MAX_SAFE_VOLUME, 100_000);
     mkr.newOfferByTick(Tick.wrap(MAX_TICK), MAX_SAFE_VOLUME, 100_000);
     (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, Tick.wrap(MAX_TICK), MAX_SAFE_VOLUME, true);
     assertEq(got, MAX_SAFE_VOLUME);

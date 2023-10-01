@@ -178,11 +178,6 @@ library TickLib {
       mpow := shr(127, mul(mpow, mpow))
       highbit := shr(128, mpow)
       log2ratio := or(log2ratio, shl(51, highbit))
-      mpow := shr(highbit, mpow)
-
-      mpow := shr(127, mul(mpow, mpow))
-      highbit := shr(128, mpow)
-      log2ratio := or(log2ratio, shl(50, highbit))
     }
 
     int log_bp_ratio = log2ratio * 127869479499801913173571;

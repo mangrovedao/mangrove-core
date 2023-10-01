@@ -72,6 +72,8 @@ uint constant MAX_SAFE_VOLUME = 170141183460469231731687303715884105727;
 
 /* When a market order consumes offers, the implementation uses recursion consumes additional EVM stack space at each new offer. To avoid reverting du to stack overflow, Mangrove keeps a counter and stops the market order when it reaches a maximum recursion depth. `INITIAL_MAX_RECURSION_DEPTH` is the maximum recursion depth given at deployment time.
 
+See `maxRecursionDepth` in `structs.ts`
+
 Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe. */
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 

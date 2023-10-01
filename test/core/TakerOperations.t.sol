@@ -1206,6 +1206,20 @@ contract TakerOperationsTest is MangroveTest {
       );
     }
   }
+
+  function test_mo_with_extremely_high_offer_wants() public {
+    mkr.provisionMgv(1 ether);
+    mkr.approveMgv(base, type(uint).max);
+    quote.approve($(mgv), type(uint).max);
+    deal($(base), address(mkr), type(uint).max);
+    deal($(quote), address(this), type(uint).max);
+
+    uint ofrId = mkr.newOfferByTick(Tick.wrap(MAX_TICK), MAX_SAFE_VOLUME, 100_000);
+    mkr.newOfferByTick(Tick.wrap(MAX_TICK), MAX_SAFE_VOLUME, 100_000);
+    (uint got, uint gave,,) = mgv.marketOrderByTick(olKey, Tick.wrap(MAX_TICK), MAX_SAFE_VOLUME, true);
+    assertEq(got, MAX_SAFE_VOLUME);
+    assertEq(gave, MAX_SAFE_VOLUME * MAX_RATIO_MANTISSA);
+  }
 }
 
 contract BadMangrove is Mangrove {

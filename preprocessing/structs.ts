@@ -11,6 +11,8 @@
     
    **Let the devs know about any error, typo etc, by contacting 	devs@mangrove.exchange**
 
+   More documentation / discussions can be found at https://docs.mangrove.exchange/.
+
 
   There is one Mangrove contract that manages all tradeable offer lists. This reduces deployment costs for new offer lists and lets market makers have all their provision for all offer lists in the same place.
 

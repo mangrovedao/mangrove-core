@@ -55,7 +55,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   The market order stops when the price exceeds (an approximation of) 1.0001^`maxTick`, or when the end of the book has been reached, or:
   * If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound` have been obtained. To buy a specific volume of `olKey.outbound` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
-  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound` have been sold. To sell a specific volume of `olKey.inbound` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant. */
+  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound` have been sold. To sell a specific volume of `olKey.inbound` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
+  
+  For a maximum `fillVolume` and a maximum (when `fillWants=true`) or minimum (when `fillWants=false`) price, the taker can end up receiving a volume of about `2**255` tokens. */
 
   function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     public
@@ -248,7 +250,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* ### Initialization */
       /* The market order will operate as follows : it will go through offers from best to worse, starting from `offerId`, and: */
-      /* keep an up-to-date `fillWants`.
+      /* keep an up-to-date `fillVolume`.
        * not set `prev`/`next` pointers to their correct locations at each offer taken (this is an optimization enabled by forbidding reentrancy).
        * after consuming a segment of offers, will update the current `best` offer to be the best remaining offer on the book. */
 
@@ -660,7 +662,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       address maker = sor.offerDetail.maker();
       uint oldGas = gasleft();
       /* We let the maker pay for the overhead of checking remaining gas and making the call, as well as handling the return data (constant gas since only the first 32 bytes of return data are read). So the `require` below is just an approximation: if the overhead of (`require` + cost of `CALL`) is $h$, the maker will receive at worst $\textrm{gasreq} - \frac{63h}{64}$ gas. */
-      /* Note : as a possible future feature, we could stop an order when there's not enough gas left to continue processing offers. This could be done safely by checking, as soon as we start processing an offer, whether `63/64(gasleft-offer_gasbase) > gasreq`. If no, we could stop and know by induction that there is enough gas left to apply fees, stitch offers, etc for the offers already executed. */
       if (!(oldGas - oldGas / 64 >= gasreq)) {
         innerRevert([bytes32("mgv/notEnoughGasForMakerTrade"), "", ""]);
       }

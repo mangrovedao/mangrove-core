@@ -2,9 +2,9 @@
 
 The goal of Mangrove v2 is constant-time offer insertion.
 
-**Why we need it**: when an `offer` is executed, it may insert other offers. Since `offer.gasreq` is fixed, these insertions must take a constant amount of gas. In Mangrove v1, offer insertion walks a doubly-linked list, so it does not use a constant amount of gas.
+**Why we need it**: when an `offer` is executed, it may insert other offers. Since `offer.gasreq` is fixed, these changes must take a constant amount of gas. In Mangrove v1, offer insertion walks a doubly linked list, so it does not use a constant amount of gas.
 
-**How we get it**: by structuring offers in a fixed-height tree, with 'bins' at the leafs. Each bin is a doubly-linked list. When an offer is inserted, it gets appended at the end of the appropriate bin. Equally-priced offers are no longer sorted by their density (the density of an offer is the amount of tokens they promise per unit of gas they consume).
+**How we get it**: by structuring offers in a fixed-height tree, with 'bins' at the leafs. Each bin is a doubly linked list. When an offer is inserted, it gets appended at the end of the appropriate bin. Equally-priced offers are no longer sorted by their density (the density of an offer is the amount of tokens they promise per unit of gas they consume).
 
 Overview of the changes between v1 and v2:
 
@@ -30,7 +30,9 @@ To make the transition easy, the volume-based API for market orders, order inser
 
 The volume-based version of the market order also interprets the price induced by `takerWants,takerGives` as a true limit price (not as a limit average price).
 
-## Density is stored as a float and presented as a fixed-point number
+## Several parameter sizes have changed
+
+### Density is stored as a float and presented as a fixed-point number
 
 To reduce gas use, we cache more data than before in the `local` storage slot of each market. To make some room, the `density` parameter is no longer a 112 bit integer but a 9-bit floating-point number. It has a 2-bit mantissa and a 7-bit exponent. The minimum increment between two densities is 25%, but we do not need more precision than that.
 
@@ -38,11 +40,31 @@ That change in representation also extends the available `density` range to frac
 
 The external representation of density is not a float but a 96.32 fixed-point number. It is easier to manipulate that way.
 
+### `offer_gasbase` is now `kilo_offer_gasbase`
+
+The unit is no longer gas but kilogas, and it fits on 9 bits (formerly 24 bits).
+
+### `gasprice` is now in mwei
+
+The unit is no longer gwei but gwei, and it fits on 26 bits (formerly 16 bits).
+
 ## Sniping has been restricted to Cleaning
 
 Offers can no longer be executed individually ('sniping'), unless their execution ends in failure. Otherwise, their execution is reverted. We rename 'sniping' to 'cleaning'.
 
 We could not find a legitimate use for snipe other than the cleaning of failing offers. Also, some strategies could be broken by the full snipe functionality.
+
+## Makers cannot read the offer list during `makerExecute``
+
+Makers can no longer read the offer list during `makerExecute`` for the following reasons:
+
+- Prevent makers from distinguishing between a market order and a cleaning. To prevent makerExecute from detecting cleaning
+- Avoid the gas cost of keeping the offer list up-to-date for `makerExecute``. A number of optimizations are in place which mean that local, leafs, and levels may not be up-to-date.
+
+Two measures have been added to achieve this:
+
+- The existing offer list lock is now enforced as a read-lock as well in all the view functions.
+- All fields in the `SingleOrder` struct that pertain to the offer list/tick tree structure are cleared (set to zero) before they are passed to `makerExecute`.
 
 ## Mangrove is split into two contracts and uses delegatecall internally
 

@@ -7,8 +7,10 @@ import "mgv_lib/Constants.sol";
 
 /* This file is inspired by Uniswap's approach to ticks, with the following notable changes:
 - directly compute ticks base 1.0001 (not base `sqrt(1.0001)`)
-- directly compute ratios (not `sqrt(ratio)`)
-- ratios are floating-point numbers (not fixed-point numbers)
+- directly compute ratios (not `sqrt(ratio)`) (simpler code elsewhere when dealing with actual ratios and logs of ratios)
+- ratios are floating-point numbers, not fixed-point numbers (increases precision when computing amounts)
+
+
 */
 
 
@@ -89,9 +91,7 @@ library TickLib {
 
   /* ### (outbound,inbound) → ratio */
 
-  /* `outboundFromInbound[Up]` converts an inbound amount (i.e. an `offer.wants` or a `takerGives`), to an outbound amount, following the price induced by `tick`. There's a rounding-up and a rounding-down variant.
-
-  /* Convert a pair of (inbound,outbound) volumes to a floating-point, normalized ratio.
+  /* `ratioFromVolumes` converts a pair of (inbound,outbound) volumes to a floating-point, normalized ratio.
   * `outboundAmt = 0` has a special meaning and the highest possible ratio will be returned.
   * `inboundAmt = 0` has a special meaning if `outboundAmt != 0` and the lowest possible ratio will be returned.
   */
@@ -138,7 +138,7 @@ library TickLib {
   
   The function works as follows:
   * Approximate log2(ratio) to the 13th fractional digit.
-  * Following <a href="https://hackmd.io/@mangrovedao/HJvl21zla">https://hackmd.io/@mangrovedao/HJvl21zla</a>, obtain `tickLow` and `tickHigh` such that log_1.0001(ratio) is between them
+  * Following <a href="https://hackmd.io/@mangrovedao/HJvl21zla">https://hackmd.io/@mangrovedao/HJvl21zla</a>, obtain `tickLow` and `tickHigh` such that $\log_{1.0001}(ratio)$ is between them
   * Return the highest one that yields a ratio below the input ratio.
   */
   function tickFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (Tick tick) {

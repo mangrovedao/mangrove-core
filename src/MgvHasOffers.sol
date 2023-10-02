@@ -27,7 +27,8 @@ contract MgvHasOffers is MgvCommon {
   /* # Misc. low-level functions */
   /* ## Offer deletion */
 
-  /* When an offer is deleted, it is marked as such by setting `gives` to 0. Note that provision accounting in Mangrove aims to minimize writes. Each maker `fund`s Mangrove to increase its balance. When an offer is created/updated, we compute how much should be reserved to pay for possible penalties. That amount can always be recomputed with
+  /* When an offer is deleted, it is marked as such by setting `gives` to 0 and leaving other fields intact. Note that provision accounting in Mangrove aims to minimize writes. Each maker `fund`s Mangrove to increase its balance. When an offer is created/updated, we compute how much should be reserved to pay for possible penalties. That amount can always be recomputed with
+
   
   ```
   offerDetail.gasprice * 1e6 * (offerDetail.gasreq + offerDetail.offer_gasbase)

@@ -62,7 +62,7 @@ library MgvLib {
     uint offerId;
     /* The `offer` given to the maker will be cleaned of `prev`/`next` pointers. */
     Offer offer;
-    /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's ratio and volume. */
+    /* `takerWants`/`takerGives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's ratio and volume. */
     uint takerWants;
     uint takerGives;
     /* `offerDetail` is only populated when necessary. */
@@ -91,7 +91,7 @@ library MgvLib {
 }
 
 /* # Events
-The events emitted for use by bots are listed here: */
+The events emitted are listed here: */
 interface HasMgvEvents {
   /* 
     Events in solidity is a hard thing to do in a optimal way. If you look at it as a purely gas efficient issue, you want to emit as few events as possible and with as few fields as possible. But as events also has to be usable for an off chain user, then doing this is not always the best solution.

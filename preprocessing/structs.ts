@@ -29,15 +29,14 @@
 
    ## Tree storage
 
-   The exposed structure of offers is a list, but offers are actually stored in a tree we call a "tick tree". 
+   Offers are stored in a tree we call a "tick tree". Thanks to this tree structure, offer operations (insert, update, and retract) take constant time (the height of the tree is fixed).
 
-   Thanks to the tree structure, offer insertion takes constant time (the height of the tree is fixed).
 
    ### Bins
 
    <img src="./bin.png" width="80%"></img>
 
-   Below the bottom of the tree are _bins_. A bin is a doubly-linked list of offers. All offers in a bin have the same tick. During a market order, offers in a bin are executed in order, from the first to the last. Inserted offers are always appended at the end of a bin. 
+   Below the bottom of the tree are _bins_. A bin is a doubly linked list of offers. All offers in a bin have the same tick. During a market order, offers in a bin are executed in order, from the first to the last. Inserted offers are always appended at the end of a bin. 
 
    Bins are laid in sequence. If all the offers in a bin have tick `t`, all the offers in the following bin have tick `t+tickSpacing`.
 
@@ -50,19 +49,23 @@
 
    At the bottom of the tree, leaves contain information about 4 bins: their first and last offer. Offer ids use 32 bits, so leaves use 256 bits.
 
-   When a market order runs, execution starts with the first offer of the smallest nonempty bin and continues from there.
+   When a market order runs, execution starts with the first offer of the lowest-numbered nonempty bin and continues from there.
 
-   Once all the offers in the smallest bin have been executed, the next nonempty bin is found. If the leaf of the current bin now only has empty bins, the node above the current leaf contains a bit field with information about all its children: if the *i*th bit of the node is set, its *i*th child has at least one nonempty bin. Otherwise, its *i*th child only has empty bins.
+  Once all the offers in the smallest bin have been executed, the next non-empty bin is found. If the leaf of the current bin now only has empty bins, the tree must be searched for the next non-empty bin, starting at the node above the leaf:
+   
+   A non-leaf node contains a bit field with information about all its children: if the *i*th bit of the node is set, its *i*th child has at least one non-empty bin. Otherwise, its *i*th child only has empty bins.
 
-   To find the next nonempty bin, it may be necessary to keep going up the tree until the root is reached. At each level above, the bit field rule applies similarly: the *i*th bit of a node is set iff its *i*th child has at least one set bit.
+   To find the next non-empty bin, it may be necessary to keep going up the tree until the root is reached. At each level above, the bit field rule applies similarly: the *i*th bit of a node is set iff its *i*th child has at least one set bit.
 
    Once a node with a set bit is found, its rightmost nonempty child is examined, and so on until the next nonempty bin is reached, and the first offer of that bin gets executed.
 
    ## Caching
 
-   At any time, if there is at least one offer in the offer list, the best offer is the first offer of the bin containing the cheapest offers; and that bin is the best bin. Its parent is the best `level3`, whose parent is the best `level2`, and whose parent is the best `level3` (whose parent is the `root`). 
+   At any time, if there is at least one offer in the offer list, the best offer is the first offer of the bin containing the cheapest offers; and that bin is the best bin. Its parent is the best `level3`, whose parent is the best `level2`, and whose parent is the best `level1` (whose parent is the `root`). 
 
-   The `root`, the best `level1`, the  best`level2`, and the best `level3` are always stored in `local`. The position of the best bin in the best leaf is also stored in `local`. 
+
+   The `root`, the best `level1`, the  best `level2`, and the best `level3` are always stored in `local`. The position of the best bin in the best leaf is also stored in `local`. 
+
 
    This data is useful for two things:
    - Read and modify the tree branch of the best offer without additional storage reads and writes (except for modifying the best leaf).
@@ -72,6 +75,7 @@
    <img src="./local_config.png" width="140%"></img>
 
   This caching means that as the price oscillates within a more restricted range, fewer additional storage read/writes have to be performed (as most of the information is available in `local`) when there is a market order or an offer insertion/update.
+
 
   ## Some numbers
   Here are some useful numbers, for reference:
@@ -155,7 +159,7 @@ const id_field = (name: string) => {
 
 /* ## `Offer` */
 //+clear+
-/* `Offer`s hold doubly-linked list pointers to their prev and next offers, as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
+/* `Offer`s hold doublylinked list pointers to their prev and next offers, as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
 //+clear+
 const struct_defs = {
   offer: {
@@ -282,7 +286,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "root", bits: 2, type: "Field", underlyingType: "uint" },
-      /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to an offerList, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
+      /* * `offer_gasbase` represents the gas overhead used by processing the offer inside Mangrove + the overhead of initiating an entire order. Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to an offerList, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.kilo_offer_gasbase,
       /* * If `lock` is true, orders may not be added nor executed.
 

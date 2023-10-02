@@ -10,7 +10,7 @@ import {Local} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 /* # Libraries for tick tree manipulation 
 
-Offers in Mangrove are structured in a tree so that offer insertion can happen in constant time.
+Offers in Mangrove are structured in a tree so that offer insertion, removal, and update can happen in constant time.
 
 The tree has the following structure: nodes at height 0, 1, 2 and 3 are bit fields (type `Field`) and nodes at height 4 (leaves) are arrays of pairs of offers (type `Leaf`).
 
@@ -167,7 +167,7 @@ library LeafLib {
 }
 
 
-/* Bins are numbered from MIN_BIN to MAX_BIN. Each bin contains the offers at a given price. For a given `tickSpacing`, bins represent the following prices (centered on the central bin): 
+/* Bins are numbered from MIN_BIN to MAX_BIN (inclusive). Each bin contains the offers at a given price. For a given `tickSpacing`, bins represent the following prices (centered on the central bin): 
 ```
 ...
 1.0001^-(tickSpacing*2)

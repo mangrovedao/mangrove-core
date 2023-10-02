@@ -95,7 +95,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
 
   /* # Misc. low-level functions */
 
-  /* Used by `*For` functions, its both checks that `msg.sender` was allowed to use the taker's funds, and decreases the former's allowance. */
+  /* Used by `*For` functions, it both checks that `msg.sender` was allowed to use the taker's funds, and decreases the former's allowance. */
   function deductSenderAllowance(address outbound_tkn, address inbound_tkn, address owner, uint amount) internal {
     unchecked {
       mapping(address => uint) storage curriedAllow = _allowances[outbound_tkn][inbound_tkn][owner];

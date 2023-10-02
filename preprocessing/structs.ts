@@ -12,7 +12,7 @@
    **Let the devs know about any error, typo etc, by contacting 	devs@mangrove.exchange**
 
 
-  There is one Mangrove contract that manages all tradeable offerLists. This reduces deployment costs for new offerLists and lets market makers have all their provision for all offerLists in the same place.
+  There is one Mangrove contract that manages all tradeable offer lists. This reduces deployment costs for new offer lists and lets market makers have all their provision for all offer lists in the same place.
 
    The interaction map between the different actors is as follows:
    <img src="./contactMap.png" width="190%"></img>
@@ -240,7 +240,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
   },
 
   /* ## Global Configuration
-   Configuration information for an offer list is split between a `global` struct (common to all offerLists) and a `local` struct specific to each offerList. Global configuration fields are:
+   Configuration information for an offer list is split between a `global` struct (common to all offer lists) and a `local` struct specific to each offer list. Global configuration fields are:
    */
   global: {
     fields: [
@@ -267,7 +267,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
   /* ## Local configuration */
   local: {
     fields: [
-      /* * An offerList is not `active` by default, but may be activated/deactivated by governance. */
+      /* * An offer list is not `active` by default, but may be activated/deactivated by governance. */
       { name: "active", bits: 1, type: "bool" },
       /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to Mangrove. Fee is capped to ~2.5%. */
       { name: "fee", bits: 8, type: "uint" },
@@ -277,7 +277,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       
       */
       { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
-      /* To save on gas, Mangrove cache the entire tick tree branch of the bin that contains the best offer in each offerList's `local` parameter. Taken together, `binPosInLeaf`, `level3`, `level2`, `level1` and `root` provide the following info:
+      /* To save on gas, Mangrove cache the entire tick tree branch of the bin that contains the best offer in each offer list's `local` parameter. Taken together, `binPosInLeaf`, `level3`, `level2`, `level1` and `root` provide the following info:
       - What the current bin is (see `BinLib.bestBinFromLocal`)
       - When a leaf is emptied and the next offer must be fetched, the information in the fields `level3`, `level2`, `level1` and `root` avoid multiple storage reads
       */
@@ -286,7 +286,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "root", bits: 2, type: "Field", underlyingType: "uint" },
-      /* * `offer_gasbase` represents the gas overhead used by processing the offer inside Mangrove + the overhead of initiating an entire order. Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to an offerList, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
+      /* * `offer_gasbase` represents the gas overhead used by processing the offer inside Mangrove + the overhead of initiating an entire order. Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to an offer list, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.kilo_offer_gasbase,
       /* * If `lock` is true, orders may not be added nor executed.
 

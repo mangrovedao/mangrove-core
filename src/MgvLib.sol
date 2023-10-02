@@ -100,7 +100,7 @@ interface HasMgvEvents {
 
     1. Use as little gas as possible.
     2. An indexer should be able to keep track of the state of Mangrove.
-    3. Doing RPC calls directly, should be able to find offers and other information based on offerList, maker, taker, offer id, etc.
+    3. Doing RPC calls directly, should be able to find offers and other information based on offer list, maker, taker, offer id, etc.
 
     These forces are in conflict and it is impossible to find a solution that is optimal for all three.
     The following events are therefore an attempt to balance the trade-offs.
@@ -130,7 +130,7 @@ interface HasMgvEvents {
       - When retracting an offer and deprovisioning it. Meaning the user gets credited the provision that was locked by the offer.
       - When an offer fails. The remaining provision gets credited back to the maker
 
-      A challenge for an indexer is to know how much provision each offer locks. With the current events, an indexer is going to have to know the liveness, gasreq and gasprice of the offer. If the offer is not live, then also know if it has been deprovisioned. And know what the gasbase of the offerList was when the offer was posted. With this information an indexer can calculate the exact provision locked by the offer.
+      A challenge for an indexer is to know how much provision each offer locks. With the current events, an indexer is going to have to know the liveness, gasreq and gasprice of the offer. If the offer is not live, then also know if it has been deprovisioned. And know what the gasbase of the offer list was when the offer was posted. With this information an indexer can calculate the exact provision locked by the offer.
 
       The indexer also cannot deduce what scenario the credit event happened. E.g., we don't know if the credit event happened because an offer failed or because the user simply funded Mangrove.
   */
@@ -155,9 +155,9 @@ interface HasMgvEvents {
 
   /* ### Mangrove reconfiguration */
   /*  
-  This event is emitted when an offerList is activated or deactivated. Meaning one half of a market is opened.
+  This event is emitted when an offer list is activated or deactivated. Meaning one half of a market is opened.
 
-  It emits the `olKeyHash` and the boolean `value`. By emitting this, an indexer will be able to keep track of what offerLists are active and what their hash is.
+  It emits the `olKeyHash` and the boolean `value`. By emitting this, an indexer will be able to keep track of what offer lists are active and what their hash is.
 
   The `olKeyHash` and both token addresses are indexed, so that we can filter on it when doing RPC calls.
   */
@@ -166,9 +166,9 @@ interface HasMgvEvents {
   );
 
   /*
-  This event is emitted when the fee of an offerList is changed.
+  This event is emitted when the fee of an offer list is changed.
 
-  It emits the `olKeyHash` and the `value`. By emitting this, an indexer will be able to keep track of what fee each offerList has.
+  It emits the `olKeyHash` and the `value`. By emitting this, an indexer will be able to keep track of what fee each offer list has.
 
   The `olKeyHash` is indexed, so that we can filter on it when doing RPC calls.
   */
@@ -176,9 +176,9 @@ interface HasMgvEvents {
   event SetFee(bytes32 indexed olKeyHash, uint value);
 
   /*
-  This event is emitted when the gasbase of an offerList is changed.
+  This event is emitted when the gasbase of an offer list is changed.
 
-  It emits the `olKeyHash` and the `offer_gasbase`. By emitting this, an indexer will be able to keep track of what gasbase each offerList has.
+  It emits the `olKeyHash` and the `offer_gasbase`. By emitting this, an indexer will be able to keep track of what gasbase each offer list has.
 
   The `olKeyHash` is indexed, so that we can filter on it when doing RPC calls.
   */
@@ -230,9 +230,9 @@ interface HasMgvEvents {
   event SetGasmax(uint value);
 
   /*
-  This event is emitted when the density of an offerList is changed.
+  This event is emitted when the density of an offer list is changed.
 
-  It emits the `olKeyHash` and the `density`. By emitting this, an indexer will be able to keep track of what density each offerList has.
+  It emits the `olKeyHash` and the `density`. By emitting this, an indexer will be able to keep track of what density each offer list has.
 
   The `olKeyHash` is indexed, so that we can filter on it when doing RPC calls.
   */
@@ -265,7 +265,7 @@ interface HasMgvEvents {
   /*
   This event is emitted when a user tries to clean offers on Mangrove, using the build in clean functionality.
 
-  It emits the `olKeyHash`, the `taker` address and `offersToBeCleaned`, which is the number of offers that should be cleaned. By emitting this event, an indexer can save what `offerList` the user is trying to clean and what `taker` is being used. 
+  It emits the `olKeyHash`, the `taker` address and `offersToBeCleaned`, which is the number of offers that should be cleaned. By emitting this event, an indexer can save what `offer list` the user is trying to clean and what `taker` is being used. 
   This way it can keep a context for the following events being emitted (Just like `OrderStart`). The `offersToBeCleaned` is emitted so that an indexer can keep track of how many offers the user tried to clean. 
   Combining this with the amount of `OfferFail` events emitted, then an indexer can know how many offers the user actually managed to clean. This could be used for analytics.
 
@@ -291,7 +291,7 @@ interface HasMgvEvents {
   The fields `olKeyHash` and `taker` are indexed, so that we can filter on them when doing RPC calls.
 
   By emitting this an indexer can keep track of what context the current market order is in. 
-  E.g. if a user starts a market order and one of the offers taken also starts a market order, then we can in an indexer have a stack of started market orders and thereby know exactly what offerList the order is running on and the taker.
+  E.g. if a user starts a market order and one of the offers taken also starts a market order, then we can in an indexer have a stack of started market orders and thereby know exactly what offer list the order is running on and the taker.
 
   By emitting `maxTick`, `fillVolume` and `fillWants`, we can now also know how much of the market order was filled and if it matches the ratio given. See OrderComplete for more.
   */
@@ -379,7 +379,7 @@ interface HasMgvEvents {
   ### After `permit` and `approve` 
     This is emitted when a user permits another address to use a certain amount of its funds to do market orders, or when a user revokes another address to use a certain amount of its funds.
 
-    Approvals are based on the pair of outbound and inbound token. Be aware that it is not offerList bases, as an offerList also holds the tick spacing.
+    Approvals are based on the pair of outbound and inbound token. Be aware that it is not offer list bases, as an offer list also holds the tick spacing.
 
     We emit `outbound` token, `inbound` token, `owner`, msg.sender (`spender`), `value`. Where `owner` is the one who owns the funds, `spender` is the one who is allowed to use the funds and `value` is the amount of funds that is allowed to be used.
 
@@ -397,7 +397,7 @@ interface HasMgvEvents {
 
   It emits the `olKeyHash`, the `maker` address, the `tick`, the `gives`, the `gasprice`, `gasreq` and the offers `id`.
 
-  By emitting the `olKeyHash` and `id`, an indexer will be able to keep track of each offer, because offerList and id together create a unique id for the offer. By emitting the `maker` address, we are able to keep track of who has posted what offer. The `tick` and `gives`, enables an indexer to know exactly how much an offer is willing to give and at what ratio, this could for example be used to calculate a return. The `gasprice` and `gasreq`, enables an indexer to calculate how much provision is locked by the offer, see `Credit` for more information.
+  By emitting the `olKeyHash` and `id`, an indexer will be able to keep track of each offer, because offer list and id together create a unique id for the offer. By emitting the `maker` address, we are able to keep track of who has posted what offer. The `tick` and `gives`, enables an indexer to know exactly how much an offer is willing to give and at what ratio, this could for example be used to calculate a return. The `gasprice` and `gasreq`, enables an indexer to calculate how much provision is locked by the offer, see `Credit` for more information.
 
   The fields `olKeyHash` and `maker` are indexed, so that we can filter on them when doing RPC calls.
   */
@@ -430,7 +430,7 @@ interface IMaker {
 }
 
 /* # Monitor interface
-If enabled, the monitor receives notification after each offer execution and is read for each offerList's `gasprice` and `density`. */
+If enabled, the monitor receives notification after each offer execution and is read for each offer list's `gasprice` and `density`. */
 interface IMgvMonitor {
   function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external;
 

@@ -72,7 +72,7 @@ contract MgvReader {
   /**
    * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`.
    * @notice The array of structs `_openMarkets` is the array of all currently open markets (up to a delay in calling `updateMarkets`). A market is a triplet of tokens `(tkn0,tkn1,tickSpacing)`. The which token is 0 which token is 1 is non-meaningful but canonical (see `order`).
-   * @notice In this contract, 'markets' are defined by non-oriented offerLists. Usually markets come with a base/quote orientation. Please keep that in mind.
+   * @notice In this contract, 'markets' are defined by non-oriented offer lists. Usually markets come with a base/quote orientation. Please keep that in mind.
    * @notice A market {tkn0,tkn1} is open if either the tkn0/tkn1 offer list is active or the tkn1/tkn0 offer list is active.
    */
 
@@ -112,7 +112,7 @@ contract MgvReader {
 
   // # Offer view functions
 
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
+  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offer lists[outbound_tkn][inbound_tkn].offers` and `offer lists[outbound_tkn][inbound_tkn].offerDetails` instead. */
   function offerInfo(OLKey memory olKey, uint offerId)
     public
     view

@@ -26,7 +26,7 @@ contract MgvCommon is HasMgvEvents {
 
   /* `OfferList` contains all data specific to an offer list. */
   struct OfferList {
-    /* `local` is the Mangrove configuration specific to the `outbound,inbound,tickSpacing` offerList. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.*/
+    /* `local` is the Mangrove configuration specific to the `outbound,inbound,tickSpacing` offer list. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.*/
     Local local;
     /* `level1s` maps a level1 index to a (dirty) field. Each field holds 64 bits marking the (non)empty state of 64 level2 fields. */
     mapping(int => DirtyField) level1s;
@@ -42,12 +42,12 @@ contract MgvCommon is HasMgvEvents {
 
   /* OLKeys (see `MgvLib.sol`) are hashed to a bytes32 OLKey identifier, which get mapped to an `OfferList` struct. Having a single mapping instead of one mapping per field in `OfferList` means we can pass around a storage reference to that struct. */
   mapping(bytes32 => OfferList) internal offerLists;
-  /* For convenience, and to enable future functions that access offerLists by directly supplying an OLKey identifier, Mangrove maintains an inverse `id -> key` mapping. */
+  /* For convenience, and to enable future functions that access offer lists by directly supplying an OLKey identifier, Mangrove maintains an inverse `id -> key` mapping. */
   mapping(bytes32 => OLKey) internal _olKeys;
 
   /* Makers provision their possible penalties in the `balanceOf` mapping.
 
-       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision an amount of native tokens that depends on their `gasreq` and on the offerList's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker as a `penalty`. The exact amount depends on the gas used by the offer before failing and during the execution of its posthook.
+       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision an amount of native tokens that depends on their `gasreq` and on the offer list's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker as a `penalty`. The exact amount depends on the gas used by the offer before failing and during the execution of its posthook.
 
        Mangrove keeps track of available balances in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
      */
@@ -59,7 +59,7 @@ contract MgvCommon is HasMgvEvents {
   Gatekeeping functions are safety checks called in various places.
   */
 
-  /* `unlockedOfferListOnly` protects modifying the offerList while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the offerList.  */
+  /* `unlockedOfferListOnly` protects modifying the offer list while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the offer list.  */
   function unlockedOfferListOnly(Local local) internal pure {
     require(!local.lock(), "mgv/reentrancyLocked");
   }
@@ -74,7 +74,7 @@ contract MgvCommon is HasMgvEvents {
     require(!_global.dead(), "mgv/dead");
   }
 
-  /* When Mangrove is deployed, all offerLists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offerLists cannot be taken or created. They can be updated and retracted. */
+  /* When Mangrove is deployed, all offer lists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offer lists cannot be taken or created. They can be updated and retracted. */
   function activeOfferListOnly(Global _global, Local _local) internal pure {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");
@@ -131,7 +131,7 @@ contract MgvCommon is HasMgvEvents {
 
   /* # Permit-related functionality */
 
-  /* Takers may provide allowances on specific offerLists, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
+  /* Takers may provide allowances on specific offer lists, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
 
   The mapping is `outbound_tkn => inbound_tkn => owner => spender => allowance`. There is no `tickSpacing` specified since we assume the natural semantics of a permit are "`spender` has the right to trade token A against token B at any tickSpacing". */
   mapping(

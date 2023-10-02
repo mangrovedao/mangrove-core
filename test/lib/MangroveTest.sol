@@ -200,7 +200,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     vm.label($(_mgv), "Mangrove");
   }
 
-  // Deploy mangrove with an offerList
+  // Deploy mangrove with an offer list
   function setupMangrove(OLKey memory _ol) public returns (IMangrove _mgv) {
     _mgv = setupMangrove();
     setupMarket(IMangrove($(_mgv)), _ol);

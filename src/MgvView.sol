@@ -7,7 +7,7 @@ import "mgv_src/MgvCommon.sol";
 /* Contains view functions, to reduce Mangrove contract size */
 contract MgvView is MgvCommon {
   /* # Configuration Reads */
-  /* Reading the configuration for an offer list involves reading the config global to all offerLists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
+  /* Reading the configuration for an offer list involves reading the config global to all offer lists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
   function config(OLKey memory olKey) external view returns (Global _global, Local _local) {
     unchecked {
       (_global, _local,) = _config(olKey);
@@ -116,7 +116,7 @@ contract MgvView is MgvCommon {
     }
   }
 
-  /* Get the olKey that corresponds to a hash, only works for offerLists that have been activated > 0 times */
+  /* Get the olKey that corresponds to a hash, only works for offer lists that have been activated > 0 times */
   function olKeys(bytes32 olKeyHash) external view returns (OLKey memory olKey) {
     unchecked {
       olKey = _olKeys[olKeyHash];

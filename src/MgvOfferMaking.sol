@@ -37,7 +37,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   An offer cannot be inserted in a closed market, nor when a reentrancy lock for `outbound_tkn`,`inbound_tkn` is on.
 
-  No more than $2^{32}-1$ offers can ever be created for one (`outbound`,`inbound`, `tickSpacing`) offerList.
+  No more than $2^{32}-1$ offers can ever be created for one (`outbound`,`inbound`, `tickSpacing`) offer list.
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`. */
 
@@ -47,7 +47,7 @@ contract MgvOfferMaking is MgvHasOffers {
     returns (uint offerId)
   {
     unchecked {
-      /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn`, `tickSpacing` offerList configuration, check for reentrancy and offer list liveness, fill the `OfferPack` struct and increment the offerList's `last`. */
+      /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn`, `tickSpacing` offer list configuration, check for reentrancy and offer list liveness, fill the `OfferPack` struct and increment the offer list's `last`. */
       OfferPack memory ofp;
       OfferList storage offerList;
       (ofp.global, ofp.local, offerList) = _config(olKey);
@@ -122,7 +122,7 @@ contract MgvOfferMaking is MgvHasOffers {
       Local oldLocal = ofp.local;
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
       writeOffer(offerList, ofp, tick, true);
-      /* We saved the current offerList's local configuration before calling `writeOffer`, since that function may update it. We now check for any change to the configuration and update it if needed. */
+      /* We saved the current offer list's local configuration before calling `writeOffer`, since that function may update it. We now check for any change to the configuration and update it if needed. */
       if (!oldLocal.eq(ofp.local)) {
         offerList.local = ofp.local;
       }

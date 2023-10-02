@@ -28,12 +28,12 @@ library LocalExtra {
     return local.kilo_offer_gasbase(val/1e3);
   }}
 
-  /* Returns the bin that contains the best offer in \`local\`'s offerList */
+  /* Returns the bin that contains the best offer in \`local\`'s offer list */
   function bestBin(Local local) internal pure returns (Bin) { unchecked {
     return BinLib.bestBinFromLocal(local);
   }}
 
-  /* Erases field that give information about the current structure of the offerList. */
+  /* Erases field that give information about the current structure of the offer list. */
   function clearFieldsForMaker(Local local) internal pure returns (Local) { unchecked {
     return Local.wrap(
       Local.unwrap(local)
@@ -58,7 +58,7 @@ library LocalUnpackedExtra {
     local.kilo_offer_gasbase = val/1e3;
   }}
 
-  /* Returns the bin that contains the best offer in \`local\`'s offerList */
+  /* Returns the bin that contains the best offer in \`local\`'s offer list */
   function bestBin(LocalUnpacked memory local) internal pure returns (Bin) { unchecked {
     return BinLib.bestBinFromBranch(local.binPosInLeaf,local.level3,local.level2,local.level1,local.root);
   }}

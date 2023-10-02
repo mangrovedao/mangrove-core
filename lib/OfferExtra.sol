@@ -24,7 +24,7 @@ library OfferExtra {
     }
   }
 
-  /* Get the bin where the offer is stored given an offerList that has `tickSpacing` */
+  /* Get the bin where the offer is stored given an offer list that has `tickSpacing` */
   function bin(Offer offer, uint tickSpacing) internal pure returns (Bin) {
     return offer.tick().nearestBin(tickSpacing);
   }

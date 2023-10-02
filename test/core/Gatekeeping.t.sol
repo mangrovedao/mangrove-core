@@ -375,7 +375,7 @@ contract GatekeepingTest is MangroveTest {
 
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offerList must work");
+    assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offer list must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
@@ -422,7 +422,7 @@ contract GatekeepingTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 400_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offerList must work");
+    assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offer list must work");
   }
 
   function test_updateOffer_on_posthook_succeeds() public {
@@ -471,7 +471,7 @@ contract GatekeepingTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 110_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");
+    assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offer list must work");
   }
 
   function test_retractOffer_on_posthook_succeeds() public {

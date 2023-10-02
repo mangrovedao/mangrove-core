@@ -37,7 +37,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   An offer cannot be inserted in a closed market, nor when a reentrancy lock for `outbound_tkn`,`inbound_tkn` is on.
 
-  No more than $2^{32}-1$ offers can ever be created for one (`outbound_tkn`,`inbound_tkn`, `tickSpacing`) offerList.
+  No more than $2^{32}-1$ offers can ever be created for one (`outbound`,`inbound`, `tickSpacing`) offerList.
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`. */
 

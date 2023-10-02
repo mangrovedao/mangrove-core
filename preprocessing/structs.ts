@@ -210,7 +210,7 @@ They have the following fields: */
 
     If an offer fails, `gasprice` Mwei is taken from the
     provision per unit of gas used. `gasprice` should approximate the average gas
-    ratio at offer creation time.
+    price at offer creation time.
 
     `kilo_offer_gasbase` is the actual field name, and is _9 bits wide_ and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
 

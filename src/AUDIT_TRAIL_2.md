@@ -17,7 +17,7 @@ Overview of the changes between v1 and v2:
 
 ## Prices are discrete and granularity is configurable
 
-Since prices in v2 are structured in a tree, they must be less granular than before. We use a relative-tick-based approach, as in Uniswap v3+. An offer at tick `t` has price ~`1.0001^t``.
+Since prices in v2 are structured in a tree, they must be less granular than before. We use a relative-tick-based approach, as in Uniswap v3+. An offer at tick `t` has price ~`1.0001^t`.
 
 In addition, "`(outbound,inbound)` token pairs" are now "`(outbound,inbound,tickSpacing)` offer lists". As in Uniswap, a high `tickSpacing` decreases the price granularity.
 

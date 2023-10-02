@@ -14,7 +14,7 @@ uint constant NOT_TOPBIT = 0x7ffffffffffffffffffffffffffffffffffffffffffffffffff
 uint constant TICK_BITS = 21;
 /* Number of bits used to represent an offer id */
 uint constant OFFER_BITS = 32;
-/* Maximum possible size of a field -- protects against wrong code changes. Constraint given by BitLib.ctz64 */
+/* Maximum possible size of a field -- protects against wrong code changes. Constraint given by `BitLib.ctz64`. */
 uint constant MAX_FIELD_SIZE = 64;
 
 /* `X_SIZE_BITS` is 1+log2 of the size of `X`, where size is the number of elements it holds.In a field, an element is a bit; in a leaf, an element is a pair of offer ids. For `LEVEL`s and `ROOT`, the value must be exact, so only power-of-2 sizes are allowed. */

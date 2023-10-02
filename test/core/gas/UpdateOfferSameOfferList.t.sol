@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 
 // Note: These are very similar to the NewOffer tests.

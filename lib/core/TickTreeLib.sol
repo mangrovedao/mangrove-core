@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import "mgv_lib/Constants.sol";
-import {Tick} from "mgv_lib/TickLib.sol";
-import {BitLib} from "mgv_lib/BitLib.sol";
+import "mgv_lib/core/Constants.sol";
+import {Tick} from "mgv_lib/core/TickLib.sol";
+import {BitLib} from "mgv_lib/core/BitLib.sol";
 import {console2 as csf} from "forge-std/console2.sol";
-import {Local} from "mgv_src/preprocessed/MgvLocal.post.sol";
+import {Local} from "mgv_src/preprocessed/Local.post.sol";
 
 
 /* # Libraries for tick tree manipulation 
@@ -182,9 +182,9 @@ There are 4 bins per leaf, `4 * 64` bins per level3, etc. The leaf of a bin is t
 
 /* Globally enable `bin.method(...)` */
 type Bin is int;
-using BinLib for Bin global;
+using TickTreeLib for Bin global;
 
-library BinLib {
+library TickTreeLib {
 
   function eq(Bin bin1, Bin bin2) internal pure returns (bool) {
     unchecked {

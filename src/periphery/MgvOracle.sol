@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 /* The purpose of the Oracle contract is to act as a gas price and density
  * oracle for Mangrove. It bridges to an external oracle, and allows

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
-import {BinLib} from "mgv_lib/BinLib.sol";
-import "mgv_src/MgvLib.sol";
+import {TickTreeLib} from "mgv_lib/core/TickTreeLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {

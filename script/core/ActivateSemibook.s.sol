@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import "mgv_lib/Test2.sol";
-import {IERC20} from "mgv_src/IERC20.sol";
-import "mgv_src/MgvLib.sol";
+import {IERC20} from "mgv_lib/IERC20.sol";
+import "mgv_src/core/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
 uint constant COVER_FACTOR = 1000;

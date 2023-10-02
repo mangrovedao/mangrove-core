@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
   IMangrove mgv;

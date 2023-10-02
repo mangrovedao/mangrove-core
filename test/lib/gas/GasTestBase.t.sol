@@ -3,9 +3,9 @@
 pragma solidity ^0.8.18;
 
 import {IMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import "mgv_lib/Debug.sol";
-import {BinLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/BinLib.sol";
+import {TickTreeLib, Bin, LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/core/TickTreeLib.sol";
 
 // A bin with room for bits above and below at all bin levels, except at root which has only 2 bits.
 // forgefmt: disable-start

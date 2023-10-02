@@ -18,7 +18,7 @@ import {
   OLKey
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {BinLib} from "mgv_lib/BinLib.sol";
+import {TickTreeLib} from "mgv_lib/core/TickTreeLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* There are 2 ways to take offers in Mangrove:

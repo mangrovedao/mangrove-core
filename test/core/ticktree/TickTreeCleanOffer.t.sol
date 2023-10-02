@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 // Tests of Mangrove.cleanByImpersonation's interaction with the tick tree.

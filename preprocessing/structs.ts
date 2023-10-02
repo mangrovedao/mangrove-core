@@ -91,7 +91,7 @@
 
 /* # Preprocessing
 
-The current file (`structs.js`) is used in `MgvStructs.pre.sol` (not shown here) to generate the libraries in `MgvType.pre.sol`. Here is an example of js struct specification and of a generated library:
+The current file (`structs.js`) is used in `Structs.pre.sol` (not shown here) to generate the libraries in `Struct.pre.sol`. Here is an example of js struct specification and of a generated library:
 ```
 struct_defs = {
   universe: [
@@ -178,9 +178,9 @@ const struct_defs = {
       /* * `gives` is the amount of `outbound_tkn` the offer will give if successfully executed. _127 bits wide_. */
       fields.gives,
     ],
-    additionalDefinitions: `import {Bin} from "mgv_lib/BinLib.sol";
-import {Tick} from "mgv_lib/TickLib.sol";
-import {OfferExtra,OfferUnpackedExtra} from "mgv_lib/OfferExtra.sol";
+    additionalDefinitions: `import {Bin} from "mgv_lib/core/TickTreeLib.sol";
+import {Tick} from "mgv_lib/core/TickLib.sol";
+import {OfferExtra,OfferUnpackedExtra} from "mgv_lib/core/OfferExtra.sol";
 
 using OfferExtra for Offer global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -238,7 +238,7 @@ They have the following fields: */
       /* * `gasprice` is in Mwei/gas and _26 bits wide_, which accommodates 0.001 to ~67k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
       fields.gasprice,
     ],
-    additionalDefinitions: (struct) => `import {OfferDetailExtra,OfferDetailUnpackedExtra} from "mgv_lib/OfferDetailExtra.sol";
+    additionalDefinitions: (struct) => `import {OfferDetailExtra,OfferDetailUnpackedExtra} from "mgv_lib/core/OfferDetailExtra.sol";
 using OfferDetailExtra for OfferDetail global;
 using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
 `,
@@ -306,10 +306,10 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       id_field("last"),
     ],
     /* Import additional libraries for `Local` and `LocalExtra`. */
-    additionalDefinitions: (struct) => `import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
-import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
+    additionalDefinitions: (struct) => `import {Density, DensityLib} from "mgv_lib/core/DensityLib.sol";
+import {Bin,TickTreeLib,Field} from "mgv_lib/core/TickTreeLib.sol";
 /* Globally enable global.method(...) */
-import {LocalExtra,LocalUnpackedExtra} from "mgv_lib/LocalExtra.sol";
+import {LocalExtra,LocalUnpackedExtra} from "mgv_lib/core/LocalExtra.sol";
 using LocalExtra for Local global;
 using LocalUnpackedExtra for LocalUnpacked global;
 `,

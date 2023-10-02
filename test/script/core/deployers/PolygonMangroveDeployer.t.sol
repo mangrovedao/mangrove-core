@@ -8,8 +8,8 @@ import {BaseMangroveDeployerTest} from "./BaseMangroveDeployer.t.sol";
 
 import {Test2, Test} from "mgv_lib/Test2.sol";
 
-import "mgv_src/MgvLib.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
+import "mgv_src/core/MgvLib.sol";
+import {Mangrove} from "mgv_src/core/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";

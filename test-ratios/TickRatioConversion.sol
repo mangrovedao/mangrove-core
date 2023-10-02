@@ -3,9 +3,9 @@
 pragma solidity ^0.8.10;
 
 import "mgv_lib/Test2.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import "mgv_lib/Debug.sol";
-import "mgv_lib/TickLib.sol";
+import "mgv_lib/core/TickLib.sol";
 
 // Will check that ratios are within 1/RELATIVE_ERROR_THRESHOLD of reference ratios
 uint constant RELATIVE_ERROR_THRESHOLD = 1e15;

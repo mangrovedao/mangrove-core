@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import {Bin} from "mgv_lib/BinLib.sol";
-import "mgv_lib/BitLib.sol";
-import "mgv_lib/Constants.sol";
+import {Bin} from "mgv_lib/core/TickTreeLib.sol";
+import "mgv_lib/core/BitLib.sol";
+import "mgv_lib/core/Constants.sol";
 
 /* This file is inspired by Uniswap's approach to ticks, with the following notable changes:
 - directly compute ticks base 1.0001 (not base `sqrt(1.0001)`)

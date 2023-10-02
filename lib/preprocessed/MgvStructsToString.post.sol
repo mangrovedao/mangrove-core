@@ -10,7 +10,7 @@ pragma solidity ^0.8.13;
 import "../MiscToString.sol";
 
 
-  import {Offer, OfferUnpacked} from "mgv_src/preprocessed/MgvOffer.post.sol";
+  import {Offer, OfferUnpacked} from "mgv_src/preprocessed/Offer.post.sol";
   function toString(Offer __packed) pure returns (string memory) {
     return toString(__packed.to_struct());
   }

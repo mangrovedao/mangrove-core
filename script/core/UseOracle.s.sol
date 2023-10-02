@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 contract UseOracle is Deployer {
   function run() public {

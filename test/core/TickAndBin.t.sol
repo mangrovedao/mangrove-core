@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_lib/Test2.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import "mgv_test/lib/MangroveTest.sol";
 
 contract TickAndBinTest is MangroveTest {
@@ -179,7 +179,7 @@ contract TickAndBinTest is MangroveTest {
     local = local.level2(level2);
     local = local.level1(level1);
     local = local.root(root);
-    Bin bin = BinLib.bestBinFromLocal(local);
+    Bin bin = TickTreeLib.bestBinFromLocal(local);
     assertEq(bin.posInLeaf(), binPosInLeaf, "wrong pos in leaf");
     assertEq(bin.posInLevel3(), BitLib.ctz64(Field.unwrap(level3)), "wrong pos in level3");
     assertEq(bin.posInLevel2(), BitLib.ctz64(Field.unwrap(level2)), "wrong pos in level2");

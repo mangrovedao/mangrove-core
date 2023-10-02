@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import "./TickTreeTest.t.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 // Tests of the assumptions made about bins in the TickTreeTests.

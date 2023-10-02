@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_lib/Test2.sol";
-import {BitLib} from "mgv_lib/BitLib.sol";
+import {BitLib} from "mgv_lib/core/BitLib.sol";
 
 contract BitLibTest is Test2 {
   // adapted from solady's LibBit.t.sol

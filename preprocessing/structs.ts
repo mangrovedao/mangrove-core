@@ -212,7 +212,7 @@ They have the following fields: */
     provision per unit of gas used. `gasprice` should approximate the average gas
     price at offer creation time.
 
-    `kilo_offer_gasbase` is the actual field name, and is _9 bits wide_ and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
+    `kilo_offer_gasbase` is the actual field name, is _9 bits wide_, and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
 
     `kilo_offer_gasbase` is also the name of a local Mangrove
     parameter. When an offer is created, its current value is copied from Mangrove local configuration. The maker does not choose it.

@@ -193,7 +193,7 @@ using OfferUnpackedExtra for OfferUnpacked global;
 They have the following fields: */
   offerDetail: {
     fields: [
-      /* * `maker` is the address that created the offer. It will be called when the offer is executed, and later during the posthook phase. */
+      /* * `maker` is the address that created the offer. It will be called when the offer is executed and later during the posthook phase. */
       { name: "maker", bits: 160, type: "address" },
       /* * <a id="structs.js/gasreq"></a>`gasreq` gas will be provided to `execute`. _24 bits wide_, i.e. around 16M gas. Note that if more room was needed, we could bring it down to 16 bits and have it represent 1k gas increments.
 

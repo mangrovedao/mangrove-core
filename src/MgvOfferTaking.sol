@@ -513,7 +513,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      Summary of the meaning of the return values:
     * `gasused` is the gas consumed by the execution
     * `makerData` is the data returned after executing the offer
-    * <a id="MgvOfferTaking/internalStatusCodes"></a>`mgvData` is a status code internal to `execute`. It can hold [any value that `mgvData` can hold](#MgvOfferTaking/statusCodes). Within `execute`, it can additionally hold the following values:
+    * <a id="MgvOfferTaking/internalStatusCodes"></a>`internalMgvData` is a status code internal to `execute`. It can hold [any value that `mgvData` can hold](#MgvOfferTaking/statusCodes). Within `execute`, it can additionally hold the following values:
       * `"mgv/notEnoughGasForMakerTrade"`: cannot give maker close enough to `gasreq`. Triggers a revert of the entire order.
       * `"mgv/takerTransferFail"`: taker could not send olKey.inbound tokens. Triggers a revert of the entire order.
   */

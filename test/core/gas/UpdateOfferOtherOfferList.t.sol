@@ -31,7 +31,7 @@ contract ExternalUpdateOfferOtherOfferList_WithOtherOfferGasTest is TickTreeBoun
     _offerId = mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, 100_000, 0);
     mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, 100_000, 0);
     description =
-      "Updating an offer when another offer exists at various tick-distances to the offer's new ratio (initial same ratio)";
+      "Updating an offer when another offer exists at various tick-distances to the offer's new price (initial same price)";
   }
 
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId, Bin _bin) internal override {
@@ -48,7 +48,7 @@ contract ExternalUpdateOfferOtherOfferList_WithOtherOfferAndOfferOnSameBinGasTes
     super.setUp();
     this.newOfferOnAllTestRatios();
     description =
-      "Updating an offer when another offer exists at various bin-distances to the new offer ratio but also on the same bin";
+      "Updating an offer when another offer exists at various bin-distances to the new offer price but also on the same bin";
   }
 }
 

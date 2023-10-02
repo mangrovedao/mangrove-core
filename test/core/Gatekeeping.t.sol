@@ -553,7 +553,7 @@ contract GatekeepingTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.5 ether, 0.3 ether);
     // assertGt(takerGot,0,"mo should work");
-    // should execute 0 offers due to ratio mismatch
+    // should execute 0 offers due to price mismatch
     assertEq(takerGot, 0, "mo should fail");
     assertTrue(mgv.offers(olKey, ofr).gives() > 0, "offer should still be live");
     assertFalse(mkr.makerExecuteWasCalled(ofr), "ofr must not be executed or test is void");

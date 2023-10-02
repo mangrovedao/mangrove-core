@@ -178,7 +178,7 @@ abstract contract ExternalCleanOfferOtherOfferList_WithOtherOfferAndOfferOnSameB
   function setUpBin(Bin _bin) public virtual override {
     super.setUpBin(_bin);
     description =
-      "Retracting an offer when another offer exists at various bin-distances to the offer ratio but also on the same bin";
+      "Retracting an offer when another offer exists at various bin-distances to the offer price but also on the same bin";
   }
 }
 

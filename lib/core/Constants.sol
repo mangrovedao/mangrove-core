@@ -64,7 +64,7 @@ With `|tick|<=887272` and normalized mantissas on 128 bits, the maximum possible
 
 For ease of use, we could pick a simpler, slightly smaller max safe volume: `(1<<128)-1`.
 
-However the `*ByVolume` functions get a ratio by (abstractly) performing `outboundAmount/inboundAmount`. If we limit all volumes to `NO_OVERFLOW_AMOUNT` but aren't more restrictive than that, since `type(uint128).max > 1.0001**MAX_TICK`, we will get ratios that are outside the ratio boundaries.
+However the `*ByVolume` functions get a price by (abstractly) performing `outboundAmount/inboundAmount`. If we limit all volumes to `NO_OVERFLOW_AMOUNT` but aren't more restrictive than that, since `type(uint128).max > 1.0001**MAX_TICK`, we will get ratios that are outside the price boundaries.
 
 We thus pick a uniform, easy to remember constraint on volumes that works everywhere: `(1<<127)-1`
 */

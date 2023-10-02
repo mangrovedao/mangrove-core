@@ -88,7 +88,7 @@ contract PosthookSuccessUpdateOfferSameList_WithPriorUpdateOfferAndNoOtherOffers
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata result) public virtual override {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
-      // Insert at middle ratio - the measured one is at various bin-distances.
+      // Insert at middle tick - the measured one is at various bin-distances.
       mgv.updateOfferByTick(_olKey, _olKey.tick(MIDDLE_BIN), 0.00001 ether, 1_000_000, 0, offerId2);
     }
     super.makerPosthook(sor, result);

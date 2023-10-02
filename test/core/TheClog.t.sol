@@ -24,7 +24,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     }
   }
 
-  // Resets failure flag and reposts offer at same ratio.
+  // Resets failure flag and reposts offer at same price.
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) external override {
     shouldFail = false;
     try mgv.updateOfferByTick(order.olKey, Tick.wrap(0), minVolume, gasreq, 0, order.offerId) {
@@ -43,7 +43,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     deal($(base), $(this), 5 ether);
     minVolume = reader.minVolume(olKey, gasreq);
 
-    // 100 offers at same ratio at minimum volume.
+    // 100 offers at same price at minimum volume.
     for (uint i; i < 100; ++i) {
       mgv.newOfferByTick(olKey, Tick.wrap(0), minVolume, gasreq, 0);
     }

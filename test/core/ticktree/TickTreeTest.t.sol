@@ -111,7 +111,7 @@ abstract contract TickTreeTest is MangroveTest {
 
   // # Offer utility functions
 
-  // Calculates gives that Mangrove will accept and can handle (eg in ratio math) for a bin & gasreq
+  // Calculates gives that Mangrove will accept and can handle (eg in tick math) for a bin & gasreq
   function getAcceptableGivesForBin(Bin bin, uint gasreq) internal pure returns (uint gives) {
     bin; //shh
     gasreq; //shh

@@ -92,7 +92,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     mgv.marketOrderByTick(_olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
-    description = string.concat(description, " - Case: market order by ratio full fill");
+    description = string.concat(description, " - Case: market order by tick full fill");
     printDescription();
   }
 }
@@ -105,11 +105,11 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
     // The offer to take
     bin = MIDDLE_BIN;
     _offerId = mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, 100_000, 0);
-    description = "Market order taking an offer which moves the ratio up various bin-distances";
+    description = "Market order taking an offer which moves the tick up various bin-distances";
   }
 
   function setUpBin(Bin _bin) public virtual {
-    // The offer ratio ends up at
+    // The offer price ends up at
     bin = _bin;
     _offerId = mgv.newOfferByTick(olKey, olKey.tick(bin), 0.00001 ether, 100_000, 0);
   }

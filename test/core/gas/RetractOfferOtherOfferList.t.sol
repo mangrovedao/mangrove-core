@@ -175,7 +175,7 @@ abstract contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSam
   function setUpBin(Bin _bin) public virtual override {
     _bin; // silence irrelevant warning for override
     description =
-      "Retracting an offer when another offer exists at various bin-distances to the offer ratio but also on the same bin";
+      "Retracting an offer when another offer exists at various bin-distances to the offer price but also on the same bin";
   }
 }
 

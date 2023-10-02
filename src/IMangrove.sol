@@ -215,7 +215,7 @@ interface IMangrove is HasMgvEvents {
     payable
     returns (uint offerId);
 
-  ///@notice Updates an existing, owned offer on Mangrove, where the caller is the maker.
+  ///@notice Updates an existing offer on Mangrove, where the caller is the maker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param tick Must be `>= MIN_TICK` and `<= MAX_TICK`. The tick (which is a power of 1.0001 and induces a price).
   ///@param gives The amount of `olKey.outbound_tkn` the maker gives. Must be less than MAX_SAFE_VOLUME.

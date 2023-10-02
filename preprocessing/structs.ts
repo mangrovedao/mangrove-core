@@ -284,7 +284,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
       /* To save gas, Mangrove caches the entire tick tree branch of the bin that contains the best offer in each offer list's `local` parameter. Taken together, `binPosInLeaf`, `level3`, `level2`, `level1`, and `root` provide the following info:
       - What the current bin is (see `BinLib.bestBinFromLocal`).
-      - When a leaf is emptied and the next offer must be fetched, the information in the fields `level3`, `level2`, `level1` and `root` avoid multiple storage reads
+      - When a leaf is emptied and the next offer must be fetched, the information in the fields `level3`, `level2`, `level1` and `root` avoid multiple storage reads.
       */
       { name: "binPosInLeaf", bits: 2, type: "uint" },
       { name: "level3", bits: 64, type: "Field", underlyingType: "uint" },

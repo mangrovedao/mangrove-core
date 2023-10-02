@@ -86,7 +86,8 @@ library TickLib {
 
   /* ## Ratio representation
 
-  Ratios are represented as a (mantissa,exponent) pair. 
+  Ratios are represented as a (mantissa,exponent) pair which represents the number `mantissa * 2**-exponent`.
+
   
   The exponent is negated so that, for ratios in the accepted range, the exponent is `>= 0`. This simplifies the code.
 

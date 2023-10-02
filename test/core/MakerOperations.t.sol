@@ -44,8 +44,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   // checks that exactly the right SOR fields are hidden from maker
   function assertSORFieldsFilteredCorrectly(MgvLib.SingleOrder calldata order) public {
     // OLKey is not filtered
-    assertEq(order.olKey.outbound, $(base), "olKey.base should not be hidden");
-    assertEq(order.olKey.inbound, $(quote), "olKey.quote should not be hidden");
+    assertEq(order.olKey.outbound_tkn, $(base), "olKey.base should not be hidden");
+    assertEq(order.olKey.inbound_tkn, $(quote), "olKey.quote should not be hidden");
     assertEq(order.olKey.tickSpacing, olKey.tickSpacing, "olKey.tickSpacing should not be hidden");
 
     // Offer is partially filtered
@@ -151,8 +151,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint length = selector_bytes + num_args * 32;
     assertEq(msg.data.length, length, "calldata length in execute is incorrect");
 
-    assertEq(order.olKey.outbound, $(base), "wrong base");
-    assertEq(order.olKey.inbound, $(quote), "wrong quote");
+    assertEq(order.olKey.outbound_tkn, $(base), "wrong base");
+    assertEq(order.olKey.inbound_tkn, $(quote), "wrong quote");
     assertEq(order.olKey.tickSpacing, olKey.tickSpacing, "wrong tickspacing");
     assertEq(order.takerWants, 0.05 ether, "wrong takerWants");
     assertEq(order.takerGives, 0.05 ether, "wrong takerGives");

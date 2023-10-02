@@ -108,7 +108,7 @@ function toString(DirtyField field) pure returns (string memory ret) {
 }
 
 function toString(OLKey memory olKey) pure returns (string memory res) {
-  res = string.concat("OLKey{out: ",vm.toString(olKey.outbound),", in: ",vm.toString(olKey.inbound)," sc: ",vm.toString(olKey.tickSpacing),"}");
+  res = string.concat("OLKey{out: ",vm.toString(olKey.outbound_tkn),", in: ",vm.toString(olKey.inbound_tkn)," sc: ",vm.toString(olKey.tickSpacing),"}");
 }
 
 /* *** Unit conversion *** */

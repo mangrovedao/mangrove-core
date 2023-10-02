@@ -43,7 +43,7 @@ contract CopyOpenSemibooks is Deployer {
 
   function updateActivation(OLKey memory olKey, LocalUnpacked memory cAB) internal {
     if (cAB.active) {
-      console.log(olKey.outbound, olKey.inbound);
+      console.log(olKey.outbound_tkn, olKey.inbound_tkn);
       broadcast();
       currentMangrove.activate({
         olKey: olKey,

@@ -33,7 +33,7 @@ contract EvalCleanOffer is Test2, Deployer {
   }
 
   function innerRun(IMangrove mgv, OLKey memory olKey, uint offerId) public {
-    IERC20 inbTkn = IERC20(olKey.inbound);
+    IERC20 inbTkn = IERC20(olKey.inbound_tkn);
     Heap memory heap;
     heap.offer = mgv.offers(olKey, offerId);
     heap.details = mgv.offerDetails(olKey, offerId);

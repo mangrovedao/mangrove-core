@@ -26,8 +26,8 @@ contract ActivateSemibook is Test2, Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       olKey: OLKey({
-        outbound: envAddressOrName("OUTBOUND_TKN"),
-        inbound: envAddressOrName("INBOUND_TKN"),
+        outbound_tkn: envAddressOrName("OUTBOUND_TKN"),
+        inbound_tkn: envAddressOrName("INBOUND_TKN"),
         tickSpacing: vm.envUint("TICK_SPACING")
       }),
       outbound_in_Mwei: vm.envUint("OUTBOUND_IN_MWEI"),
@@ -55,8 +55,8 @@ contract ActivateSemibook is Test2, Deployer {
 
     */
     //FIXME: This underestimates, OfferGasBase.t.sol for better estimate.
-    uint outbound_gas = measureTransferGas(olKey.outbound);
-    uint inbound_gas = measureTransferGas(olKey.inbound);
+    uint outbound_gas = measureTransferGas(olKey.outbound_tkn);
+    uint inbound_gas = measureTransferGas(olKey.inbound_tkn);
     uint gasbase = 2 * (outbound_gas + inbound_gas);
     console.log("Measured gasbase: %d", gasbase);
 
@@ -75,7 +75,7 @@ contract ActivateSemibook is Test2, Deployer {
        - global.gasprice() is in Mwei/gas
        - so density is in (base token units token)/gas
     */
-    uint outbound_decimals = IERC20(olKey.outbound).decimals();
+    uint outbound_decimals = IERC20(olKey.outbound_tkn).decimals();
     uint density96X32 = DensityLib.paramsTo96X32({
       outbound_decimals: outbound_decimals,
       gasprice_in_Mwei: gaspriceOverride,
@@ -87,7 +87,9 @@ contract ActivateSemibook is Test2, Deployer {
     density96X32 = density96X32 == 0 ? 1 << 32 : density96X32;
     console.log("With gasprice: %d Mwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
     console.log(
-      "Derived density %s %s per gas unit", toFixed(density96X32, outbound_decimals), IERC20(olKey.outbound).symbol()
+      "Derived density %s %s per gas unit",
+      toFixed(density96X32, outbound_decimals),
+      IERC20(olKey.outbound_tkn).symbol()
     );
 
     broadcast();

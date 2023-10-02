@@ -102,7 +102,7 @@ interface HasMgvEvents {
     2. An indexer should be able to keep track of the state of Mangrove.
     3. Doing RPC calls directly, should be able to find offers and other information based on offerList, maker, taker, offer id, etc.
 
-    These forces all pull in their own direction and it is therefore not possible to find a solution that is optimal for all three.
+    These forces are in conflict and it is impossible to find a solution that is optimal for all three.
     The following events are therefore an attempt to balance the trade-offs.
   */
 

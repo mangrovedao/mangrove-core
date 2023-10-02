@@ -421,7 +421,7 @@ interface HasMgvEvents {
 interface IMaker {
   /* Called upon offer execution. 
   - If the call throws, Mangrove will not try to transfer funds and the first 32 bytes of revert reason are passed to `makerPosthook` as `makerData`
-  - If the call returns normally, returnData is passed to `makerPosthook` as `makerData` and Mangrove will attempt to transfer the funds.
+  - If the call returns normally, `returnData` is passed to `makerPosthook` as `makerData` and Mangrove will attempt to transfer the funds.
   */
   function makerExecute(MgvLib.SingleOrder calldata order) external returns (bytes32);
 

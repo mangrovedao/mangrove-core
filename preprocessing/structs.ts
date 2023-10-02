@@ -251,9 +251,9 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
     fields: [
       /* * The `monitor` can provide real-time values for `gasprice` and `density` to Mangrove. It can also receive liquidity event notifications. */
       { name: "monitor", bits: 160, type: "address" },
-      /* * If `useOracle` is true, the dex will use the monitor address as an oracle for `gasprice` and `density`, for every outbound_tkn/inbound_tkn pair, except if the oracle-provided values do not pass a check performed by Mangrove. In that case the oracle values are ignored. */
+      /* * If `useOracle` is true, Mangrove will use the monitor address as an oracle for `gasprice` and `density`, for every outbound_tkn/inbound_tkn pair, except if the oracle-provided values do not pass a check performed by Mangrove. In that case the oracle values are ignored. */
       { name: "useOracle", bits: 1, type: "bool" },
-      /* * If `notify` is true, the dex will notify the monitor address after every offer execution. */
+      /* * If `notify` is true, Mangrove will notify the monitor address after every offer execution. */
       { name: "notify", bits: 1, type: "bool" },
       /* * The `gasprice` is the amount of penalty paid by failed offers, in Mwei per gas used. `gasprice` should approximate the average gas price and will be subject to regular updates. */
       fields.gasprice,
@@ -298,13 +298,10 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
         Reentrancy during offer execution is not considered safe:
       * during execution, an offer could consume other offers further up in the list, effectively front-running the taker currently executing the offer.
       * it could also cancel other offers, creating a discrepancy between the advertised and actual market price at no cost to the maker.
-      * an offer insertion consumes an unbounded amount of gas (because it has to be correctly placed in the book).
 
   Note: An optimization in the `marketOrder` function relies on reentrancy being forbidden.
       */
       { name: "lock", bits: 1, type: "bool" },
-      /* * `best` holds the current best offer id. Has size of an id field. *Danger*: reading best inside a lock may give you a stale value. */
-      // id_field("best"),
       /* * `last` is a counter for offer ids, incremented every time a new offer is created. It can't go above $2^{32}-1$. */
       id_field("last"),
     ],

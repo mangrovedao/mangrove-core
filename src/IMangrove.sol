@@ -75,8 +75,8 @@ interface IMangrove is HasMgvEvents {
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
   ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev The market order stops when the price exceeds (an approximation of) 1.0001^`maxTick`, or when the end of the book has been reached, or:
-  ///@dev - If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound_tkn` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
-  ///@dev - If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been sold. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
+  ///@dev - If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound_tkn` at any price, set `fillWants` to true, set `fillVolume` to the volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
+  ///@dev - If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been paid. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
   function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);

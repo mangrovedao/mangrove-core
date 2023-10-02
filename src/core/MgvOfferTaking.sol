@@ -55,7 +55,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   The market order stops when the price exceeds (an approximation of) 1.0001^`maxTick`, or when the end of the book has been reached, or:
   * If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound_tkn` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
-  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been sold. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
+  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been paid. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
   
   For a maximum `fillVolume` and a maximum (when `fillWants=true`) or minimum (when `fillWants=false`) price, the taker can end up receiving a volume of about `2**255` tokens. */
 

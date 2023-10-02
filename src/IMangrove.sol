@@ -30,11 +30,11 @@ interface IMangrove is HasMgvEvents {
   ///@param inbound_tkn The address of the (maker) inbound token.
   ///@param owner The address of the owner.
   ///@param spender The address of the spender.
-  ///@return allowance The amount of tokens the spender is allowed to spend on behalf of the owner.
-  function allowances(address outbound_tkn, address inbound_tkn, address owner, address spender)
+  ///@return amount The amount of tokens the spender is allowed to spend on behalf of the owner.
+  function allowance(address outbound_tkn, address inbound_tkn, address owner, address spender)
     external
     view
-    returns (uint allowance);
+    returns (uint amount);
 
   ///@notice Adapted from [Uniswap v2 contract](https://github.com/Uniswap/uniswap-v2-core/blob/55ae25109b7918565867e5c39f1e84b7edd19b2a/contracts/UniswapV2ERC20.sol#L81)
   ///@param outbound_tkn The address of the (maker) outbound token.
@@ -67,30 +67,30 @@ interface IMangrove is HasMgvEvents {
 
   ///@notice Performs a market order on a specified offer list taking offers up to a limit price.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
+  ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The log of limit price the taker is ready to pay (meaning: the log base 1.0001 of the ratio of inbound tokens over outbound tokens)
   ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
   ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
+  ///@return feePaid The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev The market order stops when there are no more offers at or below `maxTick`, when the end of the book has been reached, or:
   ///@dev - If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound_tkn` at any price, set `fillWants` to true, set `fillVolume` to the volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
   ///@dev - If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been paid. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
   function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     external
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
   ///@notice Performs a market order on a specified offer list taking offers up to a limit price, while allowing to specify a custom `maxGasreqForFailingOffers`.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
+  ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The log of the limit price the taker is ready to pay (meaning: the log base 1.0001 of the ratio of inbound tokens over outbound tokens).
   ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
   ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@param maxGasreqForFailingOffers The maximum allowed gas required for failing offers (in wei).
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
+  ///@return feePaid The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev Mangrove stops a market order after it has gone through failing offers such that their cumulative `gasreq` is greater than the global `maxGasreqForFailingOffers` parameter. This function can be used by the taker to override the default `maxGasreqForFailingOffers` parameter.
   function marketOrderByTickCustom(
     OLKey memory olKey,
@@ -98,7 +98,7 @@ interface IMangrove is HasMgvEvents {
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
   ///@notice Performs a market order on a specified offer list taking offers up to a limit price defined by a ratio `inbound_tkn/outbound_tkn` of volumes.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
@@ -108,29 +108,29 @@ interface IMangrove is HasMgvEvents {
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
+  ///@return feePaid The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev This function is just a wrapper for `marketOrderByTick`, see that function for details.
   ///@dev When deriving the tick, then `takerWants = 0` has a special meaning and the tick for the highest possible ratio between wants and gives will be used,
   ///@dev and if `takerGives = 0` and `takerWants != 0`, then the tick for the lowest possible ratio will be used.
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     external
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
   ///@notice Performs a market order on a specified offer list taking offers up to a limit price for a specified taker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
+  ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The log of the limit price the taker is ready to pay (meaning: the log base 1.0001 of the ratio of inbound tokens over outbound tokens).
   ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
   ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@param taker The taker from which amounts will be transferred from and to. If the `msg.sender`'s allowance for the given `olKey.outbound_tkn`,`olKey.inbound_tkn` is strictly less than the total amount eventually spent by `taker`, the call will fail.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
+  ///@return feePaid The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev The `bounty` will be send to `msg.sender` but transfers will be for `taker`. Requires prior permission.
   ///@dev See also `marketOrderByTick`.
   function marketOrderForByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants, address taker)
     external
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
   ///@notice Performs a market order on a specified offer list taking offers up to a limit price defined by a ratio `inbound_tkn/outbound_tkn` of volumes for a specified taker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
@@ -190,7 +190,7 @@ interface IMangrove is HasMgvEvents {
 
   ///@notice Creates a new offer on Mangrove, where the caller is the maker. The maker can implement the `IMaker` interface to be called during offer execution.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param tick Must be `>= MIN_TICK` and `<= MAX_TICK`. The tick (which is a power of 1.0001 and induces a price). Note that if `tickSpacing > 1`, the actual tick of the offer may differ from the `tick` argument by up to `tickSpacing-1`.
+  ///@param tick Must be `>= MIN_TICK` and `<= MAX_TICK`. The tick (which is a power of 1.0001 and induces a price). The actual tick of the offer will be the smallest tick offerTick > tick that satisfies offerTick % tickSpacing == 0.
   ///@param gives Must be `<= MAX_SAFE_VOLUME`. The amount of `olKey.outbound_tkn` the maker gives.
   ///@param gasreq The amount of gas required to execute the offer logic in the maker's `IMaker` implementation. This will limit the gas available, and the offer will fail if it spends more.
   ///@param gasprice The maximum gas price the maker is willing to pay a penalty for due to failing execution.

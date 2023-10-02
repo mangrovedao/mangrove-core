@@ -53,14 +53,14 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       address recoveredAddress = ecrecover(digest, v, r, s);
       require(recoveredAddress != address(0) && recoveredAddress == owner, "mgv/permit/invalidSignature");
 
-      _allowances[outbound_tkn][inbound_tkn][owner][spender] = value;
+      _allowance[outbound_tkn][inbound_tkn][owner][spender] = value;
       emit Approval(outbound_tkn, inbound_tkn, owner, spender, value);
     }
   }
 
   function approve(address outbound_tkn, address inbound_tkn, address spender, uint value) external returns (bool) {
     unchecked {
-      _allowances[outbound_tkn][inbound_tkn][msg.sender][spender] = value;
+      _allowance[outbound_tkn][inbound_tkn][msg.sender][spender] = value;
       emit Approval(outbound_tkn, inbound_tkn, msg.sender, spender, value);
       return true;
     }
@@ -71,7 +71,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* *Note:* `marketOrderFor` and `cleanByImpersonation` may emit ERC20 `Transfer` events of value 0 from `taker`, but that's already the case with common ERC20 implementations. */
   function marketOrderForByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, address taker)
     external
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
@@ -84,10 +84,10 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
 
   function marketOrderForByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants, address taker)
     public
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
-      (takerGot, takerGave, bounty, fee) = generalMarketOrder(olKey, maxTick, fillVolume, fillWants, taker, 0);
+      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, maxTick, fillVolume, fillWants, taker, 0);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(olKey.outbound_tkn, olKey.inbound_tkn, taker, takerGave);
     }
@@ -98,7 +98,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Used by `*For` functions, it both checks that `msg.sender` was allowed to use the taker's funds, and decreases the former's allowance. */
   function deductSenderAllowance(address outbound_tkn, address inbound_tkn, address owner, uint amount) internal {
     unchecked {
-      mapping(address => uint) storage curriedAllow = _allowances[outbound_tkn][inbound_tkn][owner];
+      mapping(address => uint) storage curriedAllow = _allowance[outbound_tkn][inbound_tkn][owner];
       uint allowed = curriedAllow[msg.sender];
       require(allowed >= amount, "mgv/lowAllowance");
       curriedAllow[msg.sender] = allowed - amount;

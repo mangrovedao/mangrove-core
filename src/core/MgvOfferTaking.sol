@@ -61,7 +61,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     public
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
       return generalMarketOrder(olKey, maxTick, fillVolume, fillWants, msg.sender, 0);
@@ -71,7 +71,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* There is a `ByVolume` variant where the taker specifies a desired total amount of `olKey.outbound_tkn` tokens (`takerWants`), and an available total amount of `olKey.inbound_tkn` (`takerGives`). Volumes should fit on 127 bits. */
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
     Tick maxTick = TickLib.tickFromVolumes(takerGives, takerWants);
@@ -85,7 +85,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
-  ) public returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
+  ) public returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       return generalMarketOrder(olKey, maxTick, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers);
     }
@@ -213,7 +213,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     bool fillWants,
     address taker,
     uint maxGasreqForFailingOffers
-  ) internal returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
+  ) internal returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       /* Checking that `fillVolume` fits in 127 ensures no overflow during the market order recursion. */
       require(fillVolume <= MAX_SAFE_VOLUME, "mgv/mOrder/fillVolume/tooBig");

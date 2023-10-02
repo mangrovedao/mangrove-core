@@ -273,7 +273,7 @@ interface IMangrove is HasMgvEvents {
   ///@dev The lock protects modifying or inspecting the offer list while an order is in progress.
   function locked(OLKey memory olKey) external view returns (bool);
 
-  ///@notice The `offerId` of the best offer on the offer list.
+  ///@notice Gets the `offerId` of the best offer in the offer list.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@return offerId The `offerId` of the best offer on the offer list.
   function best(OLKey memory olKey) external view returns (uint offerId);

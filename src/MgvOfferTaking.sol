@@ -50,7 +50,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   /* A market order specifies a (`outbound`, `inbound`,`tickSpacing`) offer list, a limit price it is ready to pay (in the form of `maxTick`, the log base 1.0001 of the price), and a volume `fillVolume`. If `fillWants` is true, that volume is the amount of `olKey.outbound` the taker wants to buy. If `fillWants` is false, that volume is the amount of `olKey.inbound` the taker wants to sell.
   
-  It returns four `uint`s: the total amount of `olKey.outbound` received, the total amount of `olKey.inbound` spent, the penalty received by msg.sender (in wei), and the fee paid by the taker (in wei).
+  It returns four `uint`s: the total amount of `olKey.outbound` received, the total amount of `olKey.inbound` spent, the penalty received by msg.sender (in wei), and the fee paid by the taker (in wei of `olKey.outbound`).
 
 
   The market order stops when the price exceeds (an approximation of) 1.0001^`maxTick`, or when the end of the book has been reached, or:

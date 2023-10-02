@@ -260,7 +260,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       /* * `gasmax` specifies how much gas an offer may ask for at execution time. An offer which asks for more gas than the block limit would live forever on the book. Nobody could take it or remove it, except its creator (who could cancel it). In practice, we will set this parameter to a reasonable limit taking into account both practical transaction sizes and the complexity of maker contracts.
       */
       { name: "gasmax", bits: 24, type: "uint" },
-      /* * `dead`: if necessary, Mangrove can be entirely deactivated by governance (offers can still be withdrawn and bounties can still be withdrawn). Once killed, Mangrove must be redeployed. It cannot be resurrected. */
+      /* * `dead`: if necessary, Mangrove can be entirely deactivated by governance (offers can still be retracted and provisions can still be withdrawn). Once killed, Mangrove must be redeployed; It cannot be resurrected. */
       { name: "dead", bits: 1, type: "bool" },
       /* * `maxRecursionDepth` is the maximum number of times a market order can recursively execute offers. This is a protection against stack overflows. */
       { name: "maxRecursionDepth", bits: 8, type: "uint" },      

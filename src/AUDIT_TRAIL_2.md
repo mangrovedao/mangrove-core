@@ -1,5 +1,12 @@
 # Audit trail for Mangrove v2
 
+## Audit scope: all files matching
+
+- src/core/\*
+- lib/core/\*
+
+## Overview
+
 The goal of Mangrove v2 is constant-time offer insertion & update.
 
 **Why we need it**: when an `offer` is executed, it may insert or update other offers. Since `offer.gasreq` is fixed, these changes must take a constant amount of gas. In Mangrove v1, offer insertion and update walks a doubly linked list, so it does not use a constant amount of gas.

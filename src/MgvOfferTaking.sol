@@ -324,7 +324,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
 
         /* We move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
-        (sor.offerId, sor.local) = getNextBest(offerList, mor, sor.offer, sor.local, sor.olKey.tickSpacing);
+        (sor.offerId, sor.local) = getNextBest(offerList, mor, offer, sor.local, sor.olKey.tickSpacing);
 
         sor.offer = offerList.offerData[sor.offerId].offer;
 

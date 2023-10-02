@@ -150,7 +150,7 @@ contract MgvOfferMaking is MgvHasOffers {
       OfferDetail offerDetail = offerData.detail;
       require(msg.sender == offerDetail.maker(), "mgv/retractOffer/unauthorized");
 
-      /* Here, we are about to un-live an offer, so we start by taking it out of the tick tree. Note that unconditionally calling `stitchOffers` even if the offer is not `live` would break the offer lsit since it would connect offers that may have since moved. */
+      /* Here, we are about to un-live an offer, so we start by taking it out of the tick tree. Note that unconditionally calling `stitchOffers` even if the offer is not `live` would break the offer list since it would connect offers that may have since moved. */
       if (offer.isLive()) {
         Local oldLocal = local;
         (local,) = dislodgeOffer(offerList, olKey.tickSpacing, offer, local, local.bestBin(), true);

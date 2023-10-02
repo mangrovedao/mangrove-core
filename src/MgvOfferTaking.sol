@@ -22,7 +22,7 @@ import {BinLib} from "mgv_lib/BinLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* There are 2 ways to take offers in Mangrove:
-- **Market order**. A marketorder walks the offer list from the best offer and up, can specify a limit price, as well as a buy/sell behaviour (i.e. whether to limit the order buy the amount bought or by the amount sold).
+- **Market order**. A market order walks the offer list from the best offer and up, can specify a limit price, as well as a buy/sell behaviour (i.e. whether to limit the order buy the amount bought or by the amount sold).
 - **Clean**. Since offers can fail, bots can 'clean' specific offers and walk away with the bounty. If an offer does not fail, cleaning it reverts and leaves it in place.
 */
 abstract contract MgvOfferTaking is MgvHasOffers {
@@ -379,7 +379,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /* # Cleaning */
-  /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penaly as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `clean` function itself will not revert.
+  /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penalty as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `clean` function itself will not revert.
   
   Its second argument is a `CleanTarget[]` with each `CleanTarget` identifying an offer to clean and the execution parameters that will make it fail. The return values are the number of successfully cleaned offers and the total bounty received.
 
@@ -465,7 +465,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       unlockedOfferListOnly(sor.local);
 
       require(sor.offer.isLive(), "mgv/clean/offerNotLive");
-      /* We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than the maximum gareq. */
+      /* We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than the maximum gasreq. */
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
       require(sor.offer.tick().eq(tick), "mgv/clean/tickMismatch");
 
@@ -534,7 +534,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           sor.takerGives = offerWants;
         } else {
           if (mor.fillWants) {
-            /* While a possible `offer.wants()=0` is the maker's responsiblity, a small enough partial fill may round to 0, so we round up. It is immaterial but more fair to the maker. */
+            /* While a possible `offer.wants()=0` is the maker's responsibility, a small enough partial fill may round to 0, so we round up. It is immaterial but more fair to the maker. */
             sor.takerGives = sor.offer.tick().inboundFromOutboundUp(fillVolume);
             sor.takerWants = fillVolume;
           } else {
@@ -578,7 +578,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           IMgvMonitor(sor.global.monitor()).notifySuccess(sor, mor.taker);
         }
 
-        /* We update the totals in the multiorder based on the adjusted `sor.takerWants`/`sor.takerGives`. */
+        /* We update the totals in the multi order based on the adjusted `sor.takerWants`/`sor.takerGives`. */
         mor.totalGot += sor.takerWants;
         require(mor.totalGot >= sor.takerWants, "mgv/totalGot/overflow");
         mor.totalGave += sor.takerGives;
@@ -753,7 +753,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /* ## `controlledCall` */
-  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. In case of success, we read the first 32 bytes of returndata (the signature of `makerExecute` is `bytes32`). Otherwise, for compatibility with most errors that bubble up from contract calls and Solidity's `require`, we read 32 bytes of returndata starting from the 69th (4 bytes of method sig + 32 bytes of offset + 32 bytes of string length). */
+  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automatically copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. In case of success, we read the first 32 bytes of returndata (the signature of `makerExecute` is `bytes32`). Otherwise, for compatibility with most errors that bubble up from contract calls and Solidity's `require`, we read 32 bytes of returndata starting from the 69th (4 bytes of method sig + 32 bytes of offset + 32 bytes of string length). */
   function controlledCall(address callee, uint gasreq, bytes memory cd) internal returns (bool success, bytes32 data) {
     unchecked {
       bytes32[4] memory retdata;
@@ -767,7 +767,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /* # Penalties */
-  /* Offers are just promises. They can fail. Penalty provisioning discourages from failing too much: we ask makers to provision more ETH than the expected gas cost of executing their offer and penalize them accoridng to wasted gas.
+  /* Offers are just promises. They can fail. Penalty provisioning discourages from failing too much: we ask makers to provision more ETH than the expected gas cost of executing their offer and penalize them according to wasted gas.
 
      Under normal circumstances, we should expect to see bots with a profit expectation dry-running offers locally and executing `cleans` on failing offers, collecting the penalty. The result should be a mostly clean book for actual takers (i.e. a book with only successful offers).
 

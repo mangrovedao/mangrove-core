@@ -18,7 +18,7 @@ contract MgvCommon is HasMgvEvents {
   /* Global mgv configuration, encoded in a 256 bits word. The information encoded is detailed in [`structs.js`](#structs.js). */
   Global internal internal_global;
 
-  /* `OfferData` contains all the information related to an offer. Each field contains packed information such as the volumes and the gas requried. See [`structs.js`](#structs.js) for more information. */
+  /* `OfferData` contains all the information related to an offer. Each field contains packed information such as the volumes and the gas required. See [`structs.js`](#structs.js) for more information. */
   struct OfferData {
     Offer offer;
     OfferDetail detail;
@@ -47,7 +47,7 @@ contract MgvCommon is HasMgvEvents {
 
   /* Makers provision their possible penalties in the `balanceOf` mapping.
 
-       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision an amoutn of native tokens that depends on their `gasreq` and on the offerList's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker as a `penalty`. The exact amount depends on the gas used by the offer before failing and during the execution of its posthook.
+       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision an amount of native tokens that depends on their `gasreq` and on the offerList's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker as a `penalty`. The exact amount depends on the gas used by the offer before failing and during the execution of its posthook.
 
        Mangrove keeps track of available balances in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
      */

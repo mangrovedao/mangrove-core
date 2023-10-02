@@ -52,9 +52,9 @@
 
    When a market order runs, execution starts with the first offer of the smallest nonempty bin and continues from there.
 
-   Once all the offers in the smallest bin have been executed, the next nonempty bin is found. If the leaf of the current bin now only has empty bins, the node above the current leaf contains a bitfield with information about all its children: if the *i*th bit of the node is set, its *i*th child has at least one nonempty bin. Otherwise, its *i*th child only has empty bins.
+   Once all the offers in the smallest bin have been executed, the next nonempty bin is found. If the leaf of the current bin now only has empty bins, the node above the current leaf contains a bit field with information about all its children: if the *i*th bit of the node is set, its *i*th child has at least one nonempty bin. Otherwise, its *i*th child only has empty bins.
 
-   To find the next nonempty bin, it may be necessary to keep going up the tree until the root is reached. At each level above, the bitfield rule applies similarly: the *i*th bit of a node is set iff its *i*th child has at least one set bit.
+   To find the next nonempty bin, it may be necessary to keep going up the tree until the root is reached. At each level above, the bit field rule applies similarly: the *i*th bit of a node is set iff its *i*th child has at least one set bit.
 
    Once a node with a set bit is found, its rightmost nonempty child is examined, and so on until the next nonempty bin is reached, and the first offer of that bin gets executed.
 
@@ -132,7 +132,7 @@ uni.hospitable(true);
 ```
 */
 
-/* # Data stuctures */
+/* # Data structures */
 
 /* Struct-like data structures are stored in storage and memory as 256 bits words. We avoid using structs due to significant gas savings gained by extracting data from words only when needed. This is exacerbated by the fact that Mangrove uses one recursive call per executed offer; it is much cheaper to accumulate used stack space than memory space throughout the recursive calls. 
 
@@ -226,7 +226,7 @@ They have the following fields: */
 
       */
       fields.kilo_offer_gasbase,
-      /* * `gasprice` is in mwei/gas and _26 bits wide_, which accomodates 0.001 to ~67k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
+      /* * `gasprice` is in mwei/gas and _26 bits wide_, which accommodates 0.001 to ~67k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
       fields.gasprice,
     ],
     additionalDefinitions: (struct) => `import {OfferDetailExtra,OfferDetailUnpackedExtra} from "mgv_lib/OfferDetailExtra.sol";

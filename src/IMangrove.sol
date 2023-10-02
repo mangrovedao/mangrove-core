@@ -242,7 +242,7 @@ interface IMangrove is HasMgvEvents {
   ///@notice Retracts an offer from Mangrove, where the caller is the maker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param offerId The id of the offer on Mangrove.
-  ///@param deprovision Whether to deprovision the offer (i.e. return the provision to the maker's balance on Mangrove).
+  ///@param deprovision Whether to deprovision the offer, i.e, return the provision to the maker's balance on Mangrove.
   ///@return provision The amount of native token deprovisioned for the offer (in wei).
   ///@dev `withdraw` can be used to withdraw the funds after deprovisioning.
   ///@dev Leaving funds provisioned can be used to save gas if offer is later updated.

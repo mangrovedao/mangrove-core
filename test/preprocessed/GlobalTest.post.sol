@@ -7,7 +7,7 @@ import "mgv_src/core/MgvLib.sol";
 
 // Warning: fuzzer will run tests with malformed packed arguments, e.g. bool fields that are > 1.
 
-contract MgvGlobalTest is Test2 {
+contract GlobalTest is Test2 {
 
   // cleanup arguments with variable number of bits since `pack` also does a cleanup
   function cast(uint u, uint8 to) internal pure returns (uint) {

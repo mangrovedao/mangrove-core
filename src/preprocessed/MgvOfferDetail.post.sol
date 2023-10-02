@@ -26,27 +26,9 @@ type OfferDetail is uint;
 using OfferDetailLib for OfferDetail global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-
+import {OfferDetailExtra,OfferDetailUnpackedExtra} from "mgv_lib/OfferDetailExtra.sol";
 using OfferDetailExtra for OfferDetail global;
 using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
-
-library OfferDetailExtra {
-  function offer_gasbase(OfferDetail offerDetail) internal pure returns (uint) { unchecked {
-    return offerDetail.kilo_offer_gasbase() * 1e3;
-  }}
-  function offer_gasbase(OfferDetail offerDetail,uint val) internal pure returns (OfferDetail) { unchecked {
-    return offerDetail.kilo_offer_gasbase(val/1e3);
-  }}
-}
-
-library OfferDetailUnpackedExtra {
-  function offer_gasbase(OfferDetailUnpacked memory offerDetail) internal pure returns (uint) { unchecked {
-    return offerDetail.kilo_offer_gasbase * 1e3;
-  }}
-  function offer_gasbase(OfferDetailUnpacked memory offerDetail,uint val) internal pure { unchecked {
-    offerDetail.kilo_offer_gasbase = val/1e3;
-  }}
-}
 
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 

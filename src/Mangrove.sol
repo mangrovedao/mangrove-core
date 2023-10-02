@@ -8,7 +8,7 @@ import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
 import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
 import {MgvGovernable} from "mgv_src/MgvGovernable.sol";
 
-/* <a id="Mangrove"></a> The `Mangrove` contract inherits both the maker and taker functionality. It also deploys `MgvAppendix` and delegatescall to the appendix when it receives a call with an unknown selector. That appendix is dedicated to view and governance functions. `MgvAppendix` exists due to bytecode size constraints. */
+/* <a id="Mangrove"></a> The `Mangrove` contract inherits both the maker and taker functionality. It also deploys `MgvAppendix` when constructed. */
 contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
   address internal immutable APPENDIX;
 
@@ -18,8 +18,7 @@ contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
 
       APPENDIX = address(new MgvAppendix());
 
-      /* Initially, governance is open to anyone. */
-      /* Set initial gasprice and gasmax. */
+      /* Set initial gasprice, gasmax, recursion depth and max gasreq for failing offers.  See `MgvAppendix` for why this happens through a delegatecall. */
       bool success;
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasprice, (gasprice)));
       require(success, "mgv/ctor/gasprice");
@@ -34,12 +33,13 @@ contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
         )
       );
       require(success, "mgv/ctor/maxGasreqForFailingOffers");
-      /* Initialize governance to `governance` after parameter setting. */
+      /* Initially, governance is open to anyone so that Mangrove can set its own default parameters. After that, governance is set to the `governance` constructor argument. */
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGovernance, (governance)));
       require(success, "mgv/ctor/governance");
     }
   }
 
+  /* Fallback to `APPENDIX` if function selector is unknown. */
   fallback(bytes calldata callData) external returns (bytes memory) {
     (bool success, bytes memory res) = APPENDIX.delegatecall(callData);
     if (success) {

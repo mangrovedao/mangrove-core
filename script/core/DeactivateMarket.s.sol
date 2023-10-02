@@ -8,7 +8,7 @@ import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import "mgv_src/MgvLib.sol";
 
-/* Deactivate a market (aka two mangrove semibooks) & update MgvReader. */
+/* Deactivate a market (aka two mangrove offer lists) & update MgvReader. */
 contract DeactivateMarket is Deployer {
   function run() public {
     innerRun({

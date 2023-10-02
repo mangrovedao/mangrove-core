@@ -24,7 +24,7 @@ import "mgv_src/MgvLib.sol";
  *     "distance_to_density": <float>, distance to min density if market order was a single offer of "volume_sent" and "gas_req". In display units of outbound tokens.
  *     "successes": <number>, number (<=i) of successful offers
  *     "failures": <number>, number (<= i - successes) of failed offers
- *     "gas_fail": <number>, gas consummed to snipe failing offers
+ *     "gas_fail": <number>, gas consummed to clean failing offers
  *     "gas_req": <number>, gas required by offer makers
  *     "gas_used": <number>, approx of the gas used for this market order
  *     "volume_received": <float>, amount of outbound tokens received (in display units)
@@ -71,14 +71,14 @@ contract MarketHealth is Test2, Deployer {
     uint required;
     VolumeData[] data;
     uint got;
-    uint snipesGot;
+    uint cleansGot;
     uint gave;
-    uint snipesGave;
+    uint cleansGave;
     uint successes;
-    uint snipesSuccesses;
+    uint cleansSuccesses;
     uint failures;
     uint collected;
-    uint snipesBounty;
+    uint cleansBounty;
     uint gasFail;
     uint gasSpent;
     uint gasbase;
@@ -136,19 +136,19 @@ contract MarketHealth is Test2, Deployer {
       vars.targets =
         wrap_dynamic(MgvLib.CleanTarget(vars.best, vars.offer.tick, vars.offerDetail.gasreq, vars.takerWants));
       _gas();
-      (vars.snipesSuccesses, vars.snipesBounty) = mgv.cleanByImpersonation(olKey, vars.targets, address(this));
+      (vars.cleansSuccesses, vars.cleansBounty) = mgv.cleanByImpersonation(olKey, vars.targets, address(this));
       vars.g = gas_(true);
-      if (vars.snipesBounty > 0) {
-        // adding gas cost of snipe to gasCost if snipe failed
+      if (vars.cleansBounty > 0) {
+        // adding gas cost of clean to gasCost if clean failed
         vars.gasFail += vars.g;
         failingIds.push(vars.best);
       }
-      vars.gasSpent += vars.g - 30_000; // compensating for snipe instead of market order
-      vars.successes += vars.snipesSuccesses;
-      vars.failures = vars.snipesSuccesses == 0 ? vars.failures + 1 : vars.failures;
-      vars.got += vars.snipesGot;
-      vars.gave += vars.snipesGave;
-      vars.collected += vars.snipesBounty;
+      vars.gasSpent += vars.g - 30_000; // compensating for clean instead of market order
+      vars.successes += vars.cleansSuccesses;
+      vars.failures = vars.cleansSuccesses == 0 ? vars.failures + 1 : vars.failures;
+      vars.got += vars.cleansGot;
+      vars.gave += vars.cleansGave;
+      vars.collected += vars.cleansBounty;
 
       vars.minVolume = reader.minVolume(olKey, vars.data[vars.successes + vars.failures - 1].totalGasreq);
 

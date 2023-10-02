@@ -2,7 +2,7 @@
 
 ## Starting point
 
-Mangrove v5 is:
+Mangrove v1.5 (formerly Mangrove v5) is:
 
 mangrove.js@2fc357f369416afdc2846cc9d5be483b75169e8d/packages/mangrove-solidity/contracts/\*.sol
 

@@ -113,7 +113,7 @@ class Field {
       // uint by default
       raw = uint_val;
     }
-    // if user-defined tpype, then wrap
+    // if user-defined type, then wrap
     if (this.userDefined) {
       return `${this.type}.wrap(${raw})`;
     } else {

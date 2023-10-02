@@ -22,7 +22,7 @@ struct MarketConfig {
   LocalUnpacked config10;
 }
 
-/// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order.
+/// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order + a tickSpacing.
 /// @return address the lowest of the given arguments (numerically)
 /// @return address the highest of the given arguments (numerically)
 function order(address tkn0, address tkn1) pure returns (address, address) {
@@ -72,7 +72,7 @@ contract MgvReader {
   /**
    * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`.
    * @notice The array of structs `_openMarkets` is the array of all currently open markets (up to a delay in calling `updateMarkets`). A market is a triplet of tokens `(tkn0,tkn1,tickSpacing)`. The which token is 0 which token is 1 is non-meaningful but canonical (see `order`).
-   * @notice In this contract, 'markets' are defined by non-oriented offerLists. Usually markets come with a base/quote orientation. Please keep that in mind.
+   * @notice In this contract, 'markets' are defined by non-oriented offer lists. Usually markets come with a base/quote orientation. Please keep that in mind.
    * @notice A market {tkn0,tkn1} is open if either the tkn0/tkn1 offer list is active or the tkn1/tkn0 offer list is active.
    */
 
@@ -112,7 +112,7 @@ contract MgvReader {
 
   // # Offer view functions
 
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
+  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offer lists[outbound_tkn][inbound_tkn].offers` and `offer lists[outbound_tkn][inbound_tkn].offerDetails` instead. */
   function offerInfo(OLKey memory olKey, uint offerId)
     public
     view
@@ -241,37 +241,37 @@ contract MgvReader {
     if (nextId == 0) {
       int index = offerBin.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseLeafToBin(offerBin);
+      leaf = leaf.eraseBelow(offerBin);
       if (leaf.isEmpty()) {
         index = offerBin.level3Index();
-        Field field = MGV.level3(olKey, index);
-        field = field.eraseLevel3ToBin(offerBin);
+        Field field = MGV.level3s(olKey, index);
+        field = field.eraseBelowInLevel3(offerBin);
         if (field.isEmpty()) {
           index = offerBin.level2Index();
-          field = MGV.level2(olKey, index);
-          field = field.eraseLevel2ToBin(offerBin);
+          field = MGV.level2s(olKey, index);
+          field = field.eraseBelowInLevel2(offerBin);
           if (field.isEmpty()) {
             index = offerBin.level1Index();
-            field = MGV.level1(olKey, index);
-            field = field.eraseLevel1ToBin(offerBin);
+            field = MGV.level1s(olKey, index);
+            field = field.eraseBelowInLevel1(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseRootToBin(offerBin);
+              field = field.eraseBelowInRoot(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }
               index = field.firstLevel1Index();
-              field = MGV.level1(olKey, index);
+              field = MGV.level1s(olKey, index);
             }
             index = field.firstLevel2Index(index);
-            field = MGV.level2(olKey, index);
+            field = MGV.level2s(olKey, index);
           }
           index = field.firstLevel3Index(index);
-          field = MGV.level3(olKey, index);
+          field = MGV.level3s(olKey, index);
         }
         leaf = MGV.leafs(olKey, field.firstLeafIndex(index));
       }
-      nextId = leaf.getNextOfferId();
+      nextId = leaf.bestOfferId();
     }
     return nextId;
   }
@@ -293,37 +293,37 @@ contract MgvReader {
     if (prevId == 0) {
       int index = offerBin.leafIndex();
       Leaf leaf = MGV.leafs(olKey, index);
-      leaf = leaf.eraseFromBin(offerBin);
+      leaf = leaf.eraseAbove(offerBin);
       if (leaf.isEmpty()) {
         index = offerBin.level3Index();
-        Field field = MGV.level3(olKey, index);
-        field = field.eraseLevel3FromBin(offerBin);
+        Field field = MGV.level3s(olKey, index);
+        field = field.eraseAboveInLevel3(offerBin);
         if (field.isEmpty()) {
           index = offerBin.level2Index();
-          field = MGV.level2(olKey, index);
-          field = field.eraseLevel2FromBin(offerBin);
+          field = MGV.level2s(olKey, index);
+          field = field.eraseAboveInLevel2(offerBin);
           if (field.isEmpty()) {
             index = offerBin.level1Index();
-            field = MGV.level1(olKey, index);
-            field = field.eraseLevel1FromBin(offerBin);
+            field = MGV.level1s(olKey, index);
+            field = field.eraseAboveInLevel1(offerBin);
             if (field.isEmpty()) {
               field = MGV.root(olKey);
-              field = field.eraseRootFromBin(offerBin);
+              field = field.eraseAboveInRoot(offerBin);
               if (field.isEmpty()) {
                 return 0;
               }
               index = field.lastLevel1Index();
-              field = MGV.level1(olKey, index);
+              field = MGV.level1s(olKey, index);
             }
             index = field.lastLevel2Index(index);
-            field = MGV.level2(olKey, index);
+            field = MGV.level2s(olKey, index);
           }
           index = field.lastLevel3Index(index);
-          field = MGV.level3(olKey, index);
+          field = MGV.level3s(olKey, index);
         }
         leaf = MGV.leafs(olKey, field.lastLeafIndex(index));
       }
-      prevId = leaf.getNextOfferId();
+      prevId = leaf.bestOfferId();
     }
     return prevId;
   }
@@ -351,7 +351,7 @@ contract MgvReader {
     }
   }
 
-  /* Sugar for getProvision(olkey, ofr_gasreq, 0) */
+  /* Sugar for getProvision(olKey, ofr_gasreq, 0) */
   function getProvisionWithDefaultGasPrice(OLKey memory olKey, uint ofr_gasreq) public view returns (uint) {
     unchecked {
       return getProvision(olKey, ofr_gasreq, 0);

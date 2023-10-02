@@ -200,7 +200,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     vm.label($(_mgv), "Mangrove");
   }
 
-  // Deploy mangrove with an offerList
+  // Deploy mangrove with an offer list
   function setupMangrove(OLKey memory _ol) public returns (IMangrove _mgv) {
     _mgv = setupMangrove();
     setupMarket(IMangrove($(_mgv)), _ol);
@@ -490,7 +490,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     console.log("Current leaf %s (index %s)", toString(_mgv.leafs(_ol, leafIndex)), vm.toString(leafIndex));
     console.log("Current level 3 %s (index %s)", toString(_local.level3()), vm.toString(bin.level3Index()));
     console.log(
-      "Current level 2 %s (index %s)", toString(_mgv.level2(_ol, bin.level2Index())), vm.toString(bin.level2Index())
+      "Current level 2 %s (index %s)", toString(_mgv.level2s(_ol, bin.level2Index())), vm.toString(bin.level2Index())
     );
     console.log("Current level 1 %s (index %s)", toString(_local.level1()), vm.toString(bin.level1Index()));
     console.log("Current root %s", toString(_local.root()));

@@ -375,7 +375,7 @@ contract GatekeepingTest is MangroveTest {
 
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offerList must work");
+    assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offer list must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
@@ -422,7 +422,7 @@ contract GatekeepingTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 400_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offerList must work");
+    assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offer list must work");
   }
 
   function test_updateOffer_on_posthook_succeeds() public {
@@ -471,7 +471,7 @@ contract GatekeepingTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 110_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");
+    assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offer list must work");
   }
 
   function test_retractOffer_on_posthook_succeeds() public {
@@ -594,7 +594,7 @@ contract GatekeepingTest is MangroveTest {
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(mgv.leafs(olKey, ofr.bin(olKey.tickSpacing).leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(olKey, ofr.bin(olKey.tickSpacing).leafIndex()).bestOfferId(), id2);
     // high-level check
     assertTrue(mgv.best(olKey) == id2, "2nd market order must have emptied mgv");
   }
@@ -620,7 +620,7 @@ contract GatekeepingTest is MangroveTest {
     // (if it had originally been empty, the test would always succeed)
     mgv.retractOffer(olKey, ofr1, true);
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level3 nodes");
-    assertEq(mgv.level3(olKey, index1), FieldLib.EMPTY, "ofr1's level3 should be empty");
+    assertEq(mgv.level3s(olKey, index1), FieldLib.EMPTY, "ofr1's level3 should be empty");
   }
 
   /* Clean failure */
@@ -687,11 +687,11 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.leafs(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level3(olKey, 0);
+    mgv.level3s(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level2(olKey, 0);
+    mgv.level2s(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.level1(olKey, 0);
+    mgv.level1s(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.root(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
@@ -723,9 +723,9 @@ contract GatekeepingTest is MangroveTest {
     mgv.local(olKey);
     mgv.global();
     mgv.leafs(olKey, 0);
-    mgv.level3(olKey, 0);
-    mgv.level2(olKey, 0);
-    mgv.level1(olKey, 0);
+    mgv.level3s(olKey, 0);
+    mgv.level2s(olKey, 0);
+    mgv.level1s(olKey, 0);
     mgv.root(olKey);
     mgv.best(olKey);
     mgv.offers(olKey, 0);

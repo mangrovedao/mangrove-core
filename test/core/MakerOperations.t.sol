@@ -1025,18 +1025,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     // Create a bin there
     mgv.newOfferByTick(olKey, olKey.tick(badLocal.bestBin()), 1 ether, 10_000, 0);
     // Save level3, level2
-    Field highLevel3 = mgv.level3(olKey, badLocal.bestBin().level3Index());
+    Field highLevel3 = mgv.level3s(olKey, badLocal.bestBin().level3Index());
     // Update the new bin to an even better tick
     mgv.updateOfferByTick(olKey, olKey.tick(veryLowBin), 1 ether, 10_000, 0, ofr);
 
     // Make sure we the high offer's branch is still fine
     assertEq(
-      mgv.level3(olKey, badLocal.bestBin().level3Index()),
+      mgv.level3s(olKey, badLocal.bestBin().level3Index()),
       highLevel3,
       "badLocal's tick's level3 should not have changed"
     );
     // Make sure the previously local offer's branch is now empty
-    assertEq(mgv.level3(olKey, lowBin.level3Index()), FieldLib.EMPTY, "lowBin's level3 should have been flushed");
+    assertEq(mgv.level3s(olKey, lowBin.level3Index()), FieldLib.EMPTY, "lowBin's level3 should have been flushed");
   }
 
   function test_higher_tick() public {

@@ -33,53 +33,12 @@ type Local is uint;
 using LocalLib for Local global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-
-import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
-
+import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
+/* Globally enable global.method(...) */
+import {LocalExtra,LocalUnpackedExtra} from "mgv_lib/LocalExtra.sol";
 using LocalExtra for Local global;
 using LocalUnpackedExtra for LocalUnpacked global;
-
-// cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(LocalLib.binPosInLeaf_mask_inv | LocalLib.level3_mask_inv | LocalLib.level2_mask_inv | LocalLib.level1_mask_inv | LocalLib.root_mask_inv | LocalLib.last_mask_inv);
-
-library LocalExtra {
-
-  function densityFrom96X32(Local local, uint density96X32) internal pure returns (Local) { unchecked {
-    return local.density(DensityLib.from96X32(density96X32));
-  }}
-  function offer_gasbase(Local local) internal pure returns (uint) { unchecked {
-    return local.kilo_offer_gasbase() * 1e3;
-  }}
-  function offer_gasbase(Local local,uint val) internal pure returns (Local) { unchecked {
-    return local.kilo_offer_gasbase(val/1e3);
-  }}
-  function bestBin(Local local) internal pure returns (Bin) {
-    return BinLib.bestBinFromLocal(local);
-  }
-  function clearFieldsForMaker(Local local) internal pure returns (Local) {
-    unchecked {
-      return Local.wrap(
-        Local.unwrap(local)
-        & HIDE_FIELDS_FROM_MAKER_MASK);
-    }
-  }
-}
-
-library LocalUnpackedExtra {
-  function densityFrom96X32(LocalUnpacked memory local, uint density96X32) internal pure { unchecked {
-    local.density = DensityLib.from96X32(density96X32);
-  }}
-  function offer_gasbase(LocalUnpacked memory local) internal pure returns (uint) { unchecked {
-    return local.kilo_offer_gasbase * 1e3;
-  }}
-  function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
-    local.kilo_offer_gasbase = val/1e3;
-  }}
-  function bestBin(LocalUnpacked memory local) internal pure returns (Bin) {
-    return BinLib.bestBinFromBranch(local.binPosInLeaf,local.level3,local.level2,local.level1,local.root);
-  }
-}
 
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 

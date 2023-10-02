@@ -26,58 +26,12 @@ type Offer is uint;
 using OfferLib for Offer global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-import "mgv_lib/BinLib.sol";
-import "mgv_lib/TickLib.sol";
+import {Bin} from "mgv_lib/BinLib.sol";
+import {Tick} from "mgv_lib/TickLib.sol";
+import {OfferExtra,OfferUnpackedExtra} from "mgv_lib/OfferExtra.sol";
 
 using OfferExtra for Offer global;
 using OfferUnpackedExtra for OfferUnpacked global;
-
-// cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(OfferLib.prev_mask_inv | OfferLib.next_mask_inv);
-
-library OfferExtra {
-  // Compute wants from tick and gives
-  function wants(Offer offer) internal pure returns (uint) {
-    return offer.tick().inboundFromOutboundUp(offer.gives());
-  }
-  // Sugar to test offer liveness
-  function isLive(Offer offer) internal pure returns (bool resp) {
-    uint gives = offer.gives();
-    assembly ("memory-safe") {
-      resp := iszero(iszero(gives))
-    }
-  }
-  function bin(Offer offer, uint tickSpacing) internal pure returns (Bin) {
-    // Offers are always stored with a tick that corresponds exactly to a tick
-    return offer.tick().nearestBin(tickSpacing);
-  }
-  function clearFieldsForMaker(Offer offer) internal pure returns (Offer) {
-    unchecked {
-      return Offer.wrap(
-        Offer.unwrap(offer)
-        & HIDE_FIELDS_FROM_MAKER_MASK);
-    }
-  }
-}
-
-library OfferUnpackedExtra {
-  // Compute wants from tick and gives
-  function wants(OfferUnpacked memory offer) internal pure returns (uint) {
-    return offer.tick.inboundFromOutboundUp(offer.gives);
-  }
-  // Sugar to test offer liveness
-  function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {
-    uint gives = offer.gives;
-    assembly ("memory-safe") {
-      resp := iszero(iszero(gives))
-    }
-  }
-  function bin(OfferUnpacked memory offer, uint tickSpacing) internal pure returns (Bin) {
-    // Offers are always stored with a tick that corresponds exactly to a tick
-    return offer.tick.nearestBin(tickSpacing);
-  }
-
-}
 
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 

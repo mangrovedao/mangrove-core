@@ -71,7 +71,7 @@
    The structure of the local config is as follows:
    <img src="./local_config.png" width="140%"></img>
 
-  This caching means that as the price oscillates within a more restricted range, the fewer additional storage read/writes have to be performed (as most of the information is available in `local`) when there is a market order or an offer insertion/update.
+  This caching means that as the price oscillates within a more restricted range, fewer additional storage read/writes have to be performed (as most of the information is available in `local`) when there is a market order or an offer insertion/update.
 
   ## Some numbers
   Here are some useful numbers, for reference:

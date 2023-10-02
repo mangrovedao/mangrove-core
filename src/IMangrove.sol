@@ -342,7 +342,7 @@ interface IMangrove is HasMgvEvents {
   ///@param offer_gasbase The gasbase of the offer list used to define a minimum provision necessary for offers. Represents the gas overhead used by processing the offer inside Mangrove + the overhead of initiating an entire order. Stored in thousands in a maximum of 9 bits.
   function setGasbase(OLKey memory olKey, uint offer_gasbase) external;
 
-  ///@notice Sets the gasmax for Mangrove, the maximum amount of gas required to execute an offer.
+  ///@notice Sets the gasmax for Mangrove, the maximum amount of gas an offer can require to execute.
   ///@param gasmax The maximum amount of gas required to execute an offer. Must fit in 24 bits.
   function setGasmax(uint gasmax) external;
 

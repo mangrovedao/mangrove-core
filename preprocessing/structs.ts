@@ -249,7 +249,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
    */
   global: {
     fields: [
-      /* * The `monitor` can provide realtime values for `gasprice` and `density` to Mangrove. It can also receive liquidity events notifications. */
+      /* * The `monitor` can provide real-time values for `gasprice` and `density` to Mangrove. It can also receive liquidity event notifications. */
       { name: "monitor", bits: 160, type: "address" },
       /* * If `useOracle` is true, the dex will use the monitor address as an oracle for `gasprice` and `density`, for every outbound_tkn/inbound_tkn pair, except if the oracle-provided values do not pass a check performed by Mangrove. In that case the oracle values are ignored. */
       { name: "useOracle", bits: 1, type: "bool" },

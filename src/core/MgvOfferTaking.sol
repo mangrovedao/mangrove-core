@@ -300,8 +300,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* <a id="MgvOfferTaking/statusCodes"></a> `mgvData` is a Mangrove status code. It appears in an [`OrderResult`](#MgvLib/OrderResult). Its possible values are:
       * `"mgv/tradeSuccess"`: offer execution succeeded.
       * `"mgv/makerRevert"`: execution of `makerExecute` reverted.
-      * `"mgv/makerTransferFail"`: maker could not send olKey.outbound_tkn tokens.
-      * `"mgv/makerReceiveFail"`: maker could not receive olKey.inbound_tkn tokens.
+      * `"mgv/makerTransferFail"`: maker could not send olKey.outbound_tkn.
+      * `"mgv/makerReceiveFail"`: maker could not receive olKey.inbound_tkn.
 
       `mgvData` should not be exploitable by the maker! */
         bytes32 mgvData;
@@ -517,7 +517,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     * `makerData` is the data returned after executing the offer
     * <a id="MgvOfferTaking/internalStatusCodes"></a>`internalMgvData` is a status code internal to `execute`. It can hold [any value that `mgvData` can hold](#MgvOfferTaking/statusCodes). Within `execute`, it can additionally hold the following values:
       * `"mgv/notEnoughGasForMakerTrade"`: cannot give maker close enough to `gasreq`. Triggers a revert of the entire order.
-      * `"mgv/takerTransferFail"`: taker could not send olKey.inbound_tkn tokens. Triggers a revert of the entire order.
+      * `"mgv/takerTransferFail"`: taker could not send olKey.inbound_tkn. Triggers a revert of the entire order.
   */
   function execute(OfferList storage offerList, MultiOrder memory mor, MgvLib.SingleOrder memory sor)
     internal

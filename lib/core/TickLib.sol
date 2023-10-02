@@ -9,8 +9,6 @@ import "mgv_lib/core/Constants.sol";
 - directly compute ticks base 1.0001 (not base `sqrt(1.0001)`)
 - directly compute ratios (not `sqrt(ratio)`) (simpler code elsewhere when dealing with actual ratios and logs of ratios)
 - ratios are floating-point numbers, not fixed-point numbers (increases precision when computing amounts)
-
-
 */
 
 
@@ -149,10 +147,10 @@ library TickLib {
   * Return the highest one that yields a ratio below the input ratio.
   */
   function tickFromNormalizedRatio(uint mantissa, uint exp) internal pure returns (Tick tick) {
-    if (floatLt(mantissa, int(exp), MIN_RATIO_MANTISSA, MIN_RATIO_EXP)) {
+    if (floatLt(mantissa, exp, MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP))) {
       revert("mgv/tickFromRatio/tooLow");
     }
-    if (floatLt(MAX_RATIO_MANTISSA, MAX_RATIO_EXP, mantissa, int(exp))) {
+    if (floatLt(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP), mantissa, exp)) {
       revert("mgv/tickFromRatio/tooHigh");
     }
     int log2ratio = int(MANTISSA_BITS_MINUS_ONE) - int(exp) << 64;
@@ -242,7 +240,7 @@ library TickLib {
 
     (uint mantissaHigh, uint expHigh) = ratioFromTick(Tick.wrap(tickHigh));
 
-    bool ratioHighGt = floatLt(mantissa, int(exp), mantissaHigh, int(expHigh));
+    bool ratioHighGt = floatLt(mantissa, exp, mantissaHigh, expHigh);
     if (tickLow == tickHigh || ratioHighGt) {
       tick = Tick.wrap(tickLow);
     } else { 
@@ -364,7 +362,13 @@ library TickLib {
 
   }
 
-  /* Shift mantissa so it occupies exactly `MANTISSA_BITS` and adjust `exp` in consequence. */
+  /* Shift mantissa so it occupies exactly `MANTISSA_BITS` and adjust `exp` in consequence.
+  
+  A float is normalized when its mantissa occupies exactly 128 bits. All in-range normalized floats have `exp >= 0`, so we can use a `uint` for exponents everywhere we expect a normalized float.
+
+  When a non-normalized float is expected/used, `exp` can be negative since there is no constraint on the size of the mantissa.
+  
+   */
   function normalizeRatio(uint mantissa, int exp) internal pure returns (uint, uint) {
     require(mantissa != 0,"mgv/normalizeRatio/mantissaIs0");
     uint log2ratio = BitLib.fls(mantissa);
@@ -399,8 +403,8 @@ library TickLib {
     }
   }
 
-  /* Floats are normalized to 128 bits to ensure no overflow when multiplying with amounts, and for easier comparisons. */
-  function floatLt(uint mantissa_a, int exp_a, uint mantissa_b, int exp_b) internal pure returns (bool) {
+  /* Floats are normalized to 128 bits to ensure no overflow when multiplying with amounts, and for easier comparisons. Normalized in-range floats have `exp>=0`. */
+  function floatLt(uint mantissa_a, uint exp_a, uint mantissa_b, uint exp_b) internal pure returns (bool) {
     /* Exponents are negated (so that exponents of ratios within the accepted range as >= 0, which simplifies the code), which explains the direction of the `exp_a > exp_b` comparison. */ 
     return (exp_a > exp_b || (exp_a == exp_b && mantissa_a < mantissa_b));
   }

@@ -239,7 +239,7 @@ interface IMangrove is HasMgvEvents {
     external
     payable;
 
-  ///@notice Retracts an owned offer from Mangrove, where the caller is the maker.
+  ///@notice Retracts an offer from Mangrove, where the caller is the maker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param offerId The id of the offer on Mangrove.
   ///@param deprovision Whether to deprovision the offer (i.e. return the provision to the maker's balance on Mangrove).

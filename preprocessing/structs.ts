@@ -38,7 +38,7 @@
 
    Below the bottom of the tree are _bins_. A bin is a doubly linked list of offers. All offers in a bin have the same tick. During a market order, offers in a bin are executed in order, from the first to the last. Inserted offers are always appended at the end of a bin. 
 
-   Bins are laid in sequence. If all the offers in a bin have tick `t`, all the offers in the following bin have tick `t+tickSpacing`.
+   Bins are laid in sequence. In the context of an offer list, each bin has an associated tick (and a tick determines a price). If a bin has tick `t`, all the offers in the following bin have tick `t+tickSpacing`.
 
    Bins are identified by their index in the bin sequence, from the first (`MIN_BIN`) to the last (`MAX_BIN`). The number of available bins is larger than the number of available ticks, so some bins will never be used.
 

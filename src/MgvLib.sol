@@ -12,7 +12,7 @@ import "mgv_lib/TickLib.sol";
 
 /* `OLKey` (for "OfferListKey") contains the information that characterizes an offer list:
   * `outbound_tkn`, token that goes from the maker to the taker (to remember the direction, imagine the token as going out of the Mangrove offer, towards the taker)
-  * `inbound_tkn`, token that goes from the taker to the maker (to rememberthe direction, imagine the token as going into Mangrove from the taker)
+  * `inbound_tkn`, token that goes from the taker to the maker (to remember the direction, imagine the token as going into Mangrove from the taker)
   * `tickSpacing`, how many ticks should be jumped between available price points. More volatile outbound/inbound pairs should have a larger `tickSpacing`. */
 struct OLKey {
   address outbound;
@@ -196,7 +196,7 @@ interface HasMgvEvents {
   /*
   This event is emitted when the monitor address of Mangrove is set. Be aware that the address for Monitor is also the address for the oracle.
 
-  It emits the `monitor` / `oralce` address. By emitting this, an indexer will be able to keep track of what monitor/oracle address Mangrove use.
+  It emits the `monitor` / `oracle` address. By emitting this, an indexer will be able to keep track of what monitor/oracle address Mangrove use.
 
   No fields are indexed as there is no need for RPC calls to filter on this.
   */
@@ -214,7 +214,7 @@ interface HasMgvEvents {
   /*
   This event is emitted when the configuration for notify on Mangrove is set.
 
-  It emits a boolean value, to tell whether or not notify is active. By emitting this, an indexer will be able to keep track of whether or not Mangrove notifies the Monitor/Oracle when and offer is taken, either successfuly or not.
+  It emits a boolean value, to tell whether or not notify is active. By emitting this, an indexer will be able to keep track of whether or not Mangrove notifies the Monitor/Oracle when and offer is taken, either successfully or not.
 
   No fields are indexed as there is no need for RPC calls to filter on this.
   */
@@ -346,7 +346,7 @@ interface HasMgvEvents {
   If the posthook of the offer fails. Then we emit `OfferFailWithPosthookData` instead of just `OfferFail`. 
   This event has one extra field, which is the reason for the posthook failure. By emitting the posthook data, an indexer can keep track of the reason posthook fails, this could for example be used for analytics.
 
-  This event is emitted doring posthook end, we wait to emit this event to the end, because we need the information of `penalty`, which is only available at the end of the posthook. 
+  This event is emitted during posthook end, we wait to emit this event to the end, because we need the information of `penalty`, which is only available at the end of the posthook. 
   This means that `OfferFail` events are emitted in reverse order, compared to what order they are taken. This is due to the way we handle posthooks. The same goes for `OfferSuccess`.
 
   By emitting this event, an indexer can keep track of, if an offer failed and thereby if the offer is live. 
@@ -379,7 +379,7 @@ interface HasMgvEvents {
   ### After `permit` and `approve` 
     This is emitted when a user permits another address to use a certain amount of its funds to do market orders, or when a user revokes another address to use a certain amount of its funds.
 
-    Approvals are based on the pair of outbound and inbound token. Be aware that it is not offerList bases, as an offerList also holds the tickspacing.
+    Approvals are based on the pair of outbound and inbound token. Be aware that it is not offerList bases, as an offerList also holds the tick spacing.
 
     We emit `outbound` token, `inbound` token, `owner`, msg.sender (`spender`), `value`. Where `owner` is the one who owns the funds, `spender` is the one who is allowed to use the funds and `value` is the amount of funds that is allowed to be used.
 
@@ -421,7 +421,7 @@ interface HasMgvEvents {
 interface IMaker {
   /* Called upon offer execution. 
   - If the call throws, Mangrove will not try to transfer funds and the first 32 bytes of revert reason are passed to `makerPosthook` as `makerData`
-  - If the call returns normally, returndata is passed to `makerPosthook` as `makerData` and Mangrove will attempt to transfer the funds.
+  - If the call returns normally, returnData is passed to `makerPosthook` as `makerData` and Mangrove will attempt to transfer the funds.
   */
   function makerExecute(MgvLib.SingleOrder calldata order) external returns (bytes32);
 

@@ -351,7 +351,7 @@ contract MgvReader {
     }
   }
 
-  /* Sugar for getProvision(olkey, ofr_gasreq, 0) */
+  /* Sugar for getProvision(olKey, ofr_gasreq, 0) */
   function getProvisionWithDefaultGasPrice(OLKey memory olKey, uint ofr_gasreq) public view returns (uint) {
     unchecked {
       return getProvision(olKey, ofr_gasreq, 0);

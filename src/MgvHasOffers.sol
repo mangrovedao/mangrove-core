@@ -51,7 +51,7 @@ contract MgvHasOffers is MgvCommon {
 
   /* ## Removing an offer from the tick tree */
 
-  /* To remove an offer from the ticktree, we do the following:
+  /* To remove an offer from the tick tree, we do the following:
   - Remove the offer from the bin
   - If the bin is now empty, mark it as empty in its leaf
     - If the leaf is now empty, mark it as empty in its level3
@@ -124,7 +124,7 @@ contract MgvHasOffers is MgvCommon {
         int index = offerBin.level3Index();
         /* We reuse the same `field` variable for all 3 level indices. */
         Field field;
-        /* _Local cache mangement conditional_ */
+        /* _Local cache management conditional_ */
         if (index == bestBin.level3Index()) {
           /* If `offer`'s level3 is cached, update it in `local`. */
           field = local.level3().flipBitAtLevel3(offerBin);
@@ -141,10 +141,10 @@ contract MgvHasOffers is MgvCommon {
           field = offerList.level3s[index].clean().flipBitAtLevel3(offerBin);
           offerList.level3s[index] = field.dirty();
         }
-        /* If `offer`'s level3 is now empty, flip off its bit in the removedd offer's level2 */
+        /* If `offer`'s level3 is now empty, flip off its bit in the removed offer's level2 */
         if (field.isEmpty()) {
           index = offerBin.level2Index();
-          /* _Local cache mangement conditional_ */
+          /* _Local cache management conditional_ */
           if (index == bestBin.level2Index()) {
             /* If `offer`'s level2 is cached, update it in `local`. */
             field = local.level2().flipBitAtLevel2(offerBin);
@@ -164,7 +164,7 @@ contract MgvHasOffers is MgvCommon {
           /* If `offer`'s level2 is now empty, flip off its bit in `offer`'s level1 */
           if (field.isEmpty()) {
             index = offerBin.level1Index();
-            /* _Local cache mangement conditional_ */
+            /* _Local cache management conditional_ */
             if (index == bestBin.level1Index()) {
               /* If `offer`'s level1 is cached, update it in `local`. */
               field = local.level1().flipBitAtLevel1(offerBin);

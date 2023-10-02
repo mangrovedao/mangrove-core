@@ -12,7 +12,7 @@ import {Local} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 Offers in Mangrove are structured in a tree so that offer insertion can happen in constant time.
 
-The tree has the following structure: nodes at height 0, 1, 2 and 3 are bitfields (type `Field`) and nodes at height 4 (leaves) are arrays of pairs of offers (type `Leaf`).
+The tree has the following structure: nodes at height 0, 1, 2 and 3 are bit fields (type `Field`) and nodes at height 4 (leaves) are arrays of pairs of offers (type `Leaf`).
 
 - The root node is a 2-bit `Field` and has 2 child nodes.
 - The nodes below are called `level1` nodes and are 64-bit `Field`s, with 64 child nodes each.
@@ -313,12 +313,12 @@ library BinLib {
 type Field is uint;
 using FieldLib for Field global;
 
-/* Fields are bitfields. Each bit position of a field corresponds to a child of the node in the tick tree. The i-th bit of a field is set iff its child is the parent of at least one non-emtpy field.
+/* Fields are bit fields. Each bit position of a field corresponds to a child of the node in the tick tree. The i-th bit of a field is set iff its child is the parent of at least one non-emtpy field.
 
-Using bitfields market orders can locate the next bin containing an offer in constant time: once a leaf has been emptied, one must at most walk up along the branch of the current bin, up to the first 1 in a field, then go down to the of the tree, then go down the corresponding child to the nonempty bin found.
+Using bit fields market orders can locate the next bin containing an offer in constant time: once a leaf has been emptied, one must at most walk up along the branch of the current bin, up to the first 1 in a field, then go down to the of the tree, then go down the corresponding child to the nonempty bin found.
 */
 
-/* In fields, positions are counted from the least signficant bits */
+/* In fields, positions are counted from the least significant bits */
 library FieldLib {
   Field constant EMPTY = Field.wrap(uint(0));
 
@@ -564,7 +564,7 @@ library DirtyLeafLib {
 
 /* We use `TOPBIT` as the optimized in-storage value since 1 is a valid Field value */
 
-/* For fields, it's simpler, since they do not use 64 bits we store the word with top bit at 1 and everything else at 0 to mark emptyness. */
+/* For fields, it's simpler, since they do not use 64 bits we store the word with top bit at 1 and everything else at 0 to mark emptiness. */
 
 /* Globally enable `dirtyField.method(...)` */
 type DirtyField is uint;

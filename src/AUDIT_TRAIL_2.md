@@ -5,6 +5,8 @@
 - src/core/\*
 - lib/core/\*
 
+As usual running `yarn doc` then opening `doc/MgvDoc.html` will give you better-formatted view of the code.
+
 ## Overview
 
 The goal of Mangrove v2 is constant-time offer insertion & update.

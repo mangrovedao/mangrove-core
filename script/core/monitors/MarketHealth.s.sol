@@ -132,7 +132,7 @@ contract MarketHealth is Test2, Deployer {
       vars.takerWants =
         vars.offer.gives + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives;
       // FIXME: This is no longer possible with the new clean function
-      // offering a better ratio than what the offer requires
+      // offering a better price than what the offer requires
       vars.targets =
         wrap_dynamic(MgvLib.CleanTarget(vars.best, vars.offer.tick, vars.offerDetail.gasreq, vars.takerWants));
       _gas();

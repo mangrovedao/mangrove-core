@@ -12,7 +12,7 @@ contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickTreeBou
 
   function setUp() public virtual override {
     super.setUp();
-    // At ratio MIDDLE_BIN so we can post a better or worse offer in same leaf.
+    // At tick MIDDLE_BIN so we can post a better or worse offer in same leaf.
     _offerId = mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, 1_000_000, 0);
     description =
       "Posting a new offer in posthook for now empty offer list but where new offer has varying closeness to taken offer";
@@ -84,7 +84,7 @@ contract PosthookSuccessNewOfferSameList_WithPriorNewOfferAndNoOtherOffersGasTes
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata result) public virtual override {
     (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
-      // Insert at middle ratio - the measured one is at various bin-distances.
+      // Insert at middle tick - the measured one is at various bin-distances.
       mgv.newOfferByTick(_olKey, _olKey.tick(MIDDLE_BIN), 0.00001 ether, 1_000_000, 0);
     }
     super.makerPosthook(sor, result);

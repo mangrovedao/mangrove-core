@@ -62,7 +62,7 @@ library MgvLib {
     uint offerId;
     /* The `offer` given to the maker will be cleaned of `prev`/`next` pointers. */
     Offer offer;
-    /* `takerWants`/`takerGives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's ratio and volume. */
+    /* `takerWants`/`takerGives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
     uint takerWants;
     uint takerGives;
     /* `offerDetail` is only populated when necessary. */
@@ -293,7 +293,7 @@ interface HasMgvEvents {
   By emitting this an indexer can keep track of what context the current market order is in. 
   E.g. if a user starts a market order and one of the offers taken also starts a market order, then we can in an indexer have a stack of started market orders and thereby know exactly what offer list the order is running on and the taker.
 
-  By emitting `maxTick`, `fillVolume` and `fillWants`, we can now also know how much of the market order was filled and if it matches the ratio given. See OrderComplete for more.
+  By emitting `maxTick`, `fillVolume` and `fillWants`, we can now also know how much of the market order was filled and if it matches the price given. See OrderComplete for more.
   */
   event OrderStart(bytes32 indexed olKeyHash, address indexed taker, Tick maxTick, uint fillVolume, bool fillWants);
 
@@ -397,7 +397,7 @@ interface HasMgvEvents {
 
   It emits the `olKeyHash`, the `maker` address, the `tick`, the `gives`, the `gasprice`, `gasreq` and the offers `id`.
 
-  By emitting the `olKeyHash` and `id`, an indexer will be able to keep track of each offer, because offer list and id together create a unique id for the offer. By emitting the `maker` address, we are able to keep track of who has posted what offer. The `tick` and `gives`, enables an indexer to know exactly how much an offer is willing to give and at what ratio, this could for example be used to calculate a return. The `gasprice` and `gasreq`, enables an indexer to calculate how much provision is locked by the offer, see `Credit` for more information.
+  By emitting the `olKeyHash` and `id`, an indexer will be able to keep track of each offer, because offer list and id together create a unique id for the offer. By emitting the `maker` address, we are able to keep track of who has posted what offer. The `tick` and `gives`, enables an indexer to know exactly how much an offer is willing to give and at what price, this could for example be used to calculate a return. The `gasprice` and `gasreq`, enables an indexer to calculate how much provision is locked by the offer, see `Credit` for more information.
 
   The fields `olKeyHash` and `maker` are indexed, so that we can filter on them when doing RPC calls.
   */

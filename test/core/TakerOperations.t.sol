@@ -88,11 +88,11 @@ contract TakerOperationsTest is MangroveTest {
 
   // The purpose of this test is to make sure inbound volumes are rounded up when partially
   // taking an offer i.e. you can't have the taker pay 0 if the maker sends > 0 to the taker.
-  // The test sets this up with a ratio slightly below 1/2, gives=10, and then taker asks for 1. So it should give < 1/2. If maker balance does not increase, it was drained.
+  // The test sets this up with a price slightly below 1/2, gives=10, and then taker asks for 1. So it should give < 1/2. If maker balance does not increase, it was drained.
   function test_taker_cannot_drain_maker() public {
     mgv.setDensity96X32(olKey, 0);
     quote.approve($(mgv), 1 ether);
-    Tick tick = Tick.wrap(-7000); // ratio slightly < 1/2
+    Tick tick = Tick.wrap(-7000); // price slightly < 1/2
     mkr.newOfferByTick(tick, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
     mgv.marketOrderByTick(olKey, Tick.wrap(MAX_TICK), 1, true);

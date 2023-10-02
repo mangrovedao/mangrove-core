@@ -92,8 +92,8 @@ library TickLib {
   /* ### (outbound,inbound) → ratio */
 
   /* `ratioFromVolumes` converts a pair of (inbound,outbound) volumes to a floating-point, normalized ratio.
-  * `outboundAmt = 0` has a special meaning and the highest possible ratio will be returned.
-  * `inboundAmt = 0` has a special meaning if `outboundAmt != 0` and the lowest possible ratio will be returned.
+  * `outboundAmt = 0` has a special meaning and the highest possible price will be returned.
+  * `inboundAmt = 0` has a special meaning if `outboundAmt != 0` and the lowest possible price will be returned.
   */
   function ratioFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
     unchecked {

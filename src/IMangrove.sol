@@ -195,7 +195,7 @@ interface IMangrove is HasMgvEvents {
   ///@param gasreq The amount of gas required to execute the offer logic in the maker's `IMaker` implementation. This will limit the gas available, and the offer will fail if it spends more.
   ///@param gasprice The maximum gas price the maker is willing to pay a penalty for due to failing execution.
   ///@return offerId the id of the offer on Mangrove. Can be used to retract or update the offer (even to reuse a taken offer).
-  ///@dev The gasreq and gasprice is used to derive the provision which will be used to pay a bounty to taker if the offer fails.
+  ///@dev The gasreq and gasprice are used to derive the provision which will be used to pay a penalty if the offer fails.
   ///@dev This function is payable to enable delivery of the provision along with the offer creation.
   function newOfferByTick(OLKey memory olKey, Tick tick, uint gives, uint gasreq, uint gasprice)
     external

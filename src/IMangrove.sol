@@ -56,6 +56,14 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
+  function marketOrderByTickCustom(
+    OLKey memory olKey,
+    Tick maxTick,
+    uint fillVolume,
+    bool fillWants,
+    uint maxGasreqForFailingOffers
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+
   // # Cleaning functions
 
   function cleanByImpersonation(OLKey memory olKey, MgvLib.CleanTarget[] calldata targets, address taker)
@@ -91,14 +99,6 @@ interface IMangrove is HasMgvEvents {
   function updateOfferByTick(OLKey memory olKey, Tick tick, uint gives, uint gasreq, uint gasprice, uint offerId)
     external
     payable;
-
-  function marketOrderByTickCustom(
-    OLKey memory olKey,
-    Tick maxTick,
-    uint fillVolume,
-    bool fillWants,
-    uint maxGasreqForFailingOffers
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function retractOffer(OLKey memory olKey, uint offerId, bool deprovision) external returns (uint provision);
 

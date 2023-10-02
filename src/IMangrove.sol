@@ -68,15 +68,15 @@ interface IMangrove is HasMgvEvents {
   ///@notice Performs a market order on a specified offer list taking offers up to a limit price.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
-  ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
+  ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
   ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return fee The amount of native token the taker paid as a fee (in wei of `olKey.outbound_tkn`)
+  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev The market order stops when the price exceeds (an approximation of) 1.0001^`maxTick`, or when the end of the book has been reached, or:
-  ///@dev - If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
-  ///@dev - If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been sold. To sell a specific volume of `olKey.inbound` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
+  ///@dev - If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound_tkn` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
+  ///@dev - If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been sold. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
   function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
@@ -90,7 +90,7 @@ interface IMangrove is HasMgvEvents {
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return fee The amount of native token the taker paid as a fee (in wei of `olKey.outbound_tkn`)
+  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev Mangrove stops a market order after it has gone through failing offers such that their cumulative `gasreq` is greater than the global `maxGasreqForFailingOffers` parameter. This function can be used by the taker to override the default `maxGasreqForFailingOffers` parameter.
   function marketOrderByTickCustom(
     OLKey memory olKey,
@@ -108,7 +108,7 @@ interface IMangrove is HasMgvEvents {
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return fee The amount of native token the taker paid as a fee (in wei of `olKey.outbound_tkn`)
+  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev This function is just a wrapper for `marketOrderByTick`, see that function for details.
   ///@dev When deriving the tick, then `takerWants = 0` has a special meaning and the tick for the highest possible ratio between wants and gives will be used,
   ///@dev and if `takerGives = 0` and `takerWants != 0`, then the tick for the lowest possible ratio will be used.
@@ -125,12 +125,12 @@ interface IMangrove is HasMgvEvents {
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
-  ///@return feePaid The amount of native token the taker paid as a fee (in wei of `olKey.outbound_tkn`)
+  ///@return fee The amount of `olKey.outbound_tkn` the taker paid as a fee to Mangrove.
   ///@dev The `bounty` will be send to `msg.sender` but transfers will be for `taker`. Requires prior permission.
   ///@dev See also `marketOrderByTick`.
   function marketOrderForByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants, address taker)
     external
-    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   ///@notice Performs a market order on a specified offer list taking offers up to a limit price for a specified taker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.

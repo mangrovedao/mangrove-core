@@ -315,7 +315,7 @@ interface IMangrove is HasMgvEvents {
   ///@param fee in basis points, of `olKey.outbound_tkn` given to the taker. This fee is sent to Mangrove. Fee is capped to ~2.5%.
   ///@param density96X32 The density of the offer list used to define a minimum offer volume. See `setDensity96X32`.
   ///@param offer_gasbase The gasbase of the offer list used to define a minimum provision necessary for offers. See `setGasbase`.
-  ///@dev The flipped offer list is expected to have the same `tickSpacing`.
+  ///@dev If the flipped offer list is active then the offer lists are expected to have the same `tickSpacing`.
   function activate(OLKey memory olKey, uint fee, uint density96X32, uint offer_gasbase) external;
 
   ///@notice Deactivates an offer list.

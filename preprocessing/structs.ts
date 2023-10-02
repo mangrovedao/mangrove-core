@@ -22,6 +22,9 @@
    The sequence diagram of a market order is as follows:
    <img src="./sequenceChart.png" width="190%"></img>
 
+   ## Ratio and price
+
+   In the comments, we use the word 'price' to refer to the ratio between the amount promised by an offer and the amount of requests in return. In the code however, we use the generic word `ratio` to avoid confusion with notions of price based on concepts such as 'quote' and 'base' tokens,etc.
 
    ## `tickSpacing`
 

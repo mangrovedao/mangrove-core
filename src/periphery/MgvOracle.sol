@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 /* The purpose of the Oracle contract is to act as a gas price and density
  * oracle for Mangrove. It bridges to an external oracle, and allows
@@ -9,13 +9,13 @@ import "mgv_src/MgvLib.sol";
  * reports to Mangrove. */
 contract MgvOracle is IMgvMonitor {
   event SetGasprice(uint gasPrice);
-  event SetDensity(uint density);
+  event SetDensity96X32(uint density96X32);
 
   address governance;
   address mutator;
 
   uint lastReceivedGasPrice;
-  uint lastReceivedDensity;
+  Density lastReceivedDensity;
 
   constructor(address governance_, address initialMutator_, uint initialGasPrice_) {
     governance = governance_;
@@ -24,8 +24,8 @@ contract MgvOracle is IMgvMonitor {
     lastReceivedGasPrice = initialGasPrice_;
     /* Set initial density from the MgvOracle to let Mangrove use its internal density by default.
 
-      Mangrove will reject densities from the Monitor that don't fit in 32 bits and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
-    lastReceivedDensity = type(uint).max;
+      Mangrove will reject densities from the Monitor that are not 9-bit floats and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
+    lastReceivedDensity = Density.wrap(type(uint).max);
   }
 
   /* ## `authOnly` check */
@@ -65,20 +65,19 @@ contract MgvOracle is IMgvMonitor {
     emit SetGasprice(gasPrice);
   }
 
-  function setDensity(uint density) external {
+  /* Density is given as a 96.32 fixed point number. It will be stored as a 9-bit float and be approximated towards 0. The maximum error is 20%. See `DensityLib` for more information. */
+  function setDensity96X32(uint density96X32) external {
     // governance or mutator are allowed to update the density
     require(msg.sender == governance || msg.sender == mutator, "MgvOracle/unauthorized");
 
-    lastReceivedDensity = density;
-    emit SetDensity(density);
+    /* Checking the size of `density` is necessary to prevent overflow before storing density as a float. */
+    require(DensityLib.checkDensity96X32(density96X32), "MgvOracle/config/density96X32/wrong");
+
+    lastReceivedDensity = DensityLib.from96X32(density96X32);
+    emit SetDensity96X32(density96X32);
   }
 
-  function read(address, /*outbound_tkn*/ address /*inbound_tkn*/ )
-    external
-    view
-    override
-    returns (uint gasprice, uint density)
-  {
+  function read(OLKey memory) external view override returns (uint gasprice, Density density) {
     return (lastReceivedGasPrice, lastReceivedDensity);
   }
 }

@@ -13,9 +13,13 @@
     "corecov": "forge coverage --match-path 'test/core/*'",
     "build": "forge build && node copyArtifacts && node buildIndex && node checkNatspec",
     "clean": "forge clean; rimraf index.js dist",
-    "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",
+    "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts lib/core/Constants.sol src/core/MgvLib.sol src/core/MgvCommon.sol src/core/MgvHasOffers.sol src/core/MgvOfferMaking.sol src/core/MgvOfferTaking.sol src/core/MgvOfferTakingWithPermit.sol src/core/MgvGovernable.sol src/core/MgvView.sol src/core/MgvAppendix.sol src/core/Mangrove.sol lib/core/DensityLib.sol lib/core/TickTreeLib.sol lib/core/TickLib.sol lib/core/BitLib.sol lib/core/OfferExtra.sol lib/core/OfferDetailExtra.sol lib/core/LocalExtra.sol",
     "preproc": "ts-node preprocessing/run.ts",
-    "test": "forge test -vvv"
+    "generate-ratios": "node test-ratios/generate_ratios.js",
+    "test-ratios": "FOUNDRY_PROFILE=test-ratios forge test -vv",
+    "test": "forge test -vvv",
+    "test:memory-intensive": "forge test --match-contract TickTree",
+    "test:fast": "forge test --no-match-contract TickTree -vvv"
   },
   "lint-staged": {
     "*.sol": "forge fmt",
@@ -36,8 +40,10 @@
   ],
   "devDependencies": {
     "@types/node": "^20.8.0",
+    "bn.js": "^5.2.1",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.1",
+    "mathjs": "^11.11.1",
     "micromatch": "^4.0.5",
     "pinst": "^3.0.0",
     "prettier": "^3.0.3",

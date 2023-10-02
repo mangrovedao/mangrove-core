@@ -1,21 +1,18 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "mgv_src/AbstractMangrove.sol";
-import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import "mgv_src/core/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
-  AbstractMangrove mgv;
-  address base;
-  address quote;
+  IMangrove mgv;
+  OLKey olKey;
   bool succeed;
   uint dummy;
 
-  constructor(AbstractMangrove _mgv, address _base, address _quote) {
+  constructor(IMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
-    base = _base;
-    quote = _quote;
+    olKey = _ol;
     succeed = true;
   }
 
@@ -33,22 +30,19 @@ contract TestMoriartyMaker is IMaker {
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external override {}
 
-  function newOffer(uint wants, uint gives, uint gasreq, uint pivotId) public {
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote);
-    uint density = cfg.density();
+  function newOfferByVolume(uint wants, uint gives, uint gasreq) public {
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    (, Local cfg) = mgv.config(olKey);
     uint offer_gasbase = cfg.offer_gasbase();
-    dummy = mgv.newOffer({
-      outbound_tkn: base,
-      inbound_tkn: quote,
+    dummy = mgv.newOfferByVolume({
+      olKey: olKey,
       wants: 1,
-      gives: (density > 0 ? density : 1) * (offer_gasbase + 100000),
+      gives: cfg.density().multiplyUp(offer_gasbase + 100_000),
       gasreq: 100000,
-      gasprice: 0,
-      pivotId: 0
+      gasprice: 0
     }); //dummy offer
   }
 

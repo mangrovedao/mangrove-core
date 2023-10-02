@@ -1,10 +1,11 @@
 // SPDX-License-Identifier:	AGPL-2.0
 pragma solidity ^0.8.13;
 
-import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
-import {IERC20} from "mgv_src/IERC20.sol";
+import {IERC20} from "mgv_lib/IERC20.sol";
 import {ToyENS} from "mgv_lib/ToyENS.sol";
+import "mgv_src/core/MgvLib.sol";
+import "mgv_lib/Debug.sol";
 
 /* Some general utility methods.
 /* You may want to inherit `MangroveTest` (which inherits Test2` which inherits `Script2`) rather than inherit `Script2` directly */
@@ -44,7 +45,7 @@ contract Script2 is Script {
   /* *** Logging *** */
   /* Log arrays */
 
-  function logary(uint[] memory uints) public view {
+  function logary(uint[] memory uints) public pure {
     string memory s = "";
     for (uint i = 0; i < uints.length; i++) {
       s = string.concat(s, vm.toString(uints[i]));
@@ -55,7 +56,7 @@ contract Script2 is Script {
     console.log(s);
   }
 
-  function logary(int[] memory ints) public view {
+  function logary(int[] memory ints) public pure {
     string memory s = "";
     for (uint i = 0; i < ints.length; i++) {
       s = string.concat(s, vm.toString(uint(ints[i])));
@@ -64,52 +65,6 @@ contract Script2 is Script {
       }
     }
     console.log(s);
-  }
-
-  /* *** Unit conversion *** */
-
-  /* Return amt as a fractional representation of amt/10^unit, with dp decimal points
-  */
-  function toFixed(uint amt, uint unit) internal pure returns (string memory) {
-    return toFixed(amt,unit,78/*max num of digits*/);
-  }
-  /* This full version will show at most dp digits in the fractional part. */
-  function toFixed(uint amt, uint unit, uint dp) internal pure returns (string memory str) {
-    uint power; // current power of ten of amt being looked at
-    uint digit; // factor of the current power of ten
-    bool truncated; // whether we had to truncate due to dp
-    bool nonNull; // have we seen a nonzero factor so far
-    // number -> string conversion, avoids polluting traces with vm.toString
-    string[10] memory digitStrings = ["0","1","2","3","4","5","6","7","8","9"];
-    // prepend at least `unit` digits or until amt has been exhausted
-    while (power < unit || amt > 0) {
-      digit = amt % 10;
-      nonNull = nonNull || digit != 0;
-      // if still in the frac part and still 0 so far, don't write
-      if (nonNull || power >= unit) {
-        // write if shifting dp to the left puts us out of the fractional part
-        if (dp + power >= unit) {
-          str = string.concat(digitStrings[digit], str);
-        } else {
-          truncated = true;
-        }
-      }
-
-      // if frac part is nonzero, mark it as we move to integral
-      if (nonNull && power + 1 == unit) {
-        str = string.concat(".", str);
-      }
-      power++;
-      amt = amt / 10;
-    }
-    // prepend with 0 if integral part empty
-    if (unit >= power) {
-      str = string.concat("0", str);
-    }
-    // if number was truncated, mark it
-    if (truncated) {
-      str = string.concat(str,unicode"…");
-    }
   }
 
   function getReason(bytes memory returnData) internal pure returns (string memory reason) {
@@ -170,6 +125,27 @@ contract Script2 is Script {
   function wrap_dynamic(uint[4] memory a) internal pure returns (uint[4][] memory) {
     uint[4][] memory ret = new uint[4][](1);
     ret[0] = a;
+    return ret;
+  }
+
+  function wrap_dynamic(MgvLib.CleanTarget memory a) internal pure returns (MgvLib.CleanTarget[] memory) {
+    MgvLib.CleanTarget[] memory ret = new MgvLib.CleanTarget[](1);
+    ret[0] = a;
+    return ret;
+  }
+
+  function wrap_dynamic(MgvLib.CleanTarget memory a, MgvLib.CleanTarget memory b) internal pure returns (MgvLib.CleanTarget[] memory) {
+    MgvLib.CleanTarget[] memory ret = new MgvLib.CleanTarget[](2);
+    ret[0] = a;
+    ret[1] = b;
+    return ret;
+  }
+
+  function wrap_dynamic(MgvLib.CleanTarget memory a, MgvLib.CleanTarget memory b, MgvLib.CleanTarget memory c) internal pure returns (MgvLib.CleanTarget[] memory) {
+    MgvLib.CleanTarget[] memory ret = new MgvLib.CleanTarget[](3);
+    ret[0] = a;
+    ret[1] = b;
+    ret[2] = c;
     return ret;
   }
 
@@ -778,6 +754,39 @@ contract Script2 is Script {
       return uint(-i);
     } else {
       return uint(i);
+    }
+  }
+
+  /* Math Conversion  */
+  // to bin representation
+  function b2(uint x) internal pure returns (string memory str) {
+    bytes memory ar = '01';
+    for (uint i = 0;i<256;i++) {
+      str = string(bytes.concat(ar[x%2],bytes(str)));
+      x = x/2;
+    }
+  }
+
+  // to hex representation
+  function b16(uint x) internal pure returns (string memory str) {
+    bytes memory ar = '0123456789abcdef';
+    for (uint i=0;i<256;i=i+4) {
+      str = string(bytes.concat(ar[x%16],bytes(str)));
+      x = x/16;
+    }
+  }
+
+  // from binary representation to number
+  // zb stands for '0b' as in a 0b binary prefix
+  function zb(string memory b) internal pure returns (uint n) {
+    uint acc = 1;
+    for (uint i = 0;i<bytes(b).length;i++) {
+      if (bytes(b)[bytes(b).length-1-i] == '1') {
+        n = n + acc;
+      }
+      unchecked {
+        acc = acc * 2;
+      }
     }
   }
 

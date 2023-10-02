@@ -4,8 +4,6 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 
-import "forge-std/console.sol";
-
 contract Script2Test is Test2 {
   function aeq(uint amt, uint unit, uint dp, string memory expected) internal {
     assertEq(toFixed(amt, unit, dp), expected);

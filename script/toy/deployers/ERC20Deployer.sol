@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {IERC20} from "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 

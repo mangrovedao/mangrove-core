@@ -42,7 +42,7 @@ jobs:
 
   # ==== Job: Build and test mangrove-core
   mangrove-core:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.0-4core
 
     steps:
 
@@ -66,13 +66,17 @@ jobs:
 
     # Pinned forks are used in tests and utilize secrets. For PRs from forks these are not available
     # Let the tests attempt to run with demo endpoints which are more unstable.
-    - name: Mangrove Solidity Tests
-      run: yarn run test
+    - name: Mangrove Solidity Tests (fast)
+      run: yarn run test:fast
       env:
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL || 'https://polygon.llamarpc.com' }}
         MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL || 'unused' }}
 
-    # For push runs we also create a coverage report
+    # Memory intensive tests run without -vvv as GitHub actions otherwise cancels the step due to memory usage
+    - name: Mangrove Solidity Tests (memory intensive)
+      run: yarn run test:memory-intensive
+
+      # For push runs we also create a coverage report
     - name: Create coverage report for mangrove-solidity
       if: github.event_name != 'pull_request' 
       run: forge coverage --report lcov

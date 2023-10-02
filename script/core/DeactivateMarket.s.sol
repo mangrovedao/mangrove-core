@@ -2,38 +2,42 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import {IERC20} from "mgv_src/IERC20.sol";
+import {IERC20} from "mgv_lib/IERC20.sol";
+import "mgv_src/core/MgvLib.sol";
 
-/* Deactivate a market (aka two mangrove semibooks) & update MgvReader. */
+/* Deactivate a market (aka two mangrove offer lists) & update MgvReader. */
 contract DeactivateMarket is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      tkn0: IERC20(envAddressOrName("TKN0")),
-      tkn1: IERC20(envAddressOrName("TKN1"))
+      market: Market({
+        tkn0: envAddressOrName("TKN0"),
+        tkn1: envAddressOrName("TKN1"),
+        tickSpacing: vm.envUint("TICK_SPACING")
+      })
     });
     outputDeployment();
   }
 
-  function innerRun(Mangrove mgv, MgvReader reader, IERC20 tkn0, IERC20 tkn1) public {
+  function innerRun(IMangrove mgv, MgvReader reader, Market memory market) public {
     broadcast();
-    mgv.deactivate(address(tkn0), address(tkn1));
+    mgv.deactivate(toOLKey(market));
 
     broadcast();
-    mgv.deactivate(address(tkn1), address(tkn0));
+    mgv.deactivate(toOLKey(flipped(market)));
 
-    (new UpdateMarket()).innerRun({tkn0: tkn0, tkn1: tkn1, reader: reader});
+    (new UpdateMarket()).innerRun({market: market, reader: reader});
 
-    smokeTest(reader, tkn0, tkn1);
+    smokeTest(reader, market);
   }
 
-  function smokeTest(MgvReader reader, IERC20 tkn0, IERC20 tkn1) internal view {
-    MgvReader.MarketConfig memory config = reader.marketConfig(address(tkn0), address(tkn1));
+  function smokeTest(MgvReader reader, Market memory market) internal view {
+    MarketConfig memory config = reader.marketConfig(market);
     require(!(config.config01.active || config.config10.active), "Market was not deactivated");
-    require(!reader.isMarketOpen(address(tkn0), address(tkn1)), "Reader state not updated");
+    require(!reader.isMarketOpen(market), "Reader state not updated");
   }
 }

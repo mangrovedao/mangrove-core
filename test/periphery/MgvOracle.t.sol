@@ -5,6 +5,8 @@ pragma solidity ^0.8.10;
 
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
+import {Density, DensityLib} from "mgv_lib/core/DensityLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 import {Test2} from "mgv_lib/Test2.sol";
 
@@ -34,7 +36,7 @@ contract MgvOracleForInternal is MgvOracle {
   }
 
   //To get density. Used to test "setDensity" without using "read" from MgvOracle
-  function getDensity() public view returns (uint) {
+  function getDensity() public view returns (Density) {
     return lastReceivedDensity;
   }
 }
@@ -43,7 +45,7 @@ contract MgvOracleForInternal is MgvOracle {
 contract MgvOracleTest is Test2 {
   // Same events as in MgvOracle, needed to test that the events gets emitted
   event SetGasprice(uint gasPrice);
-  event SetDensity(uint density);
+  event SetDensity96X32(uint density96X32);
 
   function test_authOnly() public {
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
@@ -113,31 +115,35 @@ contract MgvOracleTest is Test2 {
     assertEq(mgvOracle.getGasprice(), 40, "gas should be set");
   }
 
-  function test_setDensity() public {
+  function test_setDensity96X32() public {
     address governance = freshAddress("governance");
     address mutator = freshAddress("mutator");
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
 
-    assertEq(mgvOracle.getDensity(), type(uint).max, "density should be set to max");
+    assertEq(Density.unwrap(mgvOracle.getDensity()), type(uint).max, "density should be set to max");
 
     vm.expectRevert("MgvOracle/unauthorized");
-    mgvOracle.setDensity(20);
+    mgvOracle.setDensity96X32(20 << 32);
 
     vm.startPrank(governance);
     vm.expectEmit(false, false, false, true);
-    emit SetDensity(20);
-    mgvOracle.setDensity(20);
+    emit SetDensity96X32(DensityLib.from96X32(20 << 32).to96X32());
+    mgvOracle.setDensity96X32(20 << 32);
     vm.stopPrank();
 
-    assertEq(mgvOracle.getDensity(), 20, "density should be set by governance");
+    assertEq(
+      mgvOracle.getDensity().to96X32(), DensityLib.from96X32(20 << 32).to96X32(), "density should be set by governance"
+    );
 
     vm.startPrank(mutator);
     vm.expectEmit(false, false, false, true);
-    emit SetDensity(40);
-    mgvOracle.setDensity(40);
+    emit SetDensity96X32(DensityLib.from96X32(40 << 32).to96X32());
+    mgvOracle.setDensity96X32(40 << 32);
     vm.stopPrank();
 
-    assertEq(mgvOracle.getDensity(), 40, "density should be set by mutator");
+    assertEq(
+      mgvOracle.getDensity().to96X32(), DensityLib.from96X32(40 << 32).to96X32(), "density should be set by mutator"
+    );
   }
 
   function test_read() public {
@@ -146,13 +152,29 @@ contract MgvOracleTest is Test2 {
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
 
     vm.startPrank(governance);
-    mgvOracle.setDensity(20);
+    mgvOracle.setDensity96X32(20 << 32);
     mgvOracle.setGasPrice(30);
     vm.stopPrank();
 
-    (uint gas, uint density) = mgvOracle.read(address(0), address(0));
+    (uint gas, Density density) = mgvOracle.read(OLKey(address(0), address(0), 0));
 
     assertEq(gas, 30, "gas should be 30");
-    assertEq(density, 20, "density should be 20");
+    assertEq(density.to96X32(), DensityLib.from96X32(20 << 32).to96X32(), "density should be 20");
+  }
+
+  function test_set_density_96X32() public {
+    address governance = freshAddress("governance");
+    address mutator = freshAddress("mutator");
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
+
+    uint ceiling = 2 ** (96 + 32) - 1;
+
+    // check no revert
+    vm.prank(governance);
+    mgvOracle.setDensity96X32(ceiling);
+
+    vm.expectRevert("MgvOracle/config/density96X32/wrong");
+    vm.prank(governance);
+    mgvOracle.setDensity96X32(ceiling + 1);
   }
 }

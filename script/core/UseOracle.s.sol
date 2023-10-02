@@ -3,19 +3,19 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {IMgvMonitor} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import "mgv_src/core/MgvLib.sol";
 
 contract UseOracle is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       oracle: IMgvMonitor(envAddressOrName("ORACLE", "MgvOracle"))
     });
     outputDeployment();
   }
 
-  function innerRun(Mangrove mgv, IMgvMonitor oracle) public {
+  function innerRun(IMangrove mgv, IMgvMonitor oracle) public {
     broadcast();
     mgv.setMonitor(address(oracle));
     broadcast();

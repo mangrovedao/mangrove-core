@@ -44,8 +44,11 @@ pragma solidity ^0.8.10;
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
-import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {console2 as console, StdStorage, stdStorage} from "forge-std/Test.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import "mgv_lib/core/TickTreeLib.sol";
+import "mgv_lib/core/TickLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;
@@ -82,22 +85,23 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     });
   }
 
-  function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
-    return mgv.snipesFor($(base), $(quote), wrap_dynamic([uint(1), value, value, 300_000]), true, who);
+  function marketOrderFor(uint value, address who) internal returns (uint, uint, uint, uint) {
+    Tick tick = TickLib.tickFromRatio(1, 0);
+    return mgv.marketOrderForByTick(olKey, tick, value, true, who);
   }
 
-  function newOffer(uint amount) internal {
-    mgv.newOffer($(base), $(quote), amount, amount, 100_000, 0, 0);
+  function newOfferByVolume(uint amount) internal {
+    mgv.newOfferByVolume(olKey, amount, amount, 100_000, 0);
   }
 
   function test_no_allowance(uint value) external {
     /* You can use 0 from someone who gave you an allowance of 0. */
-    value = bound(value, reader.minVolume($(base), $(quote), 100_000), type(uint96).max); //can't create an offer below density
+    value = bound(value, reader.minVolume(olKey, 100_000), type(uint96).max); //can't create an offer below density
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
-    newOffer(value);
+    newOfferByVolume(value);
     vm.expectRevert("mgv/lowAllowance");
-    snipeFor(value, good_owner);
+    marketOrderFor(value, good_owner);
   }
 
   function test_wrong_owner() public {
@@ -128,48 +132,60 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   function test_wrong_outbound() public {
     permit_data.outbound_tkn = address(1);
     permit_data.submit();
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_wrong_inbound() public {
     permit_data.inbound_tkn = address(1);
     permit_data.submit();
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_wrong_spender() public {
     permit_data.spender = address(1);
     permit_data.submit();
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_good_permit(uint96 value) public {
     permit_data.value = value;
     permit_data.submit();
 
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), value, "Allowance not set");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), value, "Allowance not set");
   }
 
   function test_allowance_works() public {
     uint value = 1 ether;
     // set allowance manually
-    stdstore.target($(mgv)).sig(mgv.allowances.selector).with_key($(base)).with_key($(quote)).with_key(good_owner)
+    stdstore.target($(mgv)).sig(mgv.allowance.selector).with_key($(base)).with_key($(quote)).with_key(good_owner)
       .with_key($(this)).checked_write(value);
 
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
-    newOffer(value);
-    (uint successes, uint takerGot, uint takerGave,,) = snipeFor(value / 2, good_owner);
-    assertEq(successes, 1, "Snipe should succeed");
+    newOfferByVolume(value);
+    (uint takerGot, uint takerGave,,) = marketOrderFor(value / 2, good_owner);
     assertEq(takerGot, value / 2, "takerGot should be 1 ether");
     assertEq(takerGave, value / 2, "takerGot should be 1 ether");
 
     assertEq(
-      mgv.allowances($(base), $(quote), good_owner, $(this)), value / 2 + (value % 2), "Allowance incorrectly decreased"
+      mgv.allowance($(base), $(quote), good_owner, $(this)), value / 2 + (value % 2), "Allowance incorrectly decreased"
     );
   }
 
-  function test_permit_typehash() public {
+  function test_correct_domain_separator() public {
+    bytes32 expected = keccak256(
+      abi.encode(
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+        keccak256(bytes("Mangrove")),
+        keccak256(bytes("1")),
+        block.chainid,
+        address(mgv)
+      )
+    );
+    assertEq(mgv.DOMAIN_SEPARATOR(), expected, "wrong DOMAIN_SEPARATOR");
+  }
+
+  function test_correct_permit_typehash() public {
     bytes32 expected = keccak256(
       "Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
     );
@@ -193,7 +209,7 @@ library mgvPermitData {
     // used at submit() time
     uint key;
     // easier to store here (avoids an extra `mgv` arg to lib fns)
-    AbstractMangrove mgv;
+    IMangrove mgv;
     // must preread from mangrove since calling mgv
     // just-in-time will trip up `expectRevert`
     // (looking for a fix to this)

@@ -34,11 +34,6 @@ library TickLib {
     }
   }
 
-  /* Floats are normalized to 128 bits to ensure no overflow when multiplying with amounts, and for easier comparisons */ 
-  function floatLt(uint mantissa_a, int exp_a, uint mantissa_b, int exp_b) internal pure returns (bool) {
-    return (exp_a > exp_b || (exp_a == exp_b && mantissa_a < mantissa_b));
-  }
-
   /* Returns the nearest, higher bin to the given `tick` at the given `tickSpacing`
     
     We do not force ticks to fit the tickSpacing (aka `tick%tickSpacing==0`). Ratios are rounded up that the maker is always paid at least what they asked for
@@ -88,6 +83,18 @@ library TickLib {
       return divExpUp(sig*inboundAmt,exp);
     }
   }
+
+  /* ## Ratio representation
+
+  Ratios are represented as a (mantissa,exponent) pair. 
+  
+  The exponent is negated so that, for ratios in the accepted range, the exponent is `>= 0`. This simplifies the code.
+
+  Floats are normalized so that the mantissa uses exactly 128 bits. It enables easy comparison between floats, and ensures they can be multiplied by amounts without overflow.
+
+  The accepted ratio range is between `ratioFromTick(MIN_TICK)` and `ratioFromTick(MAX_TICK)` (inclusive).
+  */
+  
 
   /* ### (outbound,inbound) → ratio */
 
@@ -391,4 +398,11 @@ library TickLib {
       return (a>>e) + rem;
     }
   }
+
+  /* Floats are normalized to 128 bits to ensure no overflow when multiplying with amounts, and for easier comparisons. */
+  function floatLt(uint mantissa_a, int exp_a, uint mantissa_b, int exp_b) internal pure returns (bool) {
+    /* Exponents are negated (so that exponents of ratios within the accepted range as >= 0, which simplifies the code), which explains the direction of the `exp_a > exp_b` comparison. */ 
+    return (exp_a > exp_b || (exp_a == exp_b && mantissa_a < mantissa_b));
+  }
+
 }

@@ -290,7 +290,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       { name: "root", bits: 2, type: "Field", underlyingType: "uint" },
       /* * `offer_gasbase` represents the gas overhead used by processing the offer inside Mangrove + the overhead of initiating an entire order. Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to an offer list, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.kilo_offer_gasbase,
-      /* * If `lock` is true, orders may not be added nor executed.
+      /* * If `lock` is true, orders may not be added nor executed, nor the offer list read by external contracts.
 
         Reentrancy during offer execution is not considered safe:
       * during execution, an offer could consume other offers further up in the list, effectively frontrunning the taker currently executing the offer.

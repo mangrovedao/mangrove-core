@@ -264,7 +264,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       { name: "dead", bits: 1, type: "bool" },
       /* * `maxRecursionDepth` is the maximum number of times a market order can recursively execute offers. This is a protection against stack overflows. */
       { name: "maxRecursionDepth", bits: 8, type: "uint" },      
-      /* * `maxGasreqForFailingOffers` is the maximum gasreq failing offers can consume in total. This is used in a protection against failing offers collectively consuming the block gas limit in a market order. Setting it too high would make it possible for successive failing offers to consume up to that limit then trigger a revert (thus the failing offer would not be removed). During a market order, Mangrove keeps a running sum of the `gasreq` of the failing offers it has executed, and stops the market order when that sum exceeds `maxGasreqForFailingOffers`. */
+      /* * `maxGasreqForFailingOffers` is the maximum gasreq failing offers can consume in total. This is used in a protection against failing offers collectively consuming the block gas limit in a market order. Setting it too high would make it possible for successive failing offers to consume up to that limit then trigger a revert (thus the failing offer would not be removed). During a market order, Mangrove keeps a running sum of the `gasreq` of the failing offers it has executed and stops the market order when that sum exceeds `maxGasreqForFailingOffers`. */
       { name: "maxGasreqForFailingOffers", bits: 32, type: "uint" },      
     ],
   },

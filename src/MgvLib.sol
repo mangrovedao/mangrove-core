@@ -96,14 +96,14 @@ interface HasMgvEvents {
   /* 
     Events in solidity is a hard thing to do in a optimal way. If you look at it as a purely gas efficient issue, you want to emit as few events as possible and with as few fields as possible. But as events also has to be usable for an off chain user, then doing this is not always the best solution.
 
-    We tried to list the main points that we would like to do with events.
+    We tried to list the main forces that are inflicted upon events.
 
-    1. Use as little gas as possible
+    1. Use as little gas as possible.
     2. An indexer should be able to keep track of the state of Mangrove.
     3. Doing RPC calls directly, should be able to find offers and other information based on offerList, maker, taker, offer id, etc.
 
-    These 3 points all have there own direction and it is therefore not possible to find a solution that is optimal for all 3 points.
-    We have therefore tried to find a solution that is a good balance between the all 3 points.
+    These forces all pull in their own direction and it is therefore not possible to find a solution that is optimal for all three.
+    The following events are therefore an attempt to balance the trade-offs.
   */
 
   /* ### Mangrove Creation
@@ -135,7 +135,7 @@ interface HasMgvEvents {
       The indexer also cannot deduce what scenario the credit event happened. E.g., we don't know if the credit event happened because an offer failed or because the user simply funded Mangrove.
   */
   event Credit(address indexed maker, uint amount);
-  /* '
+  /* 
     * Debit event occurs when an offer is posted or when the `withdraw` function is called 
       This is emitted when a user's account on Mangrove is debited with some native funds.
 
@@ -223,7 +223,7 @@ interface HasMgvEvents {
   /*
   This event is emitted when the gasmax of Mangrove is set.
 
-  It emits the `gasmax`. By emitting this, an indexer will be able to keep track of what gasmax Mangrove has. Read more about Mangroves gasmax on [docs.mangrove.exchange](docs.mangrove.exchange)
+  It emits the `gasmax`. By emitting this, an indexer will be able to keep track of what gasmax Mangrove has. Read more about Mangroves gasmax on [docs.mangrove.exchange](https://docs.mangrove.exchange)
 
   No fields are indexed as there is no need for RPC calls to filter on this.
   */
@@ -241,7 +241,7 @@ interface HasMgvEvents {
   /*
   This event is emitted when the max recursion depth of Mangrove is set.
 
-  It emits the max depth `value`. By emitting this, an indexer will be able to keep track of what max recursion depth Mangrove has. Read more about Mangroves max recursion depth on [docs.mangrove.exchange](docs.mangrove.exchange)
+  It emits the max depth `value`. By emitting this, an indexer will be able to keep track of what max recursion depth Mangrove has. Read more about Mangroves max recursion depth on [docs.mangrove.exchange](https://docs.mangrove.exchange)
   */
 
   event SetMaxRecursionDepth(uint value);
@@ -249,14 +249,14 @@ interface HasMgvEvents {
   /*
   This event is emitted when the max gasreq for failing offers of Mangrove is set.
 
-  It emits the max gasreq for failing offers `value`. By emitting this, an indexer will be able to keep track of what max gasreq for failing offers Mangrove has. Read more about Mangroves max gasreq for failing offers on [docs.mangrove.exchange](docs.mangrove.exchange)
+  It emits the max gasreq for failing offers `value`. By emitting this, an indexer will be able to keep track of what max gasreq for failing offers Mangrove has. Read more about Mangroves max gasreq for failing offers on [docs.mangrove.exchange](https://docs.mangrove.exchange)
   */
   event SetMaxGasreqForFailingOffers(uint value);
 
   /*
   This event is emitted when the gasprice of Mangrove is set.
 
-  It emits the `gasprice`. By emitting this, an indexer will be able to keep track of what gasprice Mangrove has. Read more about Mangroves gasprice on [docs.mangrove.exchange](docs.mangrove.exchange)
+  It emits the `gasprice`. By emitting this, an indexer will be able to keep track of what gasprice Mangrove has. Read more about Mangroves gasprice on [docs.mangrove.exchange](https://docs.mangrove.exchange)
 
   No fields are indexed as there is no need for RPC calls to filter on this.
   */
@@ -337,7 +337,7 @@ interface HasMgvEvents {
   /*
   This event is emitted when an offer fails, because of a maker error.
 
-  It emits `olKeyHash`, `taker`, the `offerId`, the offers `wants`, `gives`, `penalty` and the `reason` for failure. 
+  It emits `olKeyHash`, `taker`, the `offerId`, the offers `takerWants`, `takerGives`, `penalty` and the `reason` for failure. 
   `olKeyHash` and `taker` are all fields that we do not need, in order for an indexer to work, as an indexer will be able the get that info from the former `OrderStart` and `OfferWrite` events. 
   But in order for RPC call to filter on this, we need to emit them. 
   `olKeyHash` `taker` and `id` are indexed so that we can filter on them when doing RPC calls. As `maker` can be a strategy and not the actual owner, then we chose to not emit it here and to mark the field `id` indexed, 
@@ -350,7 +350,7 @@ interface HasMgvEvents {
   This means that `OfferFail` events are emitted in reverse order, compared to what order they are taken. This is due to the way we handle posthooks. The same goes for `OfferSuccess`.
 
   By emitting this event, an indexer can keep track of, if an offer failed and thereby if the offer is live. 
-  By emitting the wants and gives that the offer was taken with, then an indexer can keep track of these amounts, which could be useful for e.g. strategy manager, to know if their offers fail at a certain amount.
+  By emitting the `takerWants` and `takerGives` that the offer was taken with, then an indexer can keep track of these amounts, which could be useful for e.g. strategy manager, to know if their offers fail at a certain amount.
   */
   event OfferFail(
     bytes32 indexed olKeyHash,

@@ -296,7 +296,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       /* * If `lock` is true, orders may not be added nor executed, nor the offer list read by external contracts.
 
         Reentrancy during offer execution is not considered safe:
-      * during execution, an offer could consume other offers further up in the list, effectively frontrunning the taker currently executing the offer.
+      * during execution, an offer could consume other offers further up in the list, effectively front-running the taker currently executing the offer.
       * it could also cancel other offers, creating a discrepancy between the advertised and actual market price at no cost to the maker.
       * an offer insertion consumes an unbounded amount of gas (because it has to be correctly placed in the book).
 

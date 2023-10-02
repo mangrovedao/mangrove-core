@@ -161,7 +161,7 @@ const id_field = (name: string) => {
 
 /* ## `Offer` */
 //+clear+
-/* `Offer`s hold doublylinked list pointers to their prev and next offers, as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
+/* `Offer`s hold doubly linked list pointers to their prev and next offers, as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
 //+clear+
 const struct_defs = {
   offer: {

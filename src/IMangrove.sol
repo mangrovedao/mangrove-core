@@ -294,7 +294,7 @@ interface IMangrove is HasMgvEvents {
   ///@notice Gets an offer detail in packed format.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param offerId The `offerId` of the offer on the offer list.
-  ///@return offerDetail The offer detail in packed format.
+  ///@return offerDetail The offer details in packed format.
   function offerDetails(OLKey memory olKey, uint offerId) external view returns (OfferDetail offerDetail);
 
   ///@notice Gets both an offer and an offer detail in packed format.

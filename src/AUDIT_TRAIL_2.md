@@ -61,7 +61,7 @@ Offers can no longer be executed individually ('sniping'), unless their executio
 
 We could not find a legitimate use for snipe other than the cleaning of failing offers. Also, some strategies could be broken by the full snipe functionality.
 
-## Makers cannot read the offer list during `makerExecute``
+## Makers cannot read the offer list during `makerExecute`
 
 Makers can no longer read the offer list during `makerExecute`` for the following reasons:
 

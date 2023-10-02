@@ -71,7 +71,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* *Note:* `marketOrderFor` and `cleanByImpersonation` may emit ERC20 `Transfer` events of value 0 from `taker`, but that's already the case with common ERC20 implementations. */
   function marketOrderForByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, address taker)
     external
-    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
@@ -82,12 +82,12 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     }
   }
 
-  function marketOrderForByTick(OLKey memory olKey, Tick tick, uint fillVolume, bool fillWants, address taker)
+  function marketOrderForByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants, address taker)
     public
-    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
-      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, tick, fillVolume, fillWants, taker, 0);
+      (takerGot, takerGave, bounty, fee) = generalMarketOrder(olKey, maxTick, fillVolume, fillWants, taker, 0);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(olKey.outbound, olKey.inbound, taker, takerGave);
     }

@@ -381,7 +381,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /* # Cleaning */
-  /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penalty as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `clean` function itself will not revert.
+  /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penalty as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `cleanByImpersonation` function itself will not revert.
   
   Its second argument is a `CleanTarget[]` with each `CleanTarget` identifying an offer to clean and the execution parameters that will make it fail. The return values are the number of successfully cleaned offers and the total bounty received.
 

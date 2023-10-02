@@ -28,7 +28,7 @@ contract TestTaker is Script2 {
   }
 
   function approveSpender(address spender, uint amount) external {
-    mgv.approve(olKey.outbound, olKey.inbound, spender, amount);
+    mgv.approve(olKey.outbound_tkn, olKey.inbound_tkn, spender, amount);
   }
 
   function clean(uint offerId, uint takerWants) public returns (bool success) {

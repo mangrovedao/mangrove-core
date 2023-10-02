@@ -98,8 +98,8 @@ contract MarketHealth is Test2, Deployer {
   function innerRun(IMangrove mgv, MgvReader reader, OLKey memory olKey, uint outboundTknVolume, uint densityOverrides)
     public
   {
-    IERC20 inbTkn = IERC20(olKey.inbound);
-    IERC20 outTkn = IERC20(olKey.outbound);
+    IERC20 inbTkn = IERC20(olKey.inbound_tkn);
+    IERC20 outTkn = IERC20(olKey.outbound_tkn);
     if (densityOverrides > 0) {
       vm.prank(mgv.governance());
       mgv.setDensity96X32(olKey, densityOverrides << 32);

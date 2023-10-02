@@ -41,7 +41,7 @@ contract MakerDeployer {
       makers = new address payable[](k);
       for (uint i = 0; i < k; i++) {
         makers[i] = payable(address(new TestMaker(mgv, olKey)));
-        TestMaker(makers[i]).approveMgv(TestToken(olKey.outbound), 10 ether);
+        TestMaker(makers[i]).approveMgv(TestToken(olKey.outbound_tkn), 10 ether);
         TestMaker(makers[i]).shouldFail(i == 0); //maker-0 is failer
       }
     }

@@ -89,7 +89,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     unchecked {
       (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, tick, fillVolume, fillWants, taker, 0);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
-      deductSenderAllowance(olKey.outbound, olKey.inbound, taker, takerGave);
+      deductSenderAllowance(olKey.outbound_tkn, olKey.inbound_tkn, taker, takerGave);
     }
   }
 

@@ -24,7 +24,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     if (makerRevert) {
       revert(sExecuteRevertData);
     }
-    emit Execute(msg.sender, sor.olKey.outbound, sor.olKey.inbound, sor.offerId, sor.takerWants, sor.takerGives);
+    emit Execute(msg.sender, sor.olKey.outbound_tkn, sor.olKey.inbound_tkn, sor.offerId, sor.takerWants, sor.takerGives);
     return executeReturnData;
   }
 

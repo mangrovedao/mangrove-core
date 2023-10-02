@@ -31,7 +31,7 @@ contract UpdateMarketTest is Test2 {
   }
 
   function test_updater(OLKey memory olKey) public {
-    Market memory market = Market(olKey.outbound, olKey.inbound, olKey.tickSpacing);
+    Market memory market = Market(olKey.outbound_tkn, olKey.inbound_tkn, olKey.tickSpacing);
     IMangrove mgv = deployer.mgv();
     MgvReader reader = deployer.reader();
 

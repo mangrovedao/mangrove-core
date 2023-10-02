@@ -137,7 +137,7 @@ contract MgvCommon is HasMgvEvents {
   mapping(
     address outbound_tkn
       => mapping(address inbound_tkn => mapping(address owner => mapping(address spender => uint allowance)))
-  ) internal _allowances;
+  ) internal _allowance;
   /* Storing nonces avoids replay attacks. */
   mapping(address owner => uint nonce) internal _nonces;
 

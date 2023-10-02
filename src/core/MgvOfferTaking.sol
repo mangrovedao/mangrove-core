@@ -55,13 +55,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   The market order stops when the price exceeds (an approximation of) 1.0001^`maxTick`, or when the end of the book has been reached, or:
   * If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound_tkn` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
-  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been sold. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
+  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been paid. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
   
   For a maximum `fillVolume` and a maximum (when `fillWants=true`) or minimum (when `fillWants=false`) price, the taker can end up receiving a volume of about `2**255` tokens. */
 
   function marketOrderByTick(OLKey memory olKey, Tick maxTick, uint fillVolume, bool fillWants)
     public
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
       return generalMarketOrder(olKey, maxTick, fillVolume, fillWants, msg.sender, 0);
@@ -71,7 +71,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* There is a `ByVolume` variant where the taker specifies a desired total amount of `olKey.outbound_tkn` tokens (`takerWants`), and an available total amount of `olKey.inbound_tkn` (`takerGives`). Volumes should fit on 127 bits. */
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
     Tick maxTick = TickLib.tickFromVolumes(takerGives, takerWants);
@@ -85,7 +85,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
-  ) public returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
+  ) public returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       return generalMarketOrder(olKey, maxTick, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers);
     }
@@ -213,7 +213,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     bool fillWants,
     address taker,
     uint maxGasreqForFailingOffers
-  ) internal returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
+  ) internal returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       /* Checking that `fillVolume` fits in 127 ensures no overflow during the market order recursion. */
       require(fillVolume <= MAX_SAFE_VOLUME, "mgv/mOrder/fillVolume/tooBig");
@@ -381,7 +381,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /* # Cleaning */
-  /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penalty as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `clean` function itself will not revert.
+  /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penalty as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `cleanByImpersonation` function itself will not revert.
   
   Its second argument is a `CleanTarget[]` with each `CleanTarget` identifying an offer to clean and the execution parameters that will make it fail. The return values are the number of successfully cleaned offers and the total bounty received.
 

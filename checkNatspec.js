@@ -27,7 +27,7 @@ const read_artifact = (file_path) => {
 // gather all artifact files
 const artifacts = all_files(path.join(cwd, "out"));
 
-includes = ["TransferLib"];
+includes = ["TransferLib", "IMangrove"];
 
 let anyFindings = false;
 artifacts.forEach((file) => {

@@ -317,7 +317,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_initial_allowance_is_zero() public {
-    assertEq(mgv.allowances($(base), $(quote), address(tkr), $(this)), 0, "initial allowance should be 0");
+    assertEq(mgv.allowance($(base), $(quote), address(tkr), $(this)), 0, "initial allowance should be 0");
   }
 
   function test_cannot_marketOrderFor_for_without_allowance() public {
@@ -336,7 +336,7 @@ contract GatekeepingTest is MangroveTest {
     uint takerGot;
     (takerGot,,,) = mgv.marketOrderForByVolume(olKey, 1 ether, 1 ether, true, address(tkr));
     assertEq(
-      mgv.allowances($(base), $(quote), address(tkr), $(this)), 0.2 ether, "allowance should have correctly reduced"
+      mgv.allowance($(base), $(quote), address(tkr), $(this)), 0.2 ether, "allowance should have correctly reduced"
     );
   }
 

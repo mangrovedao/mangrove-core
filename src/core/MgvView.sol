@@ -155,13 +155,13 @@ contract MgvView is MgvCommon {
 
   /* Permit-related view functions */
 
-  function allowances(address outbound_tkn, address inbound_tkn, address owner, address spender)
+  function allowance(address outbound_tkn, address inbound_tkn, address owner, address spender)
     external
     view
-    returns (uint allowance)
+    returns (uint amount)
   {
     unchecked {
-      allowance = _allowances[outbound_tkn][inbound_tkn][owner][spender];
+      amount = _allowance[outbound_tkn][inbound_tkn][owner][spender];
     }
   }
 

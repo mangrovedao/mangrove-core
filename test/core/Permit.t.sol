@@ -132,32 +132,32 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   function test_wrong_outbound() public {
     permit_data.outbound_tkn = address(1);
     permit_data.submit();
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_wrong_inbound() public {
     permit_data.inbound_tkn = address(1);
     permit_data.submit();
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_wrong_spender() public {
     permit_data.spender = address(1);
     permit_data.submit();
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_good_permit(uint96 value) public {
     permit_data.value = value;
     permit_data.submit();
 
-    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), value, "Allowance not set");
+    assertEq(mgv.allowance($(base), $(quote), good_owner, $(this)), value, "Allowance not set");
   }
 
   function test_allowance_works() public {
     uint value = 1 ether;
     // set allowance manually
-    stdstore.target($(mgv)).sig(mgv.allowances.selector).with_key($(base)).with_key($(quote)).with_key(good_owner)
+    stdstore.target($(mgv)).sig(mgv.allowance.selector).with_key($(base)).with_key($(quote)).with_key(good_owner)
       .with_key($(this)).checked_write(value);
 
     deal($(base), $(this), value);
@@ -168,7 +168,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     assertEq(takerGave, value / 2, "takerGot should be 1 ether");
 
     assertEq(
-      mgv.allowances($(base), $(quote), good_owner, $(this)), value / 2 + (value % 2), "Allowance incorrectly decreased"
+      mgv.allowance($(base), $(quote), good_owner, $(this)), value / 2 + (value % 2), "Allowance incorrectly decreased"
     );
   }
 

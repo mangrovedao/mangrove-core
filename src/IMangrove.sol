@@ -100,10 +100,10 @@ interface IMangrove is HasMgvEvents {
     uint maxGasreqForFailingOffers
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  ///@notice Performs a market order on a specified offer list taking offers up to a limit price.
+  ///@notice Performs a market order on a specified offer list taking offers up to a limit price defined by a ratio `inbound_tkn/outbound_tkn` of volumes.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param takerWants Must be `<= MAX_SAFE_VOLUME`. The amount the taker wants. This is used along with `takerGives` to derive a max price (`maxTick`) note that some precision is lost to rounding.
-  ///@param takerGives Must be `<= MAX_SAFE_VOLUME`. The amount the taker gives. This is used along with `takerWants` to derive a max price (`maxTick`) note that some precision is lost to rounding.
+  ///@param takerWants Must be `<= MAX_SAFE_VOLUME`. The amount the taker wants. This is used along with `takerGives` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
+  ///@param takerGives Must be `<= MAX_SAFE_VOLUME`. The amount the taker gives. This is used along with `takerWants` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
   ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
@@ -121,7 +121,7 @@ interface IMangrove is HasMgvEvents {
   ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
   ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
   ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
-  ///@param taker The taker from which amounts will be transferred from and to the. If the `msg.sender`'s allowance for the given `olKey.outbound_tkn`,`olKey.inbound_tkn` are strictly less than the total amount eventually spent by `taker`, the call will fail.
+  ///@param taker The taker from which amounts will be transferred from and to. If the `msg.sender`'s allowance for the given `olKey.outbound_tkn`,`olKey.inbound_tkn` is strictly less than the total amount eventually spent by `taker`, the call will fail.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
@@ -132,10 +132,10 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  ///@notice Performs a market order on a specified offer list taking offers up to a limit price for a specified taker.
+  ///@notice Performs a market order on a specified offer list taking offers up to a limit price defined by a ratio `inbound_tkn/outbound_tkn` of volumes for a specified taker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param takerWants Must be `<= MAX_SAFE_VOLUME`. The amount the taker wants. This is used along with `takerGives` to derive a max price (`maxTick`) note that some precision is lost to rounding.
-  ///@param takerGives Must be `<= MAX_SAFE_VOLUME`. The amount the taker gives. This is used along with `takerGives` to derive a max price (`maxTick`) note that some precision is lost to rounding.
+  ///@param takerWants Must be `<= MAX_SAFE_VOLUME`. The amount the taker wants. This is used along with `takerGives` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
+  ///@param takerGives Must be `<= MAX_SAFE_VOLUME`. The amount the taker gives. This is used along with `takerGives` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
   ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
   ///@param taker The taker from which amounts will be transferred from and to the. If the `msg.sender`'s allowance for the given `olKey.outbound_tkn`,`olKey.inbound_tkn` are strictly less than the total amount eventually spent by `taker`, the call will fail.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
@@ -178,14 +178,14 @@ interface IMangrove is HasMgvEvents {
   ///@param maker The maker to add funds for.
   function fund(address maker) external payable;
 
-  ///@notice Withdraws the caller's (the maker's) native token (funds for provisioning offers) by transferring them to the caller.
+  ///@notice Withdraws the caller's (the maker's) free native tokens (funds for provisioning offers not locked by an offer) by transferring them to the caller.
   ///@param amount the amount to withdraw.
   ///@return noRevert whether the transfer succeeded.
   function withdraw(uint amount) external returns (bool noRevert);
 
-  ///@notice Gets the maker's balance of native tokens (funds for provisioning offers).
+  ///@notice Gets the maker's free balance of native tokens (funds for provisioning offers not locked by an offer).
   ///@param maker The maker to get the balance for.
-  ///@return balance The maker's balance of native tokens (funds for provisioning offers).
+  ///@return balance The maker's free balance of native tokens (funds for provisioning offers not locked by an offer).
   function balanceOf(address maker) external view returns (uint balance);
 
   ///@notice Creates a new offer on Mangrove, where the caller is the maker. The maker can implement the `IMaker` interface to be called during offer execution.
@@ -204,8 +204,8 @@ interface IMangrove is HasMgvEvents {
 
   ///@notice Creates a new offer on Mangrove, where the caller is the maker. The maker can implement the `IMaker` interface to be called during offer execution.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param wants Must be less than MAX_SAFE_VOLUME. The amount of `olKey.inbound_tkn` the maker wants. This is used along with `gives` to derive a tick (price). Note that some precision is lost to rounding.
-  ///@param gives Must be less than MAX_SAFE_VOLUME. The amount of `olKey.outbound_tkn` the maker gives. This is used along with `wants` to derive a tick (price). Note that some precision is lost to rounding. Must be less than MAX_SAFE_VOLUME.
+  ///@param wants Must be less than MAX_SAFE_VOLUME. The amount of `olKey.inbound_tkn` the maker wants. This is used along with `gives` to derive a tick (price). which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
+  ///@param gives Must be less than MAX_SAFE_VOLUME. The amount of `olKey.outbound_tkn` the maker gives. This is used along with `wants` to derive a tick (price). which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`. Must be less than MAX_SAFE_VOLUME.
   ///@param gasreq The amount of gas required to execute the offer logic in the maker's `IMaker` implementation. This will limit the gas available, and the offer will fail if it spends more.
   ///@param gasprice The maximum gas price the maker is willing to pay a penalty for due to failing execution.
   ///@return offerId the id of the offer on Mangrove. Can be used to retract or update the offer (even to reuse a taken offer).
@@ -229,8 +229,8 @@ interface IMangrove is HasMgvEvents {
 
   ///@notice Updates an existing, owned offer on Mangrove, where the caller is the maker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param wants The amount of `olKey.inbound_tkn` the maker wants. This is used along with `gives` to derive a tick (price). Note that some precision is lost to rounding.
-  ///@param gives The amount of `olKey.outbound_tkn` the maker gives. This is used along with `wants` to derive a tick (price). Note that some precision is lost to rounding. Must be less than MAX_SAFE_VOLUME.
+  ///@param wants The amount of `olKey.inbound_tkn` the maker wants. This is used along with `gives` to derive a tick (price). which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
+  ///@param gives The amount of `olKey.outbound_tkn` the maker gives. This is used along with `wants` to derive a tick (price). which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`. Must be less than MAX_SAFE_VOLUME.
   ///@param gasreq The amount of gas required to execute the offer logic in the maker's `IMaker` implementation.
   ///@param gasprice The maximum gas price the maker is willing to pay a penalty for due to failing execution.
   ///@param offerId The id of the offer on Mangrove.

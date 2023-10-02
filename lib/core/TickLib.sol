@@ -88,10 +88,9 @@ library TickLib {
 
   Ratios are represented as a (mantissa,exponent) pair which represents the number `mantissa * 2**-exponent`.
 
-  
   The exponent is negated so that, for ratios in the accepted range, the exponent is `>= 0`. This simplifies the code.
 
-  Floats are normalized so that the mantissa uses exactly 128 bits. It enables easy comparison between floats, and ensures they can be multiplied by amounts without overflow.
+  Floats are normalized so that the mantissa uses exactly 128 bits. It enables easy comparison between floats and ensures they can be multiplied by amounts without overflow.
 
   The accepted ratio range is between `ratioFromTick(MIN_TICK)` and `ratioFromTick(MAX_TICK)` (inclusive).
   */

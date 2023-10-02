@@ -278,7 +278,7 @@ interface IMangrove is HasMgvEvents {
   ///@return offerId The `offerId` of the best offer on the offer list.
   function best(OLKey memory olKey) external view returns (uint offerId);
 
-  ///@notice the offer list key given by the hash (if the offer list key has been activated at least once).
+  ///@notice Gets the offer list key with the given hash (if the offer list key has been activated at least once).
   ///@param olKeyHash the hash of the offer list key.
   ///@return olKey the olKey.
   function olKeys(bytes32 olKeyHash) external view returns (OLKey memory olKey);

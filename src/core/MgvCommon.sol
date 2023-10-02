@@ -5,7 +5,7 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 /* `MgvCommon` contains state variables used everywhere in the operation of Mangrove and related gatekeeping functions. The main `Mangrove` contract inherits from `MgvCommon`, and the auxiliary `MgvAppendix` contract inherits from `MgvCommon` as well. This way, when `Mangrove` delegatecalls to `MgvAppendix`, the storage slots match. */
 contract MgvCommon is HasMgvEvents {

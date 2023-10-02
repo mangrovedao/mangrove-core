@@ -14,10 +14,10 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
-import "mgv_lib/BinLib.sol";
-import "mgv_lib/TickLib.sol";
-import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_lib/core/TickTreeLib.sol";
+import "mgv_lib/core/TickLib.sol";
+import {Density,DensityLib} from "mgv_lib/core/DensityLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 
 ${structs.map(s => {

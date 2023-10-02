@@ -5,7 +5,7 @@ import {MangroveTest, MgvReader, TestTaker} from "mgv_test/lib/MangroveTest.sol"
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
-import {OLKey} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/core/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
 

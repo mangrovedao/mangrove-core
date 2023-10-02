@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import {console} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
-import {OLKey} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/core/MgvLib.sol";
 import {MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
 import {OfferPosthookFailGasDeltaTest} from "./OfferPosthookFailGasDelta.t.sol";
 import {OfferGasReqBaseTest} from "mgv_test/lib/gas/OfferGasReqBase.t.sol";

@@ -18,7 +18,7 @@ import {
   ROOT_HIGHER_BIN
 } from "mgv_test/lib/gas/GasTestBase.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 
 contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBase {

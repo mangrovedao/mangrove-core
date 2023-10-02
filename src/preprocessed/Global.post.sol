@@ -12,7 +12,7 @@ pragma solidity ^0.8.13;
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly ("memory-safe") { u := b }
 }
-import "mgv_lib/Constants.sol";
+import "mgv_lib/core/Constants.sol";
 
 struct GlobalUnpacked {
   address monitor;

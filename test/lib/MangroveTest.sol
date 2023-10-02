@@ -10,12 +10,12 @@ import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
-import {MgvOfferTakingWithPermit} from "mgv_src/MgvOfferTakingWithPermit.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
+import {MgvOfferTakingWithPermit} from "mgv_src/core/MgvOfferTakingWithPermit.sol";
+import {Mangrove} from "mgv_src/core/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {TickLib} from "mgv_lib/TickLib.sol";
+import {TickLib} from "mgv_lib/core/TickLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 

@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* 

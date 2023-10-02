@@ -12,7 +12,7 @@ pragma solidity ^0.8.13;
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly ("memory-safe") { u := b }
 }
-import "mgv_lib/Constants.sol";
+import "mgv_lib/core/Constants.sol";
 
 struct LocalUnpacked {
   bool active;
@@ -33,10 +33,10 @@ type Local is uint;
 using LocalLib for Local global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
-import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
+import {Density, DensityLib} from "mgv_lib/core/DensityLib.sol";
+import {Bin,TickTreeLib,Field} from "mgv_lib/core/TickTreeLib.sol";
 /* Globally enable global.method(...) */
-import {LocalExtra,LocalUnpackedExtra} from "mgv_lib/LocalExtra.sol";
+import {LocalExtra,LocalUnpackedExtra} from "mgv_lib/core/LocalExtra.sol";
 using LocalExtra for Local global;
 using LocalUnpackedExtra for LocalUnpacked global;
 

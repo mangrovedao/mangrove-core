@@ -12,14 +12,14 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
-import "mgv_lib/BinLib.sol";
-import "mgv_lib/TickLib.sol";
-import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_lib/core/TickTreeLib.sol";
+import "mgv_lib/core/TickLib.sol";
+import {Density,DensityLib} from "mgv_lib/core/DensityLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 
 
-import {Offer, OfferUnpacked} from "mgv_src/preprocessed/MgvOffer.post.sol";
+import {Offer, OfferUnpacked} from "mgv_src/preprocessed/Offer.post.sol";
 function toString(Offer __packed) pure returns (string memory) {
   return toString(__packed.to_struct());
 }
@@ -28,7 +28,7 @@ function toString(OfferUnpacked memory __unpacked) pure returns (string memory) 
   return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "tick: ", toString(__unpacked.tick), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
 }
 
-import {OfferDetail, OfferDetailUnpacked} from "mgv_src/preprocessed/MgvOfferDetail.post.sol";
+import {OfferDetail, OfferDetailUnpacked} from "mgv_src/preprocessed/OfferDetail.post.sol";
 function toString(OfferDetail __packed) pure returns (string memory) {
   return toString(__packed.to_struct());
 }
@@ -37,7 +37,7 @@ function toString(OfferDetailUnpacked memory __unpacked) pure returns (string me
   return string.concat("OfferDetail{","maker: ", vm.toString(__unpacked.maker), ", ", "gasreq: ", vm.toString(__unpacked.gasreq), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "gasprice: ", vm.toString(__unpacked.gasprice),"}");
 }
 
-import {Global, GlobalUnpacked} from "mgv_src/preprocessed/MgvGlobal.post.sol";
+import {Global, GlobalUnpacked} from "mgv_src/preprocessed/Global.post.sol";
 function toString(Global __packed) pure returns (string memory) {
   return toString(__packed.to_struct());
 }
@@ -46,7 +46,7 @@ function toString(GlobalUnpacked memory __unpacked) pure returns (string memory)
   return string.concat("Global{","monitor: ", vm.toString(__unpacked.monitor), ", ", "useOracle: ", vm.toString(__unpacked.useOracle), ", ", "notify: ", vm.toString(__unpacked.notify), ", ", "gasprice: ", vm.toString(__unpacked.gasprice), ", ", "gasmax: ", vm.toString(__unpacked.gasmax), ", ", "dead: ", vm.toString(__unpacked.dead), ", ", "maxRecursionDepth: ", vm.toString(__unpacked.maxRecursionDepth), ", ", "maxGasreqForFailingOffers: ", vm.toString(__unpacked.maxGasreqForFailingOffers),"}");
 }
 
-import {Local, LocalUnpacked} from "mgv_src/preprocessed/MgvLocal.post.sol";
+import {Local, LocalUnpacked} from "mgv_src/preprocessed/Local.post.sol";
 function toString(Local __packed) pure returns (string memory) {
   return toString(__packed.to_struct());
 }

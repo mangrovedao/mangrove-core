@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 import {MgvCommon} from "./MgvCommon.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */

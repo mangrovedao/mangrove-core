@@ -6,7 +6,7 @@ import {SingleGasTestBase, GasTestBase, MIDDLE_BIN} from "mgv_test/lib/gas/GasTe
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/MgvLib.sol";
+import "mgv_src/core/MgvLib.sol";
 
 contract ExternalNewOfferOtherOfferList_AlwaysEmptyGasTest is SingleGasTestBase {
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal override {

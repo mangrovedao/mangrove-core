@@ -5,8 +5,8 @@ import {MangroveTest, MgvReader, TestMaker, TestTaker, TestSender, console} from
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
-import "mgv_src/MgvLib.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
+import "mgv_src/core/MgvLib.sol";
+import {Mangrove} from "mgv_src/core/Mangrove.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
 import "mgv_lib/Debug.sol";

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.17;
 
-import {Bin,BinLib,Field} from "mgv_lib/BinLib.sol";
-import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
-import {Local,LocalUnpacked,LocalLib} from "mgv_src/preprocessed/MgvLocal.post.sol";
+import {Bin,TickTreeLib,Field} from "mgv_lib/core/TickTreeLib.sol";
+import {Density, DensityLib} from "mgv_lib/core/DensityLib.sol";
+import {Local,LocalUnpacked,LocalLib} from "mgv_src/preprocessed/Local.post.sol";
 
 
 
@@ -30,7 +30,7 @@ library LocalExtra {
 
   /* Returns the bin that contains the best offer in \`local\`'s offer list */
   function bestBin(Local local) internal pure returns (Bin) { unchecked {
-    return BinLib.bestBinFromLocal(local);
+    return TickTreeLib.bestBinFromLocal(local);
   }}
 
   /* Erases field that give information about the current structure of the offer list. */
@@ -60,6 +60,6 @@ library LocalUnpackedExtra {
 
   /* Returns the bin that contains the best offer in \`local\`'s offer list */
   function bestBin(LocalUnpacked memory local) internal pure returns (Bin) { unchecked {
-    return BinLib.bestBinFromBranch(local.binPosInLeaf,local.level3,local.level2,local.level1,local.root);
+    return TickTreeLib.bestBinFromBranch(local.binPosInLeaf,local.level3,local.level2,local.level1,local.root);
   }}
 }

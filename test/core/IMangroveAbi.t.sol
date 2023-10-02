@@ -4,8 +4,8 @@ pragma solidity ^0.8.10;
 import {Test2} from "mgv_lib/Test2.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 import "mgv_lib/Debug.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
+import {Mangrove} from "mgv_src/core/Mangrove.sol";
+import {MgvAppendix} from "mgv_src/core/MgvAppendix.sol";
 
 using stdJson for string;
 

@@ -117,7 +117,7 @@ contract DensityTest is Test2 {
   function test_paramsTo96X32() public {
     uint res = DensityLib.paramsTo96X32({
       outbound_decimals: 6,
-      gasprice_in_mwei: 250 * 1e3,
+      gasprice_in_Mwei: 250 * 1e3,
       eth_in_centiusd: 1 * 100,
       outbound_display_in_centiusd: 1000 * 100,
       cover_factor: 1000
@@ -125,7 +125,7 @@ contract DensityTest is Test2 {
     assertEq(toString(DensityLib.from96X32(res)), "1 * 2^-2");
     res = DensityLib.paramsTo96X32({
       outbound_decimals: 18,
-      gasprice_in_mwei: 2500 * 1e3,
+      gasprice_in_Mwei: 2500 * 1e3,
       eth_in_centiusd: 10000 * 100,
       outbound_display_in_centiusd: 1 * 100,
       cover_factor: 1000

@@ -208,7 +208,7 @@ They have the following fields: */
       
     (There is an inefficiency here. The overhead could be split into an "offer-local overhead" and a "general overhead". That general overhead gas penalty could be spread between all offers executed during an order, or all failing offers. It would still be possible for a cleaner to execute a failing offer alone and make them pay the entire general gas overhead. For the sake of simplicity we keep only one "offer overhead" value.)
 
-    If an offer fails, `gasprice` mwei is taken from the
+    If an offer fails, `gasprice` Mwei is taken from the
     provision per unit of gas used. `gasprice` should approximate the average gas
     ratio at offer creation time.
 
@@ -235,7 +235,7 @@ They have the following fields: */
 
       */
       fields.kilo_offer_gasbase,
-      /* * `gasprice` is in mwei/gas and _26 bits wide_, which accommodates 0.001 to ~67k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
+      /* * `gasprice` is in Mwei/gas and _26 bits wide_, which accommodates 0.001 to ~67k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
       fields.gasprice,
     ],
     additionalDefinitions: (struct) => `import {OfferDetailExtra,OfferDetailUnpackedExtra} from "mgv_lib/OfferDetailExtra.sol";
@@ -255,7 +255,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
       { name: "useOracle", bits: 1, type: "bool" },
       /* * If `notify` is true, the dex will notify the monitor address after every offer execution. */
       { name: "notify", bits: 1, type: "bool" },
-      /* * The `gasprice` is the amount of penalty paid by failed offers, in mwei per gas used. `gasprice` should approximate the average gas price and will be subject to regular updates. */
+      /* * The `gasprice` is the amount of penalty paid by failed offers, in Mwei per gas used. `gasprice` should approximate the average gas price and will be subject to regular updates. */
       fields.gasprice,
       /* * `gasmax` specifies how much gas an offer may ask for at execution time. An offer which asks for more gas than the block limit would live forever on the book. Nobody could take it or remove it, except its creator (who could cancel it). In practice, we will set this parameter to a reasonable limit taking into account both practical transaction sizes and the complexity of maker contracts.
       */

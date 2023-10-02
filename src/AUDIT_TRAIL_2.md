@@ -44,7 +44,7 @@ The external representation of density is not a float but a 96.32 fixed-point nu
 
 The unit is no longer gas but kilogas, and it fits on 9 bits (formerly 24 bits).
 
-### `gasprice` is now in mwei
+### `gasprice` is now in Mwei
 
 The unit is no longer gwei but gwei, and it fits on 26 bits (formerly 16 bits).
 

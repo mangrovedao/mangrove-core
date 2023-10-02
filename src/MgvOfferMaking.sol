@@ -31,7 +31,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
      It also specify with `gasreq` how much gas should be given when executing their offer.
 
-     `gasprice` indicates an upper bound on the gasprice (in mwei) at which the maker is ready to be penalised if their offer fails. Any value below Mangrove's internal `gasprice` configuration value will be ignored.
+     `gasprice` indicates an upper bound on the gasprice (in Mwei) at which the maker is ready to be penalised if their offer fails. Any value below Mangrove's internal `gasprice` configuration value will be ignored.
 
     `gasreq`, together with `gasprice`, will contribute to determining the penalty provision set aside by Mangrove from the market maker's `balanceOf` balance.
 

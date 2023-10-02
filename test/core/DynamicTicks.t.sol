@@ -57,7 +57,7 @@ contract DynamicBinsTest is MangroveTest {
     vm.assume(tickSpacing != tickSpacing2);
     vm.assume(tickSpacing != 0);
     olKey.tickSpacing = tickSpacing;
-    OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
+    OLKey memory ol2 = OLKey(olKey.outbound_tkn, olKey.inbound_tkn, tickSpacing2);
     mgv.activate(olKey, 0, 100 << 32, 0);
     mgv.activate(ol2, 0, 100 << 32, 0);
     tick = boundTick(tick);
@@ -80,7 +80,7 @@ contract DynamicBinsTest is MangroveTest {
     vm.assume(tickSpacing != 0);
     vm.assume(tickSpacing2 != 0);
     olKey.tickSpacing = tickSpacing;
-    OLKey memory ol2 = OLKey(olKey.outbound, olKey.inbound, tickSpacing2);
+    OLKey memory ol2 = OLKey(olKey.outbound_tkn, olKey.inbound_tkn, tickSpacing2);
     uint gives = 1 ether;
 
     Tick insertionTick = Tick.wrap(tick).nearestBin(tickSpacing).tick(tickSpacing);
@@ -151,8 +151,8 @@ contract DynamicBinsTest is MangroveTest {
 
   function test_flipped_is_correct(OLKey memory olKey) public {
     OLKey memory flipped = olKey.flipped();
-    assertEq(flipped.inbound, olKey.outbound, "flipped() is incorrect");
-    assertEq(flipped.outbound, olKey.inbound, "flipped() is incorrect");
+    assertEq(flipped.inbound_tkn, olKey.outbound_tkn, "flipped() is incorrect");
+    assertEq(flipped.outbound_tkn, olKey.inbound_tkn, "flipped() is incorrect");
     assertEq(flipped.tickSpacing, olKey.tickSpacing, "flipped() is incorrect");
   }
 

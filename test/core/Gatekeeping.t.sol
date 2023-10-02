@@ -824,7 +824,7 @@ contract GatekeepingTest is MangroveTest {
 
   function test_activation_emits_events_in_order() public {
     expectFrom($(mgv));
-    emit SetActive(lo.hash(), lo.outbound, lo.inbound, lo.tickSpacing, true);
+    emit SetActive(lo.hash(), lo.outbound_tkn, lo.inbound_tkn, lo.tickSpacing, true);
     expectFrom($(mgv));
     emit SetFee(lo.hash(), 7);
     expectFrom($(mgv));
@@ -841,14 +841,14 @@ contract GatekeepingTest is MangroveTest {
     vm.assume(hash != lo.hash());
     // initially 0
     OLKey memory _olKey2 = mgv.olKeys(hash);
-    assertEq(_olKey2.outbound, address(0), "outbound should be address 0");
-    assertEq(_olKey2.inbound, address(0), "inbound should be address 0");
+    assertEq(_olKey2.outbound_tkn, address(0), "outbound should be address 0");
+    assertEq(_olKey2.inbound_tkn, address(0), "inbound should be address 0");
     assertEq(_olKey2.tickSpacing, 0, "tickSpacing should be 0");
     mgv.activate(_olKey, 7, 0, 3);
     // gets updated
     _olKey2 = mgv.olKeys(hash);
-    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
-    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.outbound_tkn, _olKey.outbound_tkn, "wrong outbound");
+    assertEq(_olKey2.inbound_tkn, _olKey.inbound_tkn, "wrong inbound");
     assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing");
   }
 
@@ -860,14 +860,14 @@ contract GatekeepingTest is MangroveTest {
     mgv.activate(_olKey, 7, 0, 3);
     // gets updated
     OLKey memory _olKey2 = mgv.olKeys(hash);
-    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
-    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.outbound_tkn, _olKey.outbound_tkn, "wrong outbound");
+    assertEq(_olKey2.inbound_tkn, _olKey.inbound_tkn, "wrong inbound");
     assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing");
     mgv.deactivate(_olKey);
     // still there
     _olKey2 = mgv.olKeys(hash);
-    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after deactivate");
-    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after deactivate");
+    assertEq(_olKey2.outbound_tkn, _olKey.outbound_tkn, "wrong outbound after deactivate");
+    assertEq(_olKey2.inbound_tkn, _olKey.inbound_tkn, "wrong inbound after deactivate");
     assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing after deactivate");
   }
 
@@ -879,21 +879,21 @@ contract GatekeepingTest is MangroveTest {
     mgv.activate(_olKey, 7, 0, 3);
     // gets updated
     OLKey memory _olKey2 = mgv.olKeys(hash);
-    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
-    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.outbound_tkn, _olKey.outbound_tkn, "wrong outbound");
+    assertEq(_olKey2.inbound_tkn, _olKey.inbound_tkn, "wrong inbound");
     assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing");
     mgv.activate(_olKey, 4, 0, 2);
     // still there
     _olKey2 = mgv.olKeys(hash);
-    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after reactivate");
-    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after reactivate");
+    assertEq(_olKey2.outbound_tkn, _olKey.outbound_tkn, "wrong outbound after reactivate");
+    assertEq(_olKey2.inbound_tkn, _olKey.inbound_tkn, "wrong inbound after reactivate");
     assertEq(_olKey2.tickSpacing, _olKey.tickSpacing, "wrong tickSpacing after reactivate");
   }
 
   function test_updateOffer_on_inactive_fails() public {
     uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     expectFrom($(mgv));
-    emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickSpacing, false);
+    emit SetActive(olKey.hash(), olKey.outbound_tkn, olKey.inbound_tkn, olKey.tickSpacing, false);
     mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
     mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);

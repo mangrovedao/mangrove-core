@@ -132,19 +132,19 @@ contract MangroveTest is Test2, HasMgvEvents {
       c++;
     }
     c = 0;
-    emit offers_head(olKey.outbound, olKey.inbound);
+    emit offers_head(olKey.outbound_tkn, olKey.inbound_tkn);
     while (c < size) {
       emit offers_line(ids[c], offers[c].wants(), offers[c].gives(), details[c].maker(), details[c].gasreq());
       c++;
     }
-    // emit OBState(olKey.outbound, olKey.inbound, offerIds, wants, gives, makerAddr, gasreqs);
+    // emit OBState(olKey.outbound_tkn, olKey.inbound_tkn, offerIds, wants, gives, makerAddr, gasreqs);
   }
 
   /* Log offer list to console */
   function printOfferList(OLKey memory _ol) internal view {
     uint offerId = mgv.best(_ol);
-    TestToken req_tk = TestToken(_ol.inbound);
-    TestToken ofr_tk = TestToken(_ol.outbound);
+    TestToken req_tk = TestToken(_ol.inbound_tkn);
+    TestToken ofr_tk = TestToken(_ol.outbound_tkn);
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
@@ -207,13 +207,13 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function setupMarket(IMangrove _mgv, OLKey memory _ol) internal {
-    assertNot0x(olKey.outbound);
-    assertNot0x(olKey.inbound);
+    assertNot0x(olKey.outbound_tkn);
+    assertNot0x(olKey.inbound_tkn);
     _mgv.activate(_ol, options.defaultFee, options.density96X32, options.gasbase);
     _mgv.activate(lo, options.defaultFee, options.density96X32, options.gasbase);
     // logging
-    vm.label(olKey.outbound, IERC20(olKey.outbound).symbol());
-    vm.label(olKey.inbound, IERC20(olKey.inbound).symbol());
+    vm.label(olKey.outbound_tkn, IERC20(olKey.outbound_tkn).symbol());
+    vm.label(olKey.inbound_tkn, IERC20(olKey.inbound_tkn).symbol());
   }
 
   function setupMarket(OLKey memory _ol) internal {

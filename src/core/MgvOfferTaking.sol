@@ -48,14 +48,14 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Market Order */
   //+clear+
 
-  /* A market order specifies a (`outbound`, `inbound`,`tickSpacing`) offer list, a limit price it is ready to pay (in the form of `maxTick`, the log base 1.0001 of the price), and a volume `fillVolume`. If `fillWants` is true, that volume is the amount of `olKey.outbound` the taker wants to buy. If `fillWants` is false, that volume is the amount of `olKey.inbound` the taker wants to sell.
+  /* A market order specifies a (`outbound`, `inbound`,`tickSpacing`) offer list, a limit price it is ready to pay (in the form of `maxTick`, the log base 1.0001 of the price), and a volume `fillVolume`. If `fillWants` is true, that volume is the amount of `olKey.outbound_tkn` the taker wants to buy. If `fillWants` is false, that volume is the amount of `olKey.inbound_tkn` the taker wants to sell.
   
-  It returns four `uint`s: the total amount of `olKey.outbound` received, the total amount of `olKey.inbound` spent, the penalty received by msg.sender (in wei), and the fee paid by the taker (in wei of `olKey.outbound`).
+  It returns four `uint`s: the total amount of `olKey.outbound_tkn` received, the total amount of `olKey.inbound_tkn` spent, the penalty received by msg.sender (in wei), and the fee paid by the taker (in wei of `olKey.outbound_tkn`).
 
 
   The market order stops when the price exceeds (an approximation of) 1.0001^`maxTick`, or when the end of the book has been reached, or:
-  * If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound` have been obtained. To buy a specific volume of `olKey.outbound` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
-  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound` have been sold. To sell a specific volume of `olKey.inbound` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
+  * If `fillWants` is true, the market order stops when `fillVolume` units of `olKey.outbound_tkn` have been obtained. To buy a specific volume of `olKey.outbound_tkn` at any price, set `fillWants` to true, set `fillVolume` to volume you want to buy, and set `maxTick` to the `MAX_TICK` constant.
+  * If `fillWants` is false, the market order stops when `fillVolume` units of `olKey.inbound_tkn` have been sold. To sell a specific volume of `olKey.inbound_tkn` at any price, set `fillWants` to false, set `fillVolume` to the volume you want to sell, and set `maxTick` to the `MAX_TICK` constant.
   
   For a maximum `fillVolume` and a maximum (when `fillWants=true`) or minimum (when `fillWants=false`) price, the taker can end up receiving a volume of about `2**255` tokens. */
 
@@ -68,7 +68,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  /* There is a `ByVolume` variant where the taker specifies a desired total amount of `olKey.outbound` tokens (`takerWants`), and an available total amount of `olKey.inbound` (`takerGives`). Volumes should fit on 127 bits. */
+  /* There is a `ByVolume` variant where the taker specifies a desired total amount of `olKey.outbound_tkn` tokens (`takerWants`), and an available total amount of `olKey.inbound_tkn` (`takerGives`). Volumes should fit on 127 bits. */
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
@@ -254,7 +254,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        * not set `prev`/`next` pointers to their correct locations at each offer taken (this is an optimization enabled by forbidding reentrancy).
        * after consuming a segment of offers, will update the current `best` offer to be the best remaining offer on the book. */
 
-      /* We start be enabling the reentrancy lock for this (`olKey.outbound`,`olKey.inbound`, `olKey.tickSpacing`) offer list. */
+      /* We start be enabling the reentrancy lock for this (`olKey.outbound_tkn`,`olKey.inbound_tkn`, `olKey.tickSpacing`) offer list. */
       sor.local = sor.local.lock(true);
       offerList.local = sor.local;
 
@@ -300,8 +300,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* <a id="MgvOfferTaking/statusCodes"></a> `mgvData` is a Mangrove status code. It appears in an [`OrderResult`](#MgvLib/OrderResult). Its possible values are:
       * `"mgv/tradeSuccess"`: offer execution succeeded.
       * `"mgv/makerRevert"`: execution of `makerExecute` reverted.
-      * `"mgv/makerTransferFail"`: maker could not send olKey.outbound tokens.
-      * `"mgv/makerReceiveFail"`: maker could not receive olKey.inbound tokens.
+      * `"mgv/makerTransferFail"`: maker could not send olKey.outbound_tkn.
+      * `"mgv/makerReceiveFail"`: maker could not receive olKey.inbound_tkn.
 
       `mgvData` should not be exploitable by the maker! */
         bytes32 mgvData;
@@ -517,7 +517,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     * `makerData` is the data returned after executing the offer
     * <a id="MgvOfferTaking/internalStatusCodes"></a>`internalMgvData` is a status code internal to `execute`. It can hold [any value that `mgvData` can hold](#MgvOfferTaking/statusCodes). Within `execute`, it can additionally hold the following values:
       * `"mgv/notEnoughGasForMakerTrade"`: cannot give maker close enough to `gasreq`. Triggers a revert of the entire order.
-      * `"mgv/takerTransferFail"`: taker could not send olKey.inbound tokens. Triggers a revert of the entire order.
+      * `"mgv/takerTransferFail"`: taker could not send olKey.inbound_tkn. Triggers a revert of the entire order.
   */
   function execute(OfferList storage offerList, MultiOrder memory mor, MgvLib.SingleOrder memory sor)
     internal
@@ -545,7 +545,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           }
         }
       }
-      /* The flashloan is executed by call to `flashloan`. If the call reverts, it means the maker failed to send back `sor.takerWants` units of `olKey.outbound` to the taker. Notes :
+      /* The flashloan is executed by call to `flashloan`. If the call reverts, it means the maker failed to send back `sor.takerWants` units of `olKey.outbound_tkn` to the taker. Notes :
        * `msg.sender` is Mangrove itself in those calls -- all operations related to the actual caller should be done outside of this call.
        * any spurious exception due to an error in Mangrove code will be falsely blamed on the Maker, and its provision for the offer will be unfairly taken away.
        */
@@ -621,7 +621,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* Externally called by `execute`, flashloan lends money to the maker then calls `makerExecute` to run the maker liquidity fetching code. If `makerExecute` is unsuccessful, `flashloan` reverts (but the larger orderbook traversal will continue). 
 
   In detail:
-  1. Flashloans `takerGives` units of `sor.olKey.inbound` from the taker to the maker and returns false if the loan fails.
+  1. Flashloans `takerGives` units of `sor.olKey.inbound_tkn` from the taker to the maker and returns false if the loan fails.
   2. Runs `offerDetail.maker`'s `execute` function.
   3. Returns the result of the operations, with optional `makerData` to help the maker debug.
 
@@ -639,8 +639,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        mgv->maker. With a direct taker->maker transfer, if one of taker/maker
        is blacklisted, we can't tell which one. We need to know which one:
        if we incorrectly blame the taker, a blacklisted maker can block an offer list forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
-      if (transferTokenFrom(sor.olKey.inbound, taker, address(this), sor.takerGives)) {
-        if (transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.takerGives)) {
+      if (transferTokenFrom(sor.olKey.inbound_tkn, taker, address(this), sor.takerGives)) {
+        if (transferToken(sor.olKey.inbound_tkn, sor.offerDetail.maker(), sor.takerGives)) {
           (gasused, makerData) = makerExecute(sor);
         } else {
           innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
@@ -675,7 +675,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         innerRevert([bytes32("mgv/makerRevert"), bytes32(gasused), makerData]);
       }
 
-      bool transferSuccess = transferTokenFrom(sor.olKey.outbound, maker, address(this), sor.takerWants);
+      bool transferSuccess = transferTokenFrom(sor.olKey.outbound_tkn, maker, address(this), sor.takerWants);
 
       if (!transferSuccess) {
         innerRevert([bytes32("mgv/makerTransferFail"), bytes32(gasused), makerData]);
@@ -832,7 +832,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
       if (mor.totalGot > 0) {
         /* It should be statically provable that this transfer cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target, if governance does not call withdrawERC20 during order execution, unless the caller set a gas limit which precisely makes `transferToken` go OOG but retains enough gas to revert here. */
-        require(transferToken(sor.olKey.outbound, mor.taker, mor.totalGot), "mgv/MgvFailToPayTaker");
+        require(transferToken(sor.olKey.outbound_tkn, mor.taker, mor.totalGot), "mgv/MgvFailToPayTaker");
       }
     }
   }

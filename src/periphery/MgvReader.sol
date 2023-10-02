@@ -358,13 +358,13 @@ contract MgvReader {
     }
   }
 
-  /* Returns the fee that would be extracted from the given volume of outbound_tkn tokens on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  /* Returns the fee that would be extracted from the given volume of `outbound_tkn` on Mangrove's `outbound_tkn`/`inbound_tkn` offer list. */
   function getFee(OLKey memory olKey, uint outVolume) external view returns (uint) {
     (, Local _local) = MGV.config(olKey);
     return ((outVolume * _local.fee()) / 10000);
   }
 
-  /* Returns the given amount of outbound_tkn tokens minus the fee on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  /* Returns the given amount of `outbound_tkn` minus the fee on Mangrove's `outbound_tkn`/`inbound_tkn` offer list. */
   function minusFee(OLKey memory olKey, uint outVolume) external view returns (uint) {
     (, Local _local) = MGV.config(olKey);
     return (outVolume * (10_000 - _local.fee())) / 10000;

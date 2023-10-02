@@ -36,7 +36,7 @@ contract MgvGovernable is MgvCommon {
       OfferList storage offerList = offerLists[olKeyHash];
       // activate market
       offerList.local = offerList.local.active(true);
-      emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickSpacing, true);
+      emit SetActive(olKey.hash(), olKey.outbound_tkn, olKey.inbound_tkn, olKey.tickSpacing, true);
       setFee(olKey, fee);
       setDensity96X32(olKey, density96X32);
       setGasbase(olKey, offer_gasbase);
@@ -50,7 +50,7 @@ contract MgvGovernable is MgvCommon {
     authOnly();
     OfferList storage offerList = offerLists[olKey.hash()];
     offerList.local = offerList.local.active(false);
-    emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickSpacing, false);
+    emit SetActive(olKey.hash(), olKey.outbound_tkn, olKey.inbound_tkn, olKey.tickSpacing, false);
   }
 
   /* ### `fee` */

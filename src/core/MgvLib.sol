@@ -15,8 +15,8 @@ import "mgv_lib/core/TickLib.sol";
   * `inbound_tkn`, token that goes from the taker to the maker (to remember the direction, imagine the token as going into Mangrove from the taker)
   * `tickSpacing`, how many ticks should be jumped between available price points. More volatile outbound/inbound pairs should have a larger `tickSpacing`. */
 struct OLKey {
-  address outbound;
-  address inbound;
+  address outbound_tkn;
+  address inbound_tkn;
   uint tickSpacing;
 }
 
@@ -34,7 +34,7 @@ library OLLib {
 
   /* Creates a flipped copy of the `olKey` with same `tickSpacing`. */
   function flipped(OLKey memory olKey) internal pure returns (OLKey memory) {
-    return OLKey(olKey.inbound, olKey.outbound, olKey.tickSpacing);
+    return OLKey(olKey.inbound_tkn, olKey.outbound_tkn, olKey.tickSpacing);
   }
 
   /* Convert `tick` to bin according to `olKey.tickSpacing` */

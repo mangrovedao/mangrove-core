@@ -61,7 +61,7 @@ contract SimpleTestMaker is TrivialTestMaker {
   );
 
   function logExecute(address _mgv, OLKey calldata _ol, uint offerId, uint takerWants, uint takerGives) external {
-    emit Execute(_mgv, _ol.outbound, _ol.inbound, _ol.tickSpacing, offerId, takerWants, takerGives);
+    emit Execute(_mgv, _ol.outbound_tkn, _ol.inbound_tkn, _ol.tickSpacing, offerId, takerWants, takerGives);
   }
 
   function makerExecuteWasCalled(uint offerId) external view returns (bool) {
@@ -152,7 +152,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     }
 
     if (_shouldFail) {
-      TransferLib.approveToken(IERC20(order.olKey.outbound), address(mgv), 0);
+      TransferLib.approveToken(IERC20(order.olKey.outbound_tkn), address(mgv), 0);
     }
 
     if (tradeCallbackContract != address(0) && tradeCallback.length > 0) {
@@ -162,8 +162,8 @@ contract SimpleTestMaker is TrivialTestMaker {
 
     emit Execute(
       msg.sender,
-      order.olKey.outbound,
-      order.olKey.inbound,
+      order.olKey.outbound_tkn,
+      order.olKey.inbound_tkn,
       order.olKey.tickSpacing,
       order.offerId,
       order.takerWants,

@@ -69,7 +69,7 @@ interface IMangrove is HasMgvEvents {
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
   ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
-  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
+  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
@@ -85,7 +85,7 @@ interface IMangrove is HasMgvEvents {
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
   ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
-  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
+  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@param maxGasreqForFailingOffers The maximum allowed gas required for failing offers (in wei).
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
@@ -104,7 +104,7 @@ interface IMangrove is HasMgvEvents {
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param takerWants Must be `<= MAX_SAFE_VOLUME`. The amount the taker wants. This is used along with `takerGives` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
   ///@param takerGives Must be `<= MAX_SAFE_VOLUME`. The amount the taker gives. This is used along with `takerWants` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
-  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
+  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
   ///@return bounty The amount of native token the taker got as a bounty due to failing offers (in wei)
@@ -120,7 +120,7 @@ interface IMangrove is HasMgvEvents {
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param maxTick Must be `>= MIN_TICK` and `<= MAX_TICK`. The limit price the taker is ready to pay (the log base 1.0001 of the price).
   ///@param fillVolume Must be `<= MAX_SAFE_VOLUME`. If `fillWants` is true, the amount of `olKey.outbound_tkn` the taker wants to buy; otherwise, the amount of `olKey.inbound_tkn` the taker wants to sell.
-  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
+  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@param taker The taker from which amounts will be transferred from and to. If the `msg.sender`'s allowance for the given `olKey.outbound_tkn`,`olKey.inbound_tkn` is strictly less than the total amount eventually spent by `taker`, the call will fail.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.
@@ -136,7 +136,7 @@ interface IMangrove is HasMgvEvents {
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
   ///@param takerWants Must be `<= MAX_SAFE_VOLUME`. The amount the taker wants. This is used along with `takerGives` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
   ///@param takerGives Must be `<= MAX_SAFE_VOLUME`. The amount the taker gives. This is used along with `takerGives` to derive a max price (`maxTick`) which is the lowest allowed tick in the offer list such that `log_1.0001(takerGives/takerWants) <= maxTick`.
-  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives (subject to price).
+  ///@param fillWants if true, the matching engine tries to get the taker all they want; otherwise, the matching engine tries to sell all that the taker gives. In both cases subject to the price limit.
   ///@param taker The taker from which amounts will be transferred from and to the. If the `msg.sender`'s allowance for the given `olKey.outbound_tkn`,`olKey.inbound_tkn` are strictly less than the total amount eventually spent by `taker`, the call will fail.
   ///@return takerGot The amount of `olKey.outbound_tkn` the taker got.
   ///@return takerGave The amount of `olKey.inbound_tkn` the taker gave.

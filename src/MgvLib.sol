@@ -96,7 +96,7 @@ interface HasMgvEvents {
   /* 
     Events in solidity is a hard thing to do in a optimal way. If you look at it as a purely gas efficient issue, you want to emit as few events as possible and with as few fields as possible. But as events also has to be usable for an off chain user, then doing this is not always the best solution.
 
-    We tried to list the main forces that are inflicted upon events.
+    We tried to list the main forces that drive which events and data to emit:
 
     1. Use as little gas as possible.
     2. An indexer should be able to keep track of the state of Mangrove.

@@ -323,7 +323,7 @@ interface IMangrove is HasMgvEvents {
   ///@param olKey The offer list key given by (maker) `outbound`, (maker) `inbound`, and `tickSpacing`.
   function deactivate(OLKey memory olKey) external;
 
-  ///@notice Kills the Mangrove instance. A dead instance cannot have offers executed or funds received.
+  ///@notice Kills the Mangrove instance. A dead instance cannot have offers executed or funds received, but offers can be retracted and funds can be withdrawn.
   function kill() external;
 
   ///@notice Sets the density.

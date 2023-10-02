@@ -369,8 +369,8 @@ interface IMangrove is HasMgvEvents {
   ///@param notify Whether Mangrove notifies the Monitor when and offer is taken
   function setNotify(bool notify) external;
 
-  ///@notice Sets whether Mangrove uses the monitor/oracle for `gasprice` and `density` values.
-  ///@param useOracle Whether Mangrove uses the monitor/oracle for `gasprice` and `density` values.
+  ///@notice Sets whether Mangrove uses the monitor as oracle for `gasprice` and `density` values.
+  ///@param useOracle Whether Mangrove uses the monitor as oracle for `gasprice` and `density` values.
   function setUseOracle(bool useOracle) external;
 
   ///@notice Transfer ERC20 tokens to governance.

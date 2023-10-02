@@ -1,10 +1,10 @@
 # Audit trail for Mangrove v2
 
-The goal of Mangrove v2 is constant-time offer insertion.
+The goal of Mangrove v2 is constant-time offer insertion & update.
 
-**Why we need it**: when an `offer` is executed, it may insert other offers. Since `offer.gasreq` is fixed, these changes must take a constant amount of gas. In Mangrove v1, offer insertion walks a doubly linked list, so it does not use a constant amount of gas.
+**Why we need it**: when an `offer` is executed, it may insert or update other offers. Since `offer.gasreq` is fixed, these changes must take a constant amount of gas. In Mangrove v1, offer insertion and update walks a doubly linked list, so it does not use a constant amount of gas.
 
-**How we get it**: by structuring offers in a fixed-height tree, with 'bins' at the leafs. Each bin is a doubly linked list. When an offer is inserted, it gets appended at the end of the appropriate bin. Equally-priced offers are no longer sorted by their density (the density of an offer is the amount of tokens they promise per unit of gas they consume).
+**How we get it**: by structuring offers in a fixed-height tree, with 'bins' at the leafs. Each bin is a doubly linked list. When an offer is inserted or moved, it gets appended at the end of the appropriate bin. Equally-priced offers are no longer sorted by their density (the density of an offer is the amount of tokens they promise per unit of gas they consume).
 
 Overview of the changes between v1 and v2:
 
@@ -26,7 +26,7 @@ With this new way of specifying amounts and prices, the price induced by tick is
 
 ## The volume-based API is still available
 
-To make the transition easy, the volume-based API for market orders, order insertion and offer update is still available. It internally converts to the `volume,tick` representation.
+To make the transition easy, the volume-based API for market orders, offer insertion and offer update is still available. It internally converts to the `volume,tick` representation.
 
 The volume-based version of the market order also interprets the price induced by `takerWants,takerGives` as a true limit price (not as a limit average price).
 

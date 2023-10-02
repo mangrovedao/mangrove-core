@@ -1,5 +1,15 @@
 # Next version
 
+- New tick-based API with constant-gas insert and update of offers (the volume-based API is still available)
+- Market orders now use a true limit price instead of avg. limit price
+- Several parameter sizes have changed:
+  - Density is stored as a float and presented as a fixed-point number
+  - `offer_gasbase` is now `kilo_offer_gasbase`
+  - `gasprice` is now in Mwei
+- Sniping has been restricted to Cleaning: `snipe` has been replaced by `cleanByImpersonation` which only allows "sniping" of failing offers
+- Makers can no longer read the offer list during `makerExecute`
+- Mangrove is split into two contracts and uses delegatecall internally
+
 # 1.5.10
 
 - Duplicate 1.5.9

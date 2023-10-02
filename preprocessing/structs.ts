@@ -298,6 +298,7 @@ using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
         Reentrancy during offer execution is not considered safe:
       * during execution, an offer could consume other offers further up in the list, effectively front-running the taker currently executing the offer.
       * it could also cancel other offers, creating a discrepancy between the advertised and actual market price at no cost to the maker.
+      * a maker could potentially distinguish between a clean and a market order based on the current state of the offer list
 
   Note: An optimization in the `marketOrder` function relies on reentrancy being forbidden.
       */

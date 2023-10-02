@@ -366,8 +366,8 @@ interface IMangrove is HasMgvEvents {
   ///@param monitor The new monitor/oracle address.
   function setMonitor(address monitor) external;
 
-  ///@notice Sets whether Mangrove notifies the Monitor/Oracle when and offer is taken
-  ///@param notify Whether Mangrove notifies the Monitor/Oracle when and offer is taken
+  ///@notice Sets whether Mangrove notifies the Monitor when and offer is taken
+  ///@param notify Whether Mangrove notifies the Monitor when and offer is taken
   function setNotify(bool notify) external;
 
   ///@notice Sets whether Mangrove uses the monitor/oracle for `gasprice` and `density` values.

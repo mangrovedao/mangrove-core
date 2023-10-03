@@ -300,6 +300,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
+    // FIXME use vulcan's approach to checking events after the fact
+    // https://github.com/nomoixyz/vulcan/blob/25788a482552ff7a3c2c1c7e148b323ce848182d/src/_modules/Expect.sol#L602
     emit Credit($(this), 19191492440000000);
     expectFrom($(mgv));
     emit OfferFail(olKey.hash(), $(tkr), ofr, 1 ether, 1 ether, 8507560000000, "mgv/makerRevert");

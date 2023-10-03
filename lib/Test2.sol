@@ -100,7 +100,7 @@ contract Test2 is Test, Script2 {
 
     // set code to nonzero so solidity-inserted extcodesize checks don't fail
     vm.etch(addr, bytes("not zero"));
-    vm.label(addr, label);
+    vm.label(addr, string.concat("fresh-address:",label));
     return (key, addr);
   }
 

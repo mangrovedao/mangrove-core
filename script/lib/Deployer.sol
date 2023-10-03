@@ -189,6 +189,7 @@ abstract contract Deployer is Script2 {
   // buffer for output file
   string out;
 
+  // FIXME use vm.writeJson https://github.com/foundry-rs/foundry/pull/3595
   function outputDeployment() internal {
     (string[] memory names, address[] memory addrs) = fork.allDeployed();
 

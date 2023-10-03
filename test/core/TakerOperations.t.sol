@@ -570,7 +570,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.marketOrderByTick{gas: 130000}(olKey, tick, 1 ether, true);
   }
 
-  /* Note as for jan 5 2020: by locally pushing the block gas limit to 38M, you can go up to 162 levels of recursion before hitting "revert for an unknown reason" -- I'm assuming that's the stack limit. */
+  /* Note as of jan 5 2021: by locally pushing the block gas limit to 38M, you can go up to 162 levels of recursion before hitting "revert for an unknown reason" -- I'm assuming that's the stack limit. */
   function test_recursion_depth_is_acceptable() public {
     for (uint i = 0; i < 50; i++) {
       mkr.newOfferByVolume(0.001 ether, 0.001 ether, 50_000, i);

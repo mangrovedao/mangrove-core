@@ -14,6 +14,7 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) gwei) \
  TKN2_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) gwei) \
  FEE=30 \
+ COVER_FACTOR=1000 \
  forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
@@ -25,7 +26,8 @@ contract ActivateMarket is Deployer {
       tkn2: IERC20(envAddressOrName("TKN2")),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
-      fee: vm.envUint("FEE")
+      fee: vm.envUint("FEE"),
+      coverFactor: vm.envUint("COVER_FACTOR")
     });
   }
 
@@ -54,10 +56,11 @@ contract ActivateMarket is Deployer {
     IERC20 tkn2,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
-    uint fee
+    uint fee,
+    uint coverFactor
   ) public {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee, coverFactor);
   }
 
   /**
@@ -72,7 +75,8 @@ contract ActivateMarket is Deployer {
     IERC20 tkn2,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
-    uint fee
+    uint fee,
+    uint coverFactor
   ) public {
     new ActivateSemibook().innerRun({
       mgv: mgv,
@@ -80,7 +84,8 @@ contract ActivateMarket is Deployer {
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
       outbound_in_gwei: tkn1_in_gwei,
-      fee: fee
+      fee: fee,
+      coverFactor: coverFactor
     });
 
     new ActivateSemibook().innerRun({
@@ -89,7 +94,8 @@ contract ActivateMarket is Deployer {
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
       outbound_in_gwei: tkn2_in_gwei,
-      fee: fee
+      fee: fee,
+      coverFactor: coverFactor
     });
 
     new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});

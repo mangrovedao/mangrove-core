@@ -68,7 +68,8 @@ contract MumbaiActivateMarket is Deployer {
       tkn2: token1,
       tkn1_in_gwei: toGweiOfMatic(price0),
       tkn2_in_gwei: toGweiOfMatic(price1),
-      fee: 0
+      fee: 0,
+      coverFactor: 1000
     });
 
     new ActivateMangroveOrder().innerRun({

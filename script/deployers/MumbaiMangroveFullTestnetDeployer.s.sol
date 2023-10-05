@@ -81,7 +81,8 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
       tkn2: usdc,
       tkn1_in_gwei: toGweiOfMatic(prices[0]),
       tkn2_in_gwei: toGweiOfMatic(prices[1]),
-      fee: 0
+      fee: 0,
+      coverFactor: 1000
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
@@ -91,7 +92,8 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
       tkn2: dai,
       tkn1_in_gwei: toGweiOfMatic(prices[2]),
       tkn2_in_gwei: toGweiOfMatic(prices[0]),
-      fee: 0
+      fee: 0,
+      coverFactor: 1000
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
@@ -101,7 +103,8 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
       tkn2: usdc,
       tkn1_in_gwei: toGweiOfMatic(prices[2]),
       tkn2_in_gwei: toGweiOfMatic(prices[1]),
-      fee: 0
+      fee: 0,
+      coverFactor: 1000
     });
 
     // Activate MangroveOrder on markets

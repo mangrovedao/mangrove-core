@@ -5,7 +5,7 @@ import {ToyENS} from "mgv_lib/ToyENS.sol";
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
-import {ActivateUtils, IERC20} from "mgv_script/core/ActivateSemiBook.s.sol";
+import {ActivateUtils, IERC20} from "mgv_script/core/ActivateSemibook.s.sol";
 
 import {console} from "forge-std/console.sol";
 

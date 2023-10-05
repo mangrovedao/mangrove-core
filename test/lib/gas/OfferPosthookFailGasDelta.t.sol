@@ -1,18 +1,18 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {MangroveTest, MgvReader, TestMaker, TestTaker, TestSender, console} from "mgv_test/lib/MangroveTest.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
-import {TransferLib} from "mgv_lib/TransferLib.sol";
-import "mgv_src/core/MgvLib.sol";
-import {Mangrove} from "mgv_src/core/Mangrove.sol";
-import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
-import "mgv_lib/Debug.sol";
-import {TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
-import {GasTestBaseStored} from "mgv_test/lib/gas/GasTestBase.t.sol";
-import {Test2} from "mgv_lib/Test2.sol";
+import {MangroveTest, MgvReader, TestMaker, TestTaker, TestSender, console} from "@mgv/test/lib/MangroveTest.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {PinnedPolygonFork} from "@mgv/test/lib/forks/Polygon.sol";
+import {TransferLib} from "@mgv/lib/TransferLib.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {TestToken} from "@mgv/test/lib/tokens/TestToken.sol";
+import {MIDDLE_BIN} from "@mgv/test/lib/gas/GasTestBase.t.sol";
+import "@mgv/lib/Debug.sol";
+import {TestTaker, IMaker} from "@mgv/test/lib/MangroveTest.sol";
+import {GasTestBaseStored} from "@mgv/test/lib/gas/GasTestBase.t.sol";
+import {Test2} from "@mgv/lib/Test2.sol";
 
 /// A mangrove instrumented to measure gas usage during posthook
 contract BeforePosthookGasMeasuringMangrove is Mangrove, Test2 {

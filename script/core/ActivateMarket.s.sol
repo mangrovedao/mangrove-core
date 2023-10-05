@@ -1,11 +1,11 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import "mgv_src/periphery/MgvReader.sol";
-import {IERC20} from "mgv_lib/IERC20.sol";
-import "mgv_src/core/MgvLib.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {UpdateMarket} from "@mgv/script/periphery/UpdateMarket.s.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.

@@ -14,10 +14,10 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
-import "mgv_lib/core/TickTreeLib.sol";
-import "mgv_lib/core/TickLib.sol";
-import {Density,DensityLib} from "mgv_lib/core/DensityLib.sol";
-import "mgv_src/core/MgvLib.sol";
+import "@mgv/lib/core/TickTreeLib.sol";
+import "@mgv/lib/core/TickLib.sol";
+import {Density,DensityLib} from "@mgv/lib/core/DensityLib.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 
 ${structs.map(s => {
@@ -32,7 +32,7 @@ ${structs.map(s => {
   const elements = `"${s.Name}{",${fields.join(', ", ", ')},"}"`;
 
   return `
-import {${s.Packed}, ${s.Unpacked}} from "mgv_src/preprocessed/${s.filenames.src}";
+import {${s.Packed}, ${s.Unpacked}} from "@mgv/src/preprocessed/${s.filenames.src}";
 function toString(${s.Packed} __packed) pure returns (string memory) {
   return toString(__packed.to_struct());
 }

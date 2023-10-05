@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {OfferGasBaseBaseTest} from "mgv_test/lib/gas/OfferGasBaseBase.t.sol";
+import {OfferGasBaseBaseTest} from "@mgv/test/lib/gas/OfferGasBaseBase.t.sol";
 
 contract OfferGasBaseTest_Generic_A_B is OfferGasBaseBaseTest {
   function setUp() public override {

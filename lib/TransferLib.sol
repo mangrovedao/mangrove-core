@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 pragma solidity ^0.8.10;
 
-import "mgv_src/core/MgvLib.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 ///@title This library helps with safely interacting with ERC20 tokens
 ///@notice Transferring 0 or to self will be skipped.

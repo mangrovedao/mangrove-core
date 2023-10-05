@@ -4,10 +4,10 @@
 
 pragma solidity ^0.8.10;
 
-// import "mgv_test/lib/MangroveTest.sol";
-import "mgv_lib/Test2.sol";
-import "mgv_src/core/MgvLib.sol";
-import {DensityLib} from "mgv_lib/core/DensityLib.sol";
+// import "@mgv/test/lib/MangroveTest.sol";
+import "@mgv/lib/Test2.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {DensityLib} from "@mgv/lib/core/DensityLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract DensityTest is Test2 {

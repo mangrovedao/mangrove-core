@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/core/MgvLib.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
   IMangrove mgv;

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import "mgv_src/IMangrove.sol";
-import "mgv_src/core/MgvLib.sol";
-import {Test} from "forge-std/Test.sol";
-import {TransferLib} from "mgv_lib/TransferLib.sol";
+import "@mgv/src/IMangrove.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {Test} from "@mgv/forge-std/Test.sol";
+import {TransferLib} from "@mgv/lib/TransferLib.sol";
 
 contract TrivialTestMaker is IMaker {
   function makerExecute(MgvLib.SingleOrder calldata) external virtual returns (bytes32) {

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
-import "mgv_lib/core/Constants.sol";
-import {Tick} from "mgv_lib/core/TickLib.sol";
-import {BitLib} from "mgv_lib/core/BitLib.sol";
-import {console2 as csf} from "forge-std/console2.sol";
-import {Local} from "mgv_src/preprocessed/Local.post.sol";
+import "@mgv/lib/core/Constants.sol";
+import {Tick} from "@mgv/lib/core/TickLib.sol";
+import {BitLib} from "@mgv/lib/core/BitLib.sol";
+import {console2 as csf} from "@mgv/forge-std/console2.sol";
+import {Local} from "@mgv/src/preprocessed/Local.post.sol";
 
 
 /* # Libraries for tick tree manipulation 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
 import "forge-std/StdStorage.sol";
 import "forge-std/console.sol";
 

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {console} from "mgv_test/lib/MangroveTest.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {TransferLib} from "mgv_lib/TransferLib.sol";
-import {OLKey} from "mgv_src/core/MgvLib.sol";
-import {MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
+import {console} from "@mgv/test/lib/MangroveTest.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {TransferLib} from "@mgv/lib/TransferLib.sol";
+import {OLKey} from "@mgv/src/core/MgvLib.sol";
+import {MIDDLE_BIN} from "@mgv/test/lib/gas/GasTestBase.t.sol";
 import {OfferPosthookFailGasDeltaTest} from "./OfferPosthookFailGasDelta.t.sol";
-import {OfferGasReqBaseTest} from "mgv_test/lib/gas/OfferGasReqBase.t.sol";
+import {OfferGasReqBaseTest} from "@mgv/test/lib/gas/OfferGasReqBase.t.sol";
 
 ///@notice base class for measuring gasbase for a pair.
 abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {

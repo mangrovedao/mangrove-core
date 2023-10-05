@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.17;
 
-import {Bin,TickTreeLib,Field} from "mgv_lib/core/TickTreeLib.sol";
-import {Density, DensityLib} from "mgv_lib/core/DensityLib.sol";
-import {Local,LocalUnpacked,LocalLib} from "mgv_src/preprocessed/Local.post.sol";
+import {Bin,TickTreeLib,Field} from "@mgv/lib/core/TickTreeLib.sol";
+import {Density, DensityLib} from "@mgv/lib/core/DensityLib.sol";
+import {Local,LocalUnpacked,LocalLib} from "@mgv/src/preprocessed/Local.post.sol";
 
 
 

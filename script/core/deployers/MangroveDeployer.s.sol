@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
-import {Mangrove} from "mgv_src/core/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvReaderDeployer} from "mgv_script/periphery/deployers/MgvReaderDeployer.s.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
+import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {MgvReaderDeployer} from "@mgv/script/periphery/deployers/MgvReaderDeployer.s.sol";
 
 contract MangroveDeployer is Deployer {
   IMangrove public mgv;

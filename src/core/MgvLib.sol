@@ -4,11 +4,11 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_src/preprocessed/Structs.post.sol";
-import {IERC20} from "mgv_lib/IERC20.sol";
-import {Density, DensityLib} from "mgv_lib/core/DensityLib.sol";
-import "mgv_lib/core/TickTreeLib.sol";
-import "mgv_lib/core/TickLib.sol";
+import "@mgv/src/preprocessed/Structs.post.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import {Density, DensityLib} from "@mgv/lib/core/DensityLib.sol";
+import "@mgv/lib/core/TickTreeLib.sol";
+import "@mgv/lib/core/TickLib.sol";
 
 /* `OLKey` (for "OfferListKey") contains the information that characterizes an offer list:
   * `outbound_tkn`, token that goes from the maker to the taker (to remember the direction, imagine the token as going out of the Mangrove offer, towards the taker)

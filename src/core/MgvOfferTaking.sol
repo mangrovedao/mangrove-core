@@ -18,8 +18,8 @@ import {
   OLKey
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {TickTreeLib} from "mgv_lib/core/TickTreeLib.sol";
-import "mgv_lib/Debug.sol";
+import {TickTreeLib} from "@mgv/lib/core/TickTreeLib.sol";
+import "@mgv/lib/Debug.sol";
 
 /* There are 2 ways to take offers in Mangrove:
 - **Market order**. A market order walks the offer list from the best offer and up, can specify a limit price, as well as a buy/sell behaviour (i.e. whether to limit the order buy the amount bought or by the amount sold).

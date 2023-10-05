@@ -5,7 +5,7 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_src/toy/ERC20BL.sol";
+import "@mgv/src/toy/ERC20BL.sol";
 
 contract TestToken is ERC20BL {
   // Weird behavior encoder

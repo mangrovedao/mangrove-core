@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.13;
 
-import "mgv_lib/Test2.sol";
-import "mgv_src/core/MgvLib.sol";
+import "@mgv/lib/Test2.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 // Warning: fuzzer will run tests with malformed packed arguments, e.g. bool fields that are > 1.
 

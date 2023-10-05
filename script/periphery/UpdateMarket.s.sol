@@ -1,10 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import "mgv_src/periphery/MgvReader.sol";
-import {IERC20} from "mgv_lib/IERC20.sol";
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import "mgv_lib/Debug.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import "@mgv/lib/Debug.sol";
 
 /* Update market information on MgvReader.
    

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/periphery/MgvReader.sol";
-import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import {IERC20} from "mgv_lib/IERC20.sol";
-import "mgv_src/core/MgvLib.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import {UpdateMarket} from "@mgv/script/periphery/UpdateMarket.s.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 /* Deactivate a market (aka two mangrove offer lists) & update MgvReader. */
 contract DeactivateMarket is Deployer {

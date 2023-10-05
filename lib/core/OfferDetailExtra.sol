@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.17;
 
-import {OfferDetail,OfferDetailUnpacked} from "mgv_src/preprocessed/OfferDetail.post.sol";
+import {OfferDetail,OfferDetailUnpacked} from "@mgv/src/preprocessed/OfferDetail.post.sol";
 
 
 /* Extra functions for the offer details */

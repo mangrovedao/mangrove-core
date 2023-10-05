@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.18;
 
-import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import "mgv_src/core/MgvLib.sol";
-import {MgvCommon} from "mgv_src/core/MgvCommon.sol";
-import "mgv_lib/Debug.sol";
+import {MangroveTest} from "@mgv/test/lib/MangroveTest.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {MgvCommon} from "@mgv/src/core/MgvCommon.sol";
+import "@mgv/lib/Debug.sol";
 
 int constant MIN_LEAF_INDEX = -NUM_LEAFS / 2;
 int constant MAX_LEAF_INDEX = -MIN_LEAF_INDEX - 1;

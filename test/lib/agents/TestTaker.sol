@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.10;
 
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/core/MgvLib.sol";
-import {Script2} from "mgv_lib/Script2.sol";
-import {TransferLib} from "mgv_lib/TransferLib.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {Script2} from "@mgv/lib/Script2.sol";
+import {TransferLib} from "@mgv/lib/TransferLib.sol";
 
 contract TestTaker is Script2 {
   IMangrove mgv;

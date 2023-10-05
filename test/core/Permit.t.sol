@@ -41,14 +41,14 @@ pragma solidity ^0.8.10;
 
   owner._signTypedData(domain, types, data);*/
 
-import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
-import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
-import {Vm} from "forge-std/Vm.sol";
-import {console2 as console, StdStorage, stdStorage} from "forge-std/Test.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_lib/core/TickTreeLib.sol";
-import "mgv_lib/core/TickLib.sol";
-import "mgv_src/core/MgvLib.sol";
+import {MangroveTest} from "@mgv/test/lib/MangroveTest.sol";
+import {TrivialTestMaker, TestMaker} from "@mgv/test/lib/agents/TestMaker.sol";
+import {Vm} from "@mgv/forge-std/Vm.sol";
+import {console2 as console, StdStorage, stdStorage} from "@mgv/forge-std/Test.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import "@mgv/lib/core/TickTreeLib.sol";
+import "@mgv/lib/core/TickLib.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;

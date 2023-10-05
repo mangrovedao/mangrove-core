@@ -12,7 +12,7 @@ pragma solidity ^0.8.13;
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly ("memory-safe") { u := b }
 }
-import "mgv_lib/core/Constants.sol";
+import "@mgv/lib/core/Constants.sol";
 
 struct OfferUnpacked {
   uint prev;
@@ -26,9 +26,9 @@ type Offer is uint;
 using OfferLib for Offer global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-import {Bin} from "mgv_lib/core/TickTreeLib.sol";
-import {Tick} from "mgv_lib/core/TickLib.sol";
-import {OfferExtra,OfferUnpackedExtra} from "mgv_lib/core/OfferExtra.sol";
+import {Bin} from "@mgv/lib/core/TickTreeLib.sol";
+import {Tick} from "@mgv/lib/core/TickLib.sol";
+import {OfferExtra,OfferUnpackedExtra} from "@mgv/lib/core/OfferExtra.sol";
 
 using OfferExtra for Offer global;
 using OfferUnpackedExtra for OfferUnpacked global;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Script, console, stdJson} from "forge-std/Script.sol";
-import {ToyENS} from "mgv_lib/ToyENS.sol";
+import {Script, console, stdJson} from "@mgv/forge-std/Script.sol";
+import {ToyENS} from "@mgv/lib/ToyENS.sol";
 
 /* A record entry in an addresses JSON file */
 struct Record {

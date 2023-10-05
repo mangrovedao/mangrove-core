@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.18;
 
-import {SingleGasTestBase, GasTestBase, IMIDDLE_BIN, MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
-import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {SingleGasTestBase, GasTestBase, IMIDDLE_BIN, MIDDLE_BIN} from "@mgv/test/lib/gas/GasTestBase.t.sol";
+import {IMangrove, TestTaker} from "@mgv/test/lib/MangroveTest.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
-import "mgv_src/core/MgvLib.sol";
-import {LEAF_SIZE, LEVEL_SIZE} from "mgv_lib/core/TickTreeLib.sol";
-import "mgv_lib/Debug.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {LEAF_SIZE, LEVEL_SIZE} from "@mgv/lib/core/TickTreeLib.sol";
+import "@mgv/lib/Debug.sol";
 
 Bin constant LOW_BIN = Bin.wrap(IMIDDLE_BIN - LEAF_SIZE * 2 * (LEVEL_SIZE ** 3) / 3);
 

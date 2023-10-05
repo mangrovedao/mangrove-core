@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
-import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {Script, console} from "@mgv/forge-std/Script.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
 
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
 
 /**
  * @notice deploys a MgvReader instance

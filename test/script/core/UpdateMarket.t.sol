@@ -1,17 +1,17 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
-import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {MangroveDeployer} from "@mgv/script/core/deployers/MangroveDeployer.s.sol";
+import {UpdateMarket} from "@mgv/script/periphery/UpdateMarket.s.sol";
 
-import {Test2} from "mgv_lib/Test2.sol";
+import {Test2} from "@mgv/lib/Test2.sol";
 
-import {Mangrove} from "mgv_src/core/Mangrove.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/periphery/MgvReader.sol";
-import {IERC20} from "mgv_lib/IERC20.sol";
-import "mgv_src/core/MgvLib.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 contract UpdateMarketTest is Test2 {
   MangroveDeployer deployer;

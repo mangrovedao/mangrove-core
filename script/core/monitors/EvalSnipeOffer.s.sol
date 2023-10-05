@@ -1,11 +1,11 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
-import {VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
-import {IERC20} from "mgv_lib/IERC20.sol";
-import "mgv_src/core/MgvLib.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {Test2, toFixed, console2 as console} from "@mgv/lib/Test2.sol";
+import {VolumeData, IMangrove} from "@mgv/src/periphery/MgvReader.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 /**
  * Script simulates a series of cleans on the offer at coordinate (TKN_OUT, TKN_IN, OFFER_ID)

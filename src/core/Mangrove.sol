@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import "mgv_src/core/MgvLib.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 import {MgvOfferMaking} from "./MgvOfferMaking.sol";
 import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
-import {MgvAppendix} from "mgv_src/core/MgvAppendix.sol";
-import {MgvGovernable} from "mgv_src/core/MgvGovernable.sol";
+import {MgvAppendix} from "@mgv/src/core/MgvAppendix.sol";
+import {MgvGovernable} from "@mgv/src/core/MgvGovernable.sol";
 
 /* <a id="Mangrove"></a> The `Mangrove` contract inherits both the maker and taker functionality. It also deploys `MgvAppendix` when constructed. */
 contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {

@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_test/lib/MangroveTest.sol";
+import "@mgv/test/lib/MangroveTest.sol";
 
-import "mgv_src/periphery/MgvReader.sol";
-import "mgv_src/core/MgvLib.sol";
-import {stdError} from "forge-std/StdError.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {stdError} from "@mgv/forge-std/StdError.sol";
 
 // In these tests, the testing contract is the market maker.
 contract MgvReaderTest is MangroveTest {

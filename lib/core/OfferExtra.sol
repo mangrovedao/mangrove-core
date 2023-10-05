@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.17;
 
-import "mgv_lib/core/TickTreeLib.sol";
-import "mgv_lib/core/TickLib.sol";
-import {Offer,OfferUnpacked,OfferLib} from "mgv_src/preprocessed/Offer.post.sol";
+import "@mgv/lib/core/TickTreeLib.sol";
+import "@mgv/lib/core/TickLib.sol";
+import {Offer,OfferUnpacked,OfferLib} from "@mgv/src/preprocessed/Offer.post.sol";
 
 
 /* cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere */

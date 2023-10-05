@@ -1,9 +1,9 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {ToyENS} from "mgv_lib/ToyENS.sol";
+import {ToyENS} from "@mgv/lib/ToyENS.sol";
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
 import {MangroveDeployer} from "./MangroveDeployer.s.sol";
 
 /**

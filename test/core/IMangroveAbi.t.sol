@@ -1,11 +1,11 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Test2} from "mgv_lib/Test2.sol";
-import {stdJson} from "forge-std/StdJson.sol";
-import "mgv_lib/Debug.sol";
-import {Mangrove} from "mgv_src/core/Mangrove.sol";
-import {MgvAppendix} from "mgv_src/core/MgvAppendix.sol";
+import {Test2} from "@mgv/lib/Test2.sol";
+import {stdJson} from "@mgv/forge-std/StdJson.sol";
+import "@mgv/lib/Debug.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {MgvAppendix} from "@mgv/src/core/MgvAppendix.sol";
 
 using stdJson for string;
 

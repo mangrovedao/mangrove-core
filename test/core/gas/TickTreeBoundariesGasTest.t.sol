@@ -15,10 +15,10 @@ import {
   LEVEL1_HIGHER_BIN,
   ROOT_LOWER_BIN,
   ROOT_HIGHER_BIN
-} from "mgv_test/lib/gas/GasTestBase.t.sol";
+} from "@mgv/test/lib/gas/GasTestBase.t.sol";
 
-import {IMangrove, TestTaker, OLKey} from "mgv_test/lib/MangroveTest.sol";
-import "mgv_lib/Debug.sol";
+import {IMangrove, TestTaker, OLKey} from "@mgv/test/lib/MangroveTest.sol";
+import "@mgv/lib/Debug.sol";
 
 /// Implements tests for all boundaries of bin values. Starting from a MIDDLE_BIN it goes above and below creating new branches for all levels.
 abstract contract TickTreeBoundariesGasTest is GasTestBaseStored {

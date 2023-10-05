@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.18;
 
-import {SingleGasTestBase, GasTestBase, MIDDLE_BIN} from "mgv_test/lib/gas/GasTestBase.t.sol";
-import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {SingleGasTestBase, GasTestBase, MIDDLE_BIN} from "@mgv/test/lib/gas/GasTestBase.t.sol";
+import {IMangrove, TestTaker} from "@mgv/test/lib/MangroveTest.sol";
 import {TickTreeBoundariesGasTest} from "./TickTreeBoundariesGasTest.t.sol";
-import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/core/MgvLib.sol";
+import {IMangrove, TestTaker} from "@mgv/test/lib/MangroveTest.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 contract ExternalNewOfferOtherOfferList_AlwaysEmptyGasTest is SingleGasTestBase {
   function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal override {

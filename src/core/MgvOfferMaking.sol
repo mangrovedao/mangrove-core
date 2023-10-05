@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import "mgv_src/core/MgvLib.sol";
+import "@mgv/src/core/MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import "mgv_lib/Debug.sol";
+import "@mgv/lib/Debug.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
 contract MgvOfferMaking is MgvHasOffers {

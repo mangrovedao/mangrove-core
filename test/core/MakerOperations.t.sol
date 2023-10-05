@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/core/MgvLib.sol";
-import {Density, DensityLib} from "mgv_lib/core/DensityLib.sol";
-import "mgv_lib/core/Constants.sol";
+import "@mgv/test/lib/MangroveTest.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {Density, DensityLib} from "@mgv/lib/core/DensityLib.sol";
+import "@mgv/lib/core/Constants.sol";
 
 contract TestMonitor is IMgvMonitor {
   function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external {}

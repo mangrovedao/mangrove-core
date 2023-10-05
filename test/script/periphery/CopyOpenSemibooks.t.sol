@@ -1,14 +1,14 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {MangroveDeployer} from "@mgv/script/core/deployers/MangroveDeployer.s.sol";
 
-import "mgv_test/lib/MangroveTest.sol";
-import {Mangrove} from "mgv_src/core/Mangrove.sol";
-import "mgv_src/periphery/MgvReader.sol";
-import {CopyOpenSemibooks} from "mgv_script/periphery/CopyOpenSemibooks.s.sol";
-import "mgv_src/core/MgvLib.sol";
+import "@mgv/test/lib/MangroveTest.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import {CopyOpenSemibooks} from "@mgv/script/periphery/CopyOpenSemibooks.s.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 contract CopyOpenSemibooksTest is MangroveTest {
   // MangroveDeployer deployer;

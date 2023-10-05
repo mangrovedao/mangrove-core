@@ -16,7 +16,7 @@ export const struct_utilities = `/* since you can't convert bool to uint in an e
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly ("memory-safe") { u := b }
 }
-import "mgv_lib/core/Constants.sol";`;
+import "@mgv/lib/core/Constants.sol";`;
 
 const field_var = (_name: string, prop: string) => {
   return `${_name}_${prop}`;

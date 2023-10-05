@@ -22,10 +22,10 @@ import {
   MID_ROOT_POS,
   MIN_BIN_ALLOWED,
   MAX_BIN_ALLOWED
-} from "mgv_test/lib/TestTickTree.sol";
-import {TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/core/MgvLib.sol";
-import "mgv_lib/Debug.sol";
+} from "@mgv/test/lib/TestTickTree.sol";
+import {TestTaker, MangroveTest, IMaker, TestMaker} from "@mgv/test/lib/MangroveTest.sol";
+import "@mgv/src/core/MgvLib.sol";
+import "@mgv/lib/Debug.sol";
 
 // Base class for test of Mangrove's tick tree data structure
 //

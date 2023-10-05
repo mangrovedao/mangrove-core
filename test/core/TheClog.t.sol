@@ -1,10 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
-import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
-import "mgv_src/core/MgvLib.sol";
-import {console2 as console} from "forge-std/console2.sol";
+import {MangroveTest} from "@mgv/test/lib/MangroveTest.sol";
+import {TestTaker} from "@mgv/test/lib/agents/TestTaker.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {console2 as console} from "@mgv/forge-std/console2.sol";
 
 contract TooDeepRecursionClogTest is MangroveTest, IMaker {
   bool internal shouldFail = false;

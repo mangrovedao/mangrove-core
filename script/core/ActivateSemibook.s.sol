@@ -1,11 +1,11 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import "mgv_lib/Test2.sol";
-import {IERC20} from "mgv_lib/IERC20.sol";
-import "mgv_src/core/MgvLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import "@mgv/lib/Test2.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
 
 uint constant COVER_FACTOR = 1000;
 

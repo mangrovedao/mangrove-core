@@ -13,11 +13,13 @@ Just `forge install mangrovedao/mangrove-core`.
 ⚠️ You will not get the usual remapping `mangrove-core/=lib/mangrove-core/src/` (because forge's remapping generation heuristic sees the `preprocessing/lib/` directory and decides to remap to the parent dir). Instead, you will get:
 
 ```
-mgv_src/=lib/mangrove-core/src/
-mgv_lib/=lib/mangrove-core/lib/
-mgv_test/=lib/mangrove-core/test/
-mgv_script/=lib/mangrove-core/script/
+@mgv/src/=lib/mangrove-core/src/
+@mgv/lib/=lib/mangrove-core/lib/
+@mgv/test/=lib/mangrove-core/test/
+@mgv/script/=lib/mangrove-core/script/
 ```
+
+Use this likely-unique prefix even internally so projects that depend on mangrove don't mess with mangrove's internal dependencies
 
 # Installing prerequisites
 

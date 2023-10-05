@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test, console2} from "forge-std/Test.sol";
-import "mgv_lib/Script2.sol";
+import {Test, console2} from "@mgv/forge-std/Test.sol";
+import "@mgv/lib/Script2.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */
 /* You may want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */

@@ -3,7 +3,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "mgv_src/core/MgvLib.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 ///@title Interface for the Mangrove contract.
 interface IMangrove is HasMgvEvents {

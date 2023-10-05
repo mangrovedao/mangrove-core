@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_lib/Test2.sol";
-import "mgv_src/core/MgvLib.sol";
-import "mgv_test/lib/MangroveTest.sol";
+import "@mgv/lib/Test2.sol";
+import "@mgv/src/core/MgvLib.sol";
+import "@mgv/test/lib/MangroveTest.sol";
 
 contract FieldTest is MangroveTest {
   function test_flipBit0(uint _field, uint8 posInLevel) public {

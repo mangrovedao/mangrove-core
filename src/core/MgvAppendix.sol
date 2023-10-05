@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import "mgv_src/core/MgvLib.sol";
-import {MgvView} from "mgv_src/core/MgvView.sol";
-import {MgvGovernable} from "mgv_src/core/MgvGovernable.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {MgvView} from "@mgv/src/core/MgvView.sol";
+import {MgvGovernable} from "@mgv/src/core/MgvGovernable.sol";
 
 /* The `MgvAppendix` contract contains Mangrove functions related to:
  - Getters (view functions)

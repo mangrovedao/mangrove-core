@@ -1,21 +1,21 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test2, toFixed, Test, console, toString, vm} from "mgv_lib/Test2.sol";
-import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
-import {TestSender} from "mgv_test/lib/agents/TestSender.sol";
-import {TrivialTestMaker, TestMaker, OfferData} from "mgv_test/lib/agents/TestMaker.sol";
-import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
-import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
-import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {TransferLib} from "mgv_lib/TransferLib.sol";
+import {Test2, toFixed, Test, console, toString, vm} from "@mgv/lib/Test2.sol";
+import {TestTaker} from "@mgv/test/lib/agents/TestTaker.sol";
+import {TestSender} from "@mgv/test/lib/agents/TestSender.sol";
+import {TrivialTestMaker, TestMaker, OfferData} from "@mgv/test/lib/agents/TestMaker.sol";
+import {MakerDeployer} from "@mgv/test/lib/agents/MakerDeployer.sol";
+import {TestMoriartyMaker} from "@mgv/test/lib/agents/TestMoriartyMaker.sol";
+import {TestToken} from "@mgv/test/lib/tokens/TestToken.sol";
+import {TransferLib} from "@mgv/lib/TransferLib.sol";
 
-import {MgvOfferTakingWithPermit} from "mgv_src/core/MgvOfferTakingWithPermit.sol";
-import {Mangrove} from "mgv_src/core/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {TickLib} from "mgv_lib/core/TickLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_src/core/MgvLib.sol";
+import {MgvOfferTakingWithPermit} from "@mgv/src/core/MgvOfferTakingWithPermit.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
+import {TickLib} from "@mgv/lib/core/TickLib.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Field} from "mgv_lib/core/TickTreeLib.sol";
-import {ONES} from "mgv_lib/core/Constants.sol";
-import {BitLib} from "mgv_lib/core/BitLib.sol";
+import {Field} from "@mgv/lib/core/TickTreeLib.sol";
+import {ONES} from "@mgv/lib/core/Constants.sol";
+import {BitLib} from "@mgv/lib/core/BitLib.sol";
 
 /*
 

@@ -19,7 +19,7 @@ Just `forge install mangrovedao/mangrove-core`.
 @mgv/script/=lib/mangrove-core/script/
 ```
 
-Use this likely-unique prefix even internally so projects that depend on mangrove don't mess with mangrove's internal dependencies
+Use this likely-unique prefix even internally so projects that depend on Mangrove don't mess with Mangrove's internal dependencies.
 
 # Installing prerequisites
 

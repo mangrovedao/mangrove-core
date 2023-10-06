@@ -16,7 +16,7 @@
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts lib/core/Constants.sol src/core/MgvLib.sol src/core/MgvCommon.sol src/core/MgvHasOffers.sol src/core/MgvOfferMaking.sol src/core/MgvOfferTaking.sol src/core/MgvOfferTakingWithPermit.sol src/core/MgvGovernable.sol src/core/MgvView.sol src/core/MgvAppendix.sol src/core/Mangrove.sol lib/core/DensityLib.sol lib/core/TickTreeLib.sol lib/core/TickLib.sol lib/core/BitLib.sol lib/core/OfferExtra.sol lib/core/OfferDetailExtra.sol lib/core/LocalExtra.sol",
     "preproc": "ts-node preprocessing/run.ts",
     "generate-ratios": "node test-ratios/generate_ratios.js",
-    "gas-measurement": "GAS_MATCH_PATH='test/core/gas/*' ./gas-measurement.sh",
+    "gas-measurement": "GAS_MATCH_PATH='test/core/gas/*' bash gas-measurement.sh",
     "test-ratios": "FOUNDRY_PROFILE=test-ratios forge test -vv",
     "test": "forge test -vvv",
     "test:memory-intensive": "forge test --match-contract TickTree",

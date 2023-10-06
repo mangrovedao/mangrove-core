@@ -38,7 +38,7 @@
     "/LICENSE",
     "/README.md",
     "/doc",
-    "./gas-measurement.sh"
+    "gas-measurement.sh"
   ],
   "devDependencies": {
     "@types/node": "^20.8.2",

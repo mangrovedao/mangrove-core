@@ -1,7 +1,7 @@
 # Next version
 
 - New remappings (e.g., "@mgv/src" instead of "mgv-src")
-- Expose gas-measurement.sh
+- Expose gas-measurement
 
 # 1.5.11-0
 

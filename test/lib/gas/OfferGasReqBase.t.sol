@@ -8,14 +8,24 @@ import {GenericFork} from "@mgv/test/lib/forks/Generic.sol";
 import {OLKey} from "@mgv/src/core/MgvLib.sol";
 import {TestToken} from "@mgv/test/lib/tokens/TestToken.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
+import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
 
 ///@notice base class for creating tests of gasreq for contracts. Compare results to implementors of OfferGasBaseBaseTest.
 abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
   GenericFork internal fork;
+  MgvOracle internal oracle;
   mapping(bytes32 => TestTaker) internal takers;
 
   function prankTaker(OLKey memory _olKey) internal {
     vm.prank($(takers[_olKey.hash()]));
+  }
+
+  function setGasprice(uint _gasprice) internal {
+    if (address(oracle) != address(0)) {
+      oracle.setGasPrice(_gasprice);
+    } else {
+      mgv.setGasprice(_gasprice);
+    }
   }
 
   function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
@@ -24,6 +34,9 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
 
   function setUpGeneric() public virtual {
     super.setUp();
+    oracle = new MgvOracle({governance_: $(this), initialMutator_: $(this), initialGasPrice_: options.gasprice});
+    mgv.setMonitor(address(oracle));
+    mgv.setUseOracle(true);
     fork = new GenericFork();
     fork.set(options.base.symbol, $(base));
     fork.set(options.quote.symbol, $(quote));
@@ -38,6 +51,9 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
     options.gasbase = 200_000;
     options.defaultFee = 30;
     mgv = setupMangrove();
+    oracle = new MgvOracle({governance_: $(this), initialMutator_: $(this), initialGasPrice_: options.gasprice});
+    mgv.setMonitor(address(oracle));
+    mgv.setUseOracle(true);
     reader = new MgvReader($(mgv));
     description = "polygon - gasreq";
   }

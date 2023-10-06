@@ -75,48 +75,36 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
 
   function test_gasbase_to_empty_book_base_quote_success() public {
     gasbase_to_empty_book(olKey, false);
-    description =
-      string.concat(description, " - Case: base/quote gasbase for taking single offer to empty book (success)");
-    printDescription();
+    printDescription(" - Case: base/quote gasbase for taking single offer to empty book (success)");
   }
 
   function test_gasbase_to_empty_book_base_quote_failure() public {
     gasbase_to_empty_book(olKey, true);
-    description =
-      string.concat(description, " - Case: base/quote gasbase for taking single offer to empty book (failure)");
-    printDescription();
+    printDescription(" - Case: base/quote gasbase for taking single offer to empty book (failure)");
   }
 
   function test_gasbase_to_empty_book_quote_base_success() public {
     gasbase_to_empty_book(lo, false);
-    description =
-      string.concat(description, " - Case: quote/base gasbase for taking single offer to empty book (success)");
-    printDescription();
+    printDescription(" - Case: quote/base gasbase for taking single offer to empty book (success)");
   }
 
   function test_gasbase_to_empty_book_quote_base_failure() public {
     gasbase_to_empty_book(lo, true);
-    description =
-      string.concat(description, " - Case: quote/base gasbase for taking single offer to empty book (failure)");
-    printDescription();
+    printDescription(" - Case: quote/base gasbase for taking single offer to empty book (failure)");
   }
 
   function test_posthook_fail_delta_deep_order_base_quote() public {
     gasDeltaTest.posthook_delta_deep_order(olKey);
-    description = string.concat(
-      description,
+    printDescription(
       " - Case: quote/base posthook fail with failing posthook (worst case) delta for taking deep order - cost for 1 successful and 19 failing offers"
     );
-    printDescription();
   }
 
   function test_posthook_fail_delta_deep_order_quote_base() public {
     gasDeltaTest.posthook_delta_deep_order(lo);
-    description = string.concat(
-      description,
+    printDescription(
       " - Case: quote/base posthook fail with failing posthook (worst case) delta for taking deep order - cost for 1 successful and 19 failing offers"
     );
-    printDescription();
   }
 
   function test_gasbase_transfers_estimate() public {
@@ -124,7 +112,6 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
     uint inbound_gas = measureTransferGas($(quote));
     uint gasbase = 2 * (outbound_gas + inbound_gas);
     console.log("Gas used: %s", gasbase);
-    description = string.concat(description, " - Case: ActivateSemibook transfers estimate");
-    printDescription();
+    printDescription(" - Case: ActivateSemibook transfers estimate");
   }
 }

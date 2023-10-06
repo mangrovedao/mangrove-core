@@ -46,8 +46,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     mgv.marketOrderByTick(_olKey, _olKey.tick(MIDDLE_BIN), 1, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
-    description = string.concat(description, " - Case: market order partial");
-    printDescription();
+    printDescription(" - Case: market order partial");
   }
 
   function test_market_order_partial_fillwants() public {
@@ -57,8 +56,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     mgv.marketOrderByTick(_olKey, _olKey.tick(MIDDLE_BIN), 1, true);
     gas_();
     assertEq(0, mgv.best(_olKey));
-    description = string.concat(description, " - Case: market order partial with fillwants=true");
-    printDescription();
+    printDescription(" - Case: market order partial with fillwants=true");
   }
 
   function test_market_order_by_tick_full() public {
@@ -68,8 +66,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     mgv.marketOrderByTick(_olKey, _olKey.tick(MIDDLE_BIN), 0.00001 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
-    description = string.concat(description, " - Case: market order by log price full fill");
-    printDescription();
+    printDescription(" - Case: market order by log price full fill");
   }
 
   function test_market_order_by_volume_full() public {
@@ -81,8 +78,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     mgv.marketOrderByVolume(_olKey, takerWants, takerGives, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
-    description = string.concat(description, " - Case: market order by volume full fill");
-    printDescription();
+    printDescription(" - Case: market order by volume full fill");
   }
 
   function test_market_order_by_ratio_full() public {
@@ -92,8 +88,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     mgv.marketOrderByTick(_olKey, olKey.tick(MIDDLE_BIN), 0.00001 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
-    description = string.concat(description, " - Case: market order by tick full fill");
-    printDescription();
+    printDescription(" - Case: market order by tick full fill");
   }
 }
 

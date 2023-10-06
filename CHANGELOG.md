@@ -1,5 +1,8 @@
 # Next version
 
+- New remappings (e.g., "@mgv/src" instead of "mgv-src")
+- Expose gas-measurement
+
 # 1.5.11-0
 
 - New tick-based API with constant-gas insert and update of offers (the volume-based API is still available)

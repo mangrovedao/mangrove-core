@@ -37,7 +37,11 @@ abstract contract GasTestBaseStored {
   function getStored() internal view virtual returns (IMangrove, TestTaker, OLKey memory, uint);
 
   function printDescription() public virtual {
-    console.log("Description: %s", description);
+    printDescription("");
+  }
+
+  function printDescription(string memory postfix) public virtual {
+    console.log("Description: %s", string.concat(description, postfix));
   }
 
   function newOfferOnAllTestRatios() public virtual {

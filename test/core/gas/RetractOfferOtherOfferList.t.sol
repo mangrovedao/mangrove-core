@@ -39,8 +39,7 @@ contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestB
     _gas();
     mgv.retractOffer(_olKey, offerId, true);
     gas_();
-    description = string.concat(description, " - deprovision");
-    printDescription();
+    printDescription(" - deprovision");
   }
 
   function test_retract_offer_keep_provision() public {
@@ -48,8 +47,7 @@ contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestB
     _gas();
     mgv.retractOffer(_olKey, offerId, false);
     gas_();
-    description = string.concat(description, " - keep provision");
-    printDescription();
+    printDescription(" - keep provision");
   }
 }
 

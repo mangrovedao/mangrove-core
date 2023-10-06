@@ -35,69 +35,58 @@ abstract contract TickTreeBoundariesGasTest is GasTestBaseStored {
 
   function test_ExistingBin() public {
     testBin(MIDDLE_BIN);
-    description = string.concat(description, " - Case: Existing bin");
-    printDescription();
+    printDescription(" - Case: Existing bin");
   }
 
   function test_ExistingLeafLowerBin() public {
     testBin(LEAF_LOWER_BIN);
-    description = string.concat(description, " - Case: Existing leaf lower bin");
-    printDescription();
+    printDescription(" - Case: Existing leaf lower bin");
   }
 
   function test_ExistingLeafHigherBin() public {
     console.log("MIDDLE", toString(MIDDLE_BIN));
     console.log("LEAF HIGHER", toString(LEAF_HIGHER_BIN));
     testBin(LEAF_HIGHER_BIN);
-    description = string.concat(description, " - Case: Existing leaf higher bin");
-    printDescription();
+    printDescription(" - Case: Existing leaf higher bin");
   }
 
   function test_NewLevel3HigherBin() public {
     testBin(LEVEL3_HIGHER_BIN);
-    description = string.concat(description, " - Case: New level3 higher bin");
-    printDescription();
+    printDescription(" - Case: New level3 higher bin");
   }
 
   function test_NewLevel3LowerBin() public {
     testBin(LEVEL3_LOWER_BIN);
-    description = string.concat(description, " - Case: New level3 lower bin");
-    printDescription();
+    printDescription(" - Case: New level3 lower bin");
   }
 
   function test_NewLevel2HigherBin() public {
     testBin(LEVEL2_HIGHER_BIN);
-    description = string.concat(description, " - Case: New level 2 higher bin");
-    printDescription();
+    printDescription(" - Case: New level 2 higher bin");
   }
 
   function test_NewLevel2LowerBin() public {
     testBin(LEVEL2_LOWER_BIN);
-    description = string.concat(description, " - Case: New level 2 lower bin");
-    printDescription();
+    printDescription(" - Case: New level 2 lower bin");
   }
 
   function test_NewLevel1HigherBin() public {
     testBin(LEVEL1_HIGHER_BIN);
-    description = string.concat(description, " - Case: New level 1 higher bin");
-    printDescription();
+    printDescription(" - Case: New level 1 higher bin");
   }
 
   function test_NewLevel1LowerBin() public {
     testBin(LEVEL1_LOWER_BIN);
-    description = string.concat(description, " - Case: New level 1 lower bin");
-    printDescription();
+    printDescription(" - Case: New level 1 lower bin");
   }
 
   function test_NewRootHigherBin() public {
     testBin(ROOT_HIGHER_BIN);
-    description = string.concat(description, " - Case: New root higher bin");
-    printDescription();
+    printDescription(" - Case: New root higher bin");
   }
 
   function test_NewRootLowerBin() public {
     testBin(ROOT_LOWER_BIN);
-    description = string.concat(description, " - Case: New root lower bin");
-    printDescription();
+    printDescription(" - Case: New root lower bin");
   }
 }

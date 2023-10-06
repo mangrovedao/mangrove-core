@@ -40,6 +40,11 @@ abstract contract GasTestBaseStored {
     console.log("Description: %s", description);
   }
 
+  function printDescription(string memory postfix) public virtual {
+    description = string.concat(description, postfix);
+    printDescription();
+  }
+
   function newOfferOnAllTestRatios() public virtual {
     this.newOfferOnAllLowerThanMiddleTestRatios();
     // MIDDLE_BIN is often controlled in tests so leaving it out. mgv.newOfferByTick(_olKey, MIDDLE_BIN, 1 ether, 1_000_000, 0);

@@ -49,8 +49,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
     _gas();
     mgv.updateOfferByTick(_olKey, olKey.tick(LEVEL2_HIGHER_BIN), 0.00001 ether, 100_000, 0, offerId);
     gas_();
-    description = string.concat(description, " - Case: same gasreq");
-    printDescription();
+    printDescription(" - Case: same gasreq");
   }
 
   function test_live_far_away_higher_gasreq() public {
@@ -58,8 +57,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
     _gas();
     mgv.updateOfferByTick(_olKey, olKey.tick(LEVEL2_HIGHER_BIN), 0.00001 ether, 1_000_000, 0, offerId);
     gas_();
-    description = string.concat(description, " - Case: higher gasreq");
-    printDescription();
+    printDescription(" - Case: higher gasreq");
   }
 
   function test_live_far_away_lower_gasreq() public {
@@ -67,7 +65,6 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
     _gas();
     mgv.updateOfferByTick(_olKey, olKey.tick(LEVEL2_HIGHER_BIN), 0.00001 ether, 10_000, 0, offerId);
     gas_();
-    description = string.concat(description, " - Case: lower gasreq");
-    printDescription();
+    printDescription(" - Case: lower gasreq");
   }
 }

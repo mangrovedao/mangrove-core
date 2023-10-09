@@ -9,6 +9,7 @@ import {OLKey} from "@mgv/src/core/MgvLib.sol";
 import {TestToken} from "@mgv/test/lib/tokens/TestToken.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
 import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
+import {console2} from "@mgv/forge-std/console2.sol";
 
 ///@notice base class for creating tests of gasreq for contracts. Probe the `this.getMeasuredGasused` for measured gasreq.
 abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
@@ -86,5 +87,10 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
     takerOl.approveMgv(quote, type(uint).max);
     deal($(quote), $(takerOl), 200000 ether);
     takers[olKey.hash()] = takerOl;
+  }
+
+  /// @notice output the measured gasused for a given posthook in format collectable by gas-measurement.
+  function logGasreqAsGasUsed(uint posthookIndex) internal view {
+    console2.log("Gas used: %s", getMeasuredGasused(posthookIndex));
   }
 }

@@ -733,6 +733,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Maker Posthook */
   function makerPosthook(MgvLib.SingleOrder memory sor, uint gasLeft, bytes32 makerData, bytes32 mgvData)
     internal
+    virtual
     returns (uint gasused, bool callSuccess, bytes32 posthookData)
   {
     unchecked {

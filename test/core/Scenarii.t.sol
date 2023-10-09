@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "@mgv/test/lib/MangroveTest.sol";
-import "@mgv/src/core/MgvLib.sol";
+import {TestMoriartyMaker} from "@mgv/test/lib/agents/TestMoriartyMaker.sol";
 
 contract ScenariiTest is MangroveTest {
   TestTaker taker;

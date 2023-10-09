@@ -12,6 +12,7 @@ import {TransferLib} from "@mgv/lib/TransferLib.sol";
 import {Mangrove} from "@mgv/src/core/Mangrove.sol";
 import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
 import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {MangroveMeasureGasused} from "@mgv/test/lib/gas/MangroveMeasureGasused.sol";
 import "@mgv/src/core/MgvLib.sol";
 
 /* *************************************************************** 
@@ -42,6 +43,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint gasbase;
     uint gasmax;
     uint density96X32;
+    bool measureGasusedMangrove;
   }
 
   IMangrove internal mgv;
@@ -60,7 +62,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
     density96X32: 2 ** 32,
-    gasmax: 2_000_000
+    gasmax: 2_000_000,
+    measureGasusedMangrove: false
   });
 
   constructor() {
@@ -185,15 +188,29 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // Deploy mangrove
   function setupMangrove() public returns (IMangrove _mgv) {
-    _mgv = IMangrove(
-      $(
-        new Mangrove({
-        governance: $(this),
-        gasprice: options.gasprice,
-        gasmax: options.gasmax
-        })
-      )
-    );
+    if (options.measureGasusedMangrove) {
+      _mgv = IMangrove(
+        $(
+          new MangroveMeasureGasused({
+          governance: $(this),
+          gasprice: options.gasprice,
+          gasmax: options.gasmax
+          })
+        )
+      );
+    } else {
+      _mgv = IMangrove(
+        payable(
+          address(
+            new Mangrove({
+            governance: $(this),
+            gasprice: options.gasprice,
+            gasmax: options.gasmax
+            })
+          )
+        )
+      );
+    }
     vm.label($(_mgv), "Mangrove");
   }
 
@@ -238,6 +255,18 @@ contract MangroveTest is Test2, HasMgvEvents {
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;
+  }
+
+  function getMangroveMeasureGasused() public view returns (MangroveMeasureGasused) {
+    require(options.measureGasusedMangrove, "measureGasusedMangrove-not-set");
+    return MangroveMeasureGasused($(mgv));
+  }
+
+  /// @notice Returns measurement of gasreq for the nth posthook invocation.
+  /// @param posthookIndex the index of the posthook invocation to get measurement for
+  /// @return the measurement.
+  function getMeasuredGasused(uint posthookIndex) public view returns (uint) {
+    return getMangroveMeasureGasused().totalGasUsed(posthookIndex);
   }
 
   function mockCompleteFillBuyOrder(uint takerWants, Tick tick) public view returns (MgvLib.SingleOrder memory sor) {

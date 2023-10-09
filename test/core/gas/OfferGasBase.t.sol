@@ -10,6 +10,18 @@ contract OfferGasBaseTest_Generic_A_B is OfferGasBaseBaseTest {
   }
 }
 
+contract OfferGasBaseGasreqMeasuringTest_Generic_A_B is OfferGasBaseBaseTest {
+  function setUpOptions() internal virtual override {
+    super.setUpOptions();
+    options.measureGasusedMangrove = true;
+  }
+
+  function setUp() public override {
+    super.setUpGeneric();
+    this.setUpTokens(options.base.symbol, options.quote.symbol);
+  }
+}
+
 contract OfferGasBaseTest_Polygon_WETH_DAI is OfferGasBaseBaseTest {
   function setUp() public override {
     super.setUpPolygon();

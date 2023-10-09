@@ -14,6 +14,12 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
   OfferPosthookFailGasDeltaTest internal gasDeltaTest;
   uint internal offerGivesOl;
   uint internal offerGivesLo;
+  uint internal immutable MIN_GASREQ = 3;
+
+  function setUpOptions() internal virtual override {
+    super.setUpOptions();
+    options.measureGasusedMangrove = false;
+  }
 
   function setUpOfferGasBaseBaseTest() internal virtual {
     gasDeltaTest = new OfferPosthookFailGasDeltaTest();
@@ -44,8 +50,8 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
     deal(makerBase, 1000 ether);
     deal(makerQuote, 1000 ether);
     // Make offers 2 times minimum, but only approve minimum, thus allow for failure to deliver
-    offerGivesOl = 2 * reader.minVolume(olKey, 100000);
-    offerGivesLo = 2 * reader.minVolume(lo, 100000);
+    offerGivesOl = 2 * reader.minVolume(olKey, MIN_GASREQ);
+    offerGivesLo = 2 * reader.minVolume(lo, MIN_GASREQ);
 
     vm.prank(makerBase);
     mgv.fund{value: 10 ether}();
@@ -56,9 +62,9 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
     vm.prank(makerQuote);
     TransferLib.approveToken(quote, $(mgv), offerGivesLo / 2);
     vm.prank(makerBase);
-    mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), offerGivesOl, 100000, 0);
+    mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), offerGivesOl, MIN_GASREQ, 0);
     vm.prank(makerQuote);
-    mgv.newOfferByTick(lo, lo.tick(MIDDLE_BIN), offerGivesLo, 100000, 0);
+    mgv.newOfferByTick(lo, lo.tick(MIDDLE_BIN), offerGivesLo, MIN_GASREQ, 0);
   }
 
   function gasbase_to_empty_book(OLKey memory _olKey, bool failure) internal {
@@ -71,6 +77,10 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
 
     assertEq(takerGot + fee == 0, failure, "taker should get some of the offer if not failure");
     assertEq(mgv.best(_olKey), 0, "book should be empty");
+    if (options.measureGasusedMangrove) {
+      // It is ~3000 without optimizations for a minimum gasreq offer
+      assertGt(getMeasuredGasused(0), 0, "gasused should be measured");
+    }
   }
 
   function test_gasbase_to_empty_book_base_quote_success() public {

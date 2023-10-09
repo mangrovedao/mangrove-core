@@ -10,7 +10,7 @@ import {TestToken} from "@mgv/test/lib/tokens/TestToken.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
 import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
 
-///@notice base class for creating tests of gasreq for contracts. Compare results to implementors of OfferGasBaseBaseTest.
+///@notice base class for creating tests of gasreq for contracts. Probe the `this.getMeasuredGasused` for measured gasreq.
 abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
   GenericFork internal fork;
   MgvOracle internal oracle;
@@ -28,11 +28,16 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
     }
   }
 
+  function setUpOptions() internal virtual {
+    options.measureGasusedMangrove = true;
+  }
+
   function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
     return (mgv, takers[olKey.hash()], olKey, 0);
   }
 
   function setUpGeneric() public virtual {
+    setUpOptions();
     super.setUp();
     oracle = new MgvOracle({governance_: $(this), initialMutator_: $(this), initialGasPrice_: options.gasprice});
     mgv.setMonitor(address(oracle));
@@ -44,6 +49,7 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
   }
 
   function setUpPolygon() public virtual {
+    setUpOptions();
     super.setUp();
     fork = new PinnedPolygonFork(39880000);
     fork.setUp();

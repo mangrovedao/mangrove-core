@@ -1,5 +1,7 @@
 # Next version
 
+- Introduce MangroveMeasureGasused for gasreq measurement in tests.
+
 # 1.5.11-1
 
 - New remappings (e.g., "@mgv/src" instead of "mgv-src")

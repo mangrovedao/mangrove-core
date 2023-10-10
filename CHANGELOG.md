@@ -1,5 +1,7 @@
 # Next version
 
+# 1.5.11-1
+
 - New remappings (e.g., "@mgv/src" instead of "mgv-src")
 - Expose gas-measurement
 

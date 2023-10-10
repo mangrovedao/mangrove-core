@@ -1,5 +1,7 @@
 # Next version
 
+# 1.5.11-2
+
 - Introduce MangroveMeasureGasused for gasreq measurement in tests.
 
 # 1.5.11-1

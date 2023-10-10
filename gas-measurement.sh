@@ -33,7 +33,7 @@ function compare_gas_measurement_json() {
   local json_file_new=$2
   local json_file_diff=$3
 
-  jq -s 'flatten | group_by(.fileAndContract + .test) | map({fileAndContract: .[0].fileAndContract, test: .[0].test, description: .[0].description, gas_before: .[0].gas, gas_after: .[1].gas, gas_delta: (.[1].gas - .[0].gas)})' \
+  jq -s 'flatten | group_by(.fileAndContract + .test) | map({fileAndContract: .[0].fileAndContract, test: .[0].test, description: .[0].description, gas_before: .[0].gas, gas_after: .[1].gas, gas_delta: (if .[0].gas != null and .[1].gas != null then .[1].gas - .[0].gas else null end)})' \
     <(jq '. | map({fileAndContract: .fileAndContract, test: .test, gas: .gas, description: .description, source: "before"})' "${json_file_old}") \
     <(jq '. | map({fileAndContract: .fileAndContract, test: .test, gas: .gas, description: .description, source: "after"})' "${json_file_new}") \
     > "${json_file_diff}"

@@ -8,14 +8,29 @@ import {GenericFork} from "@mgv/test/lib/forks/Generic.sol";
 import {OLKey} from "@mgv/src/core/MgvLib.sol";
 import {TestToken} from "@mgv/test/lib/tokens/TestToken.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
+import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
+import {console2} from "@mgv/forge-std/console2.sol";
 
-///@notice base class for creating tests of gasreq for contracts. Compare results to implementors of OfferGasBaseBaseTest.
+///@notice base class for creating tests of gasreq for contracts. Probe the `this.getMeasuredGasused` for measured gasreq.
 abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
   GenericFork internal fork;
+  MgvOracle internal oracle;
   mapping(bytes32 => TestTaker) internal takers;
 
   function prankTaker(OLKey memory _olKey) internal {
     vm.prank($(takers[_olKey.hash()]));
+  }
+
+  function setGasprice(uint _gasprice) internal {
+    if (address(oracle) != address(0)) {
+      oracle.setGasPrice(_gasprice);
+    } else {
+      mgv.setGasprice(_gasprice);
+    }
+  }
+
+  function setUpOptions() internal virtual {
+    options.measureGasusedMangrove = true;
   }
 
   function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
@@ -23,7 +38,11 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
   }
 
   function setUpGeneric() public virtual {
+    setUpOptions();
     super.setUp();
+    oracle = new MgvOracle({governance_: $(this), initialMutator_: $(this), initialGasPrice_: options.gasprice});
+    mgv.setMonitor(address(oracle));
+    mgv.setUseOracle(true);
     fork = new GenericFork();
     fork.set(options.base.symbol, $(base));
     fork.set(options.quote.symbol, $(quote));
@@ -31,6 +50,7 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
   }
 
   function setUpPolygon() public virtual {
+    setUpOptions();
     super.setUp();
     fork = new PinnedPolygonFork(39880000);
     fork.setUp();
@@ -38,6 +58,9 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
     options.gasbase = 200_000;
     options.defaultFee = 30;
     mgv = setupMangrove();
+    oracle = new MgvOracle({governance_: $(this), initialMutator_: $(this), initialGasPrice_: options.gasprice});
+    mgv.setMonitor(address(oracle));
+    mgv.setUseOracle(true);
     reader = new MgvReader($(mgv));
     description = "polygon - gasreq";
   }
@@ -64,5 +87,10 @@ abstract contract OfferGasReqBaseTest is MangroveTest, GasTestBaseStored {
     takerOl.approveMgv(quote, type(uint).max);
     deal($(quote), $(takerOl), 200000 ether);
     takers[olKey.hash()] = takerOl;
+  }
+
+  /// @notice output the measured gasused for a given posthook in format collectable by gas-measurement.
+  function logGasreqAsGasUsed(uint posthookIndex) internal view {
+    console2.log("Gas used: %s", getMeasuredGasused(posthookIndex));
   }
 }

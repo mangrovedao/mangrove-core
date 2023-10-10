@@ -2,11 +2,8 @@
 pragma solidity ^0.8.10;
 
 import "@mgv/src/core/MgvLib.sol";
-
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickTreeLib} from "@mgv/lib/core/TickTreeLib.sol";
-import "@mgv/src/core/MgvLib.sol";
-import "@mgv/lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   // Since DOMAIN_SEPARATOR is immutable, it cannot use MgvAppendix to provide an accessor (because the value will come from code, not from storage), so we generate the accessor here.

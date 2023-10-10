@@ -5,7 +5,7 @@ import {console} from "@mgv/test/lib/MangroveTest.sol";
 import {IMangrove} from "@mgv/src/IMangrove.sol";
 import {TransferLib} from "@mgv/lib/TransferLib.sol";
 import {OLKey} from "@mgv/src/core/MgvLib.sol";
-import {MIDDLE_BIN} from "@mgv/test/lib/gas/GasTestBase.t.sol";
+import {MIDDLE_BIN, ROOT_HIGHER_BIN} from "@mgv/test/lib/gas/GasTestBase.t.sol";
 import {OfferPosthookFailGasDeltaTest} from "./OfferPosthookFailGasDelta.t.sol";
 import {OfferGasReqBaseTest} from "@mgv/test/lib/gas/OfferGasReqBase.t.sol";
 
@@ -63,11 +63,16 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
     TransferLib.approveToken(quote, $(mgv), offerGivesLo / 2);
     vm.prank(makerBase);
     mgv.newOfferByTick(olKey, olKey.tick(MIDDLE_BIN), offerGivesOl, MIN_GASREQ, 0);
+    vm.prank(makerBase);
+    mgv.newOfferByTick(olKey, olKey.tick(ROOT_HIGHER_BIN), offerGivesOl, MIN_GASREQ, 0);
     vm.prank(makerQuote);
     mgv.newOfferByTick(lo, lo.tick(MIDDLE_BIN), offerGivesLo, MIN_GASREQ, 0);
+    vm.prank(makerQuote);
+    mgv.newOfferByTick(lo, lo.tick(ROOT_HIGHER_BIN), offerGivesLo, MIN_GASREQ, 0);
   }
 
-  function gasbase_to_empty_book(OLKey memory _olKey, bool failure) internal {
+  ///@notice expected worst case gasbase - having to update structures for a more expensive offer, emptying bin, cold transfers, 0 amount in receiving wallets.
+  function gasbase_to_empty_bin(OLKey memory _olKey, bool failure) internal {
     uint volume = failure ? type(uint96).max : 1;
     (IMangrove _mgv,,,) = getStored();
     prankTaker(_olKey);
@@ -76,31 +81,31 @@ abstract contract OfferGasBaseBaseTest is OfferGasReqBaseTest {
     gas_();
 
     assertEq(takerGot + fee == 0, failure, "taker should get some of the offer if not failure");
-    assertEq(mgv.best(_olKey), 0, "book should be empty");
+    assertNotEq(mgv.best(_olKey), 0, "more expensive offer should be left behind");
     if (options.measureGasusedMangrove) {
       // It is ~3000 without optimizations for a minimum gasreq offer
       assertGt(getMeasuredGasused(0), 0, "gasused should be measured");
     }
   }
 
-  function test_gasbase_to_empty_book_base_quote_success() public {
-    gasbase_to_empty_book(olKey, false);
-    printDescription(" - Case: base/quote gasbase for taking single offer to empty book (success)");
+  function test_gasbase_to_empty_bin_base_quote_success() public {
+    gasbase_to_empty_bin(olKey, false);
+    printDescription(" - Case: base/quote gasbase for taking single offer to empty bin (success)");
   }
 
-  function test_gasbase_to_empty_book_base_quote_failure() public {
-    gasbase_to_empty_book(olKey, true);
-    printDescription(" - Case: base/quote gasbase for taking single offer to empty book (failure)");
+  function test_gasbase_to_empty_bin_base_quote_failure() public {
+    gasbase_to_empty_bin(olKey, true);
+    printDescription(" - Case: base/quote gasbase for taking single offer to empty bin (failure)");
   }
 
-  function test_gasbase_to_empty_book_quote_base_success() public {
-    gasbase_to_empty_book(lo, false);
-    printDescription(" - Case: quote/base gasbase for taking single offer to empty book (success)");
+  function test_gasbase_to_empty_bin_quote_base_success() public {
+    gasbase_to_empty_bin(lo, false);
+    printDescription(" - Case: quote/base gasbase for taking single offer to empty bin (success)");
   }
 
-  function test_gasbase_to_empty_book_quote_base_failure() public {
-    gasbase_to_empty_book(lo, true);
-    printDescription(" - Case: quote/base gasbase for taking single offer to empty book (failure)");
+  function test_gasbase_to_empty_bin_quote_base_failure() public {
+    gasbase_to_empty_bin(lo, true);
+    printDescription(" - Case: quote/base gasbase for taking single offer to empty bin (failure)");
   }
 
   function test_posthook_fail_delta_deep_order_base_quote() public {

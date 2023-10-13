@@ -10,7 +10,7 @@ ${preamble}
 
 // Debugging utilities
 address constant VM_ADDRESS = address(uint160(uint(keccak256("hevm cheat code"))));
-import {Vm} from "forge-std/Vm.sol";
+import {Vm} from "@mgv/forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types

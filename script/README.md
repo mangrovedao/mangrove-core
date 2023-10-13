@@ -12,7 +12,7 @@ pragma solidity ^0.8.13;
 import {Mangrove} from "@mgv/src/core/Mangrove.sol";
 import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
 import {Deployer} from "@mgv/script/lib/Deployer.sol";
-import "forge-std/console.sol";
+import "@mgv/forge-std/console.sol";
 
 contract SmallMgvReaderDeployer is Deployer {
   TestToken public myToken;

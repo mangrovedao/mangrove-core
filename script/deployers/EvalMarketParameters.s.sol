@@ -25,10 +25,8 @@ import {console} from "forge-std/console.sol";
  */
 
 contract EvalMarketParameters is Deployer, ActivateUtils {
-  uint nativePrice;
-
   function run() public {
-    nativePrice = vm.envUint("NATIVE_IN_USD");
+    uint nativePrice = vm.envUint("NATIVE_IN_USD");
     uint gaspriceOverride = vm.envUint("GASPRICE_OVERRIDE");
     IERC20 token0 = IERC20(envAddressOrName("TOKEN0"));
     IERC20 token1 = IERC20(envAddressOrName("TOKEN1"));
@@ -36,21 +34,38 @@ contract EvalMarketParameters is Deployer, ActivateUtils {
     uint price1 = vm.envUint("TOKEN1_IN_USD");
     uint coverFactor = vm.envUint("COVER_FACTOR");
 
-    innerRun(token0, token1, price0, price1, gaspriceOverride, coverFactor);
+    innerRun({
+      token0: token0,
+      token1: token1,
+      price0: price0,
+      price1: price1,
+      gaspriceOverride: gaspriceOverride,
+      coverFactor: coverFactor,
+      nativePrice: nativePrice
+    });
   }
 
-  function toGweiOfNative(uint price) internal view returns (uint) {
+  ///@notice converts a price (in native token) to Gwei of USD
+  ///@param nativePrice price of a native token in USD (with n precision decimals)
+  ///@param price is the price of a token in native token (with n precision decimals)
+  function toGweiOfNative(uint nativePrice, uint price) internal view returns (uint) {
     return (price * 10 ** 9) / nativePrice;
   }
 
-  function innerRun(IERC20 token0, IERC20 token1, uint price0, uint price1, uint gaspriceOverride, uint coverFactor)
-    public
-  {
+  function innerRun(
+    IERC20 token0,
+    IERC20 token1,
+    uint price0,
+    uint price1,
+    uint gaspriceOverride,
+    uint coverFactor,
+    uint nativePrice
+  ) public {
     uint gasbase = evaluateGasbase(token0, token1);
     console.log("gasbase:", gasbase);
-    uint density0 = evaluateDensity(token0, coverFactor, gaspriceOverride, toGweiOfNative(price0));
+    uint density0 = evaluateDensity(token0, coverFactor, gaspriceOverride, toGweiOfNative(nativePrice, price0));
     console.log("density for outbound %s: %d", token0.symbol(), density0);
-    uint density1 = evaluateDensity(token1, coverFactor, gaspriceOverride, toGweiOfNative(price1));
+    uint density1 = evaluateDensity(token1, coverFactor, gaspriceOverride, toGweiOfNative(nativePrice, price1));
     console.log("density for outbound %s: %d", token1.symbol(), density1);
   }
 }

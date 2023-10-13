@@ -15,6 +15,35 @@ The goal of Mangrove v2 is constant-time offer insertion & update.
 
 **How we get it**: by structuring offers in a fixed-height tree, with 'bins' at the leafs. Each bin is a doubly linked list. When an offer is inserted or moved, it gets appended at the end of the appropriate bin. Equally-priced offers are no longer sorted by their density (the density of an offer is the amount of tokens they promise per unit of gas they consume).
 
+Contract inheritance:
+
+```
+                                   HasMgvEvents
+                                        │
+                                        │
+                                        │
+                                    MgvCommon
+                                        │
+                       ┌────────────────┴──────────┐
+                       │                           │
+                 MgvHasOffers                      │
+                       │                           │
+           ┌───────────┴──────────┐                │
+           │                      │                │
+    MgvOfferTaking         MgvOfferMaking          │
+           │                      │                │
+           │                      │                │
+MgvOfferTakingWithPermit          │                │
+           │                      │                │
+           └───────────┬──────────┘                │
+                       │                           │
+                       │                           │
+                AbstractMangrove                   │
+                       │                           │
+                       ▼                           ▼
+                    Mangrove                  MgvAppendix
+```
+
 Overview of the changes between v1 and v2:
 
 ## Prices are discrete and granularity is configurable
@@ -39,6 +68,14 @@ To make the transition easy, the volume-based API for market orders, offer inser
 
 The volume-based version of the market order also interprets the price induced by `takerWants,takerGives` as a true limit price (not as a limit average price).
 
+## Market orders are limited by recursion depth and by wasted gas
+
+The `maxRecursionDepth` parameter bounds the number of offers that can be executed before the market order stop (without revert). Another parameter, `maxGasreqForFailingOffers`, bounds the sum of `gasreq` of executed failing offers. Once above that number, the market order stops (without revert).
+
+If a segment of bad offers is low-gas but long enough to overflow the EVM stack, any market order would revert and leave the bad offers in place. If a segment of bad offers consumes more gas than the block gas limit, any market order would revert and leave the bad offers in place.
+
+The recursion and gas for failing offer parameters, if well-configured, prevent multiple failing offers from clogging the order book indefinitely.
+
 ## Several parameter sizes have changed
 
 ### Density is stored as a float and presented as a fixed-point number
@@ -55,7 +92,7 @@ The unit is no longer gas but kilogas, and it fits on 9 bits (formerly 24 bits).
 
 ### `gasprice` is now in Mwei
 
-The unit is no longer gwei but gwei, and it fits on 26 bits (formerly 16 bits).
+The unit is no longer gwei but mwei, and it fits on 26 bits (formerly 16 bits).
 
 ## Sniping has been restricted to Cleaning
 

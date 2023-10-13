@@ -1,5 +1,7 @@
 # Next version
 
+- fix: use forge-std from core
+
 # 1.5.11-2
 
 - Introduce MangroveMeasureGasused for gasreq measurement in tests.

@@ -18,5 +18,13 @@
   {
     "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     "name": "WETH"
+  },
+  {
+    "address": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    "name": "USDC"
+  },
+  {
+    "address": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+    "name": "USDT"
   }
 ]

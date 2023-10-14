@@ -1,5 +1,7 @@
 # Next version
 
+# 1.5.11
+
 - use Aave faucets on Mumbai for wbtc, dai and crv tokens
 - removes Mangrove's faucet addresses for wbtc and dai
 

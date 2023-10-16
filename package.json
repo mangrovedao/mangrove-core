@@ -41,7 +41,7 @@
     "gas-measurement.sh"
   ],
   "devDependencies": {
-    "@types/node": "^20.8.5",
+    "@types/node": "^20.8.6",
     "bn.js": "^5.2.1",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.1",

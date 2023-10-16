@@ -1,5 +1,7 @@
 # Next version
 
+# 2.0.0-3
+
 - fix: use forge-std from core
 
 # 2.0.0-2

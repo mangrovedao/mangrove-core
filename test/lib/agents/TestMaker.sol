@@ -1,10 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import "mgv_src/AbstractMangrove.sol";
-import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
-import {Test} from "forge-std/Test.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import "@mgv/src/IMangrove.sol";
+import "@mgv/src/core/MgvLib.sol";
+import {Test} from "@mgv/forge-std/Test.sol";
+import {TransferLib} from "@mgv/lib/TransferLib.sol";
 
 contract TrivialTestMaker is IMaker {
   function makerExecute(MgvLib.SingleOrder calldata) external virtual returns (bytes32) {
@@ -14,51 +14,108 @@ contract TrivialTestMaker is IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) external virtual {}
 }
 
-//TODO add posthookShouldRevert/posthookReturnData
+// could add offer-specific posthookShouldRevert/posthookReturnData here if needed
 struct OfferData {
   bool shouldRevert;
   string executeData;
 }
 
 contract SimpleTestMaker is TrivialTestMaker {
-  AbstractMangrove public mgv;
-  address public base;
-  address public quote;
-  bool shouldFail_; // will set mgv allowance to 0
-  bool shouldRevert_; // will revert
-  bool shouldRepost_; // will try to repost offer with identical parameters
+  IMangrove public mgv;
+  OLKey olKey;
+  bool _shouldFail; // will set mgv allowance to 0
+  bool _shouldRevert; // will revert
+  bool _shouldRevertOnNonZeroGives; // will revert if makerGives > 0
+  bool _shouldRepost; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
+  address tradeCallbackContract; // the `tradeCallback` will be called on this contract during makerExecute
+  bytes tradeCallback;
+  address posthookNoArgCallbackContract; // the `posthookNoArgCallback` will be called on this contract during makerPosthook with no arguments
+  bytes posthookNoArgCallback;
+  address posthookCallbackContract; // the `posthookCallbackSelector` will be called on this contract during makerPosthook
+  bytes4 posthookCallbackSelector; // this function must take two arguments of type `MgvLib.SingleOrder`
+  address executeCallbackContract; // the `executeCallbackSelector` will be called on this contract during makerExecute
+  bytes4 executeCallbackSelector; // this function must take a single argument of type `MgvLib.SingleOrder`
   ///@notice stores parameters for each posted offer
   ///@notice overrides global @shouldFail/shouldReturn if true
 
-  mapping(address => mapping(address => mapping(uint => OfferData))) offerDatas;
+  mapping(bytes32 => mapping(uint => OfferData)) offerDatas;
 
-  constructor(AbstractMangrove _mgv, IERC20 _base, IERC20 _quote) {
+  ///@notice stores whether makerExecute was called for an offer.
+  ///@notice Only usable when makerExecute does not revert
+  mapping(bytes32 => mapping(uint => bool)) offersExecuted;
+
+  ///@notice stores whether makerPosthook was called for an offer.
+  ///@notice Only usable when makerPosthook does not revert
+  mapping(bytes32 => mapping(uint => bool)) offersPosthookExecuted;
+
+  constructor(IMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
-    base = address(_base);
-    quote = address(_quote);
+    olKey = _ol;
   }
 
   receive() external payable {}
 
-  event Execute(address mgv, address base, address quote, uint offerId, uint takerWants, uint takerGives);
+  event Execute(
+    address mgv, address base, address quote, uint tickSpacing, uint offerId, uint takerWants, uint takerGives
+  );
 
-  function logExecute(address _mgv, address _base, address _quote, uint offerId, uint takerWants, uint takerGives)
+  function logExecute(address _mgv, OLKey calldata _ol, uint offerId, uint takerWants, uint takerGives) external {
+    emit Execute(_mgv, _ol.outbound_tkn, _ol.inbound_tkn, _ol.tickSpacing, offerId, takerWants, takerGives);
+  }
+
+  function makerExecuteWasCalled(uint offerId) external view returns (bool) {
+    return makerExecuteWasCalled(olKey, offerId);
+  }
+
+  function makerExecuteWasCalled(OLKey memory _olKey, uint offerId) public view returns (bool) {
+    return offersExecuted[_olKey.hash()][offerId];
+  }
+
+  function makerPosthookWasCalled(uint offerId) external view returns (bool) {
+    return makerPosthookWasCalled(olKey, offerId);
+  }
+
+  function makerPosthookWasCalled(OLKey memory _olKey, uint offerId) public view returns (bool) {
+    return offersPosthookExecuted[_olKey.hash()][offerId];
+  }
+
+  function setExecuteCallback(address _executeCallbackContract, bytes4 _executeCallbackSelector) external {
+    executeCallbackContract = _executeCallbackContract;
+    executeCallbackSelector = _executeCallbackSelector;
+  }
+
+  function setTradeCallback(address _tradeCallbackContract, bytes calldata _tradeCallback) external {
+    tradeCallbackContract = _tradeCallbackContract;
+    tradeCallback = _tradeCallback;
+  }
+
+  function setPosthookNoArgCallback(address _posthookNoArgCallbackContract, bytes calldata _posthookNoArgCallback)
     external
   {
-    emit Execute(_mgv, _base, _quote, offerId, takerWants, takerGives);
+    posthookNoArgCallbackContract = _posthookNoArgCallbackContract;
+    posthookNoArgCallback = _posthookNoArgCallback;
+  }
+
+  function setPosthookCallback(address _posthookCallbackContract, bytes4 _posthookCallbackSelector) external {
+    posthookCallbackContract = _posthookCallbackContract;
+    posthookCallbackSelector = _posthookCallbackSelector;
   }
 
   function shouldRevert(bool should) external {
-    shouldRevert_ = should;
+    _shouldRevert = should;
+  }
+
+  function shouldRevertOnNonZeroGives(bool should) external {
+    _shouldRevertOnNonZeroGives = should;
   }
 
   function shouldFail(bool should) external {
-    shouldFail_ = should;
+    _shouldFail = should;
   }
 
   function shouldRepost(bool should) external {
-    shouldRepost_ = should;
+    _shouldRepost = should;
   }
 
   function approveMgv(IERC20 token, uint amount) public {
@@ -74,21 +131,44 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function makerExecute(MgvLib.SingleOrder calldata order) public virtual override returns (bytes32) {
-    if (shouldRevert_) {
+    offersExecuted[order.olKey.hash()][order.offerId] = true;
+    if (executeCallbackContract != address(0) && executeCallbackSelector.length > 0) {
+      (bool success,) = executeCallbackContract.call(abi.encodeWithSelector(executeCallbackSelector, (order)));
+      require(success, "makerExecute executeCallback must work");
+    }
+
+    if (_shouldRevert) {
       revert("testMaker/shouldRevert");
     }
 
-    OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][order.offerId];
+    if (_shouldRevertOnNonZeroGives && order.takerGives > 0) {
+      revert("testMaker/shouldRevertOnNonZeroGives");
+    }
+
+    OfferData memory offerData = offerDatas[order.olKey.hash()][order.offerId];
 
     if (offerData.shouldRevert) {
       revert(offerData.executeData);
     }
 
-    if (shouldFail_) {
-      TransferLib.approveToken(IERC20(order.outbound_tkn), address(mgv), 0);
+    if (_shouldFail) {
+      TransferLib.approveToken(IERC20(order.olKey.outbound_tkn), address(mgv), 0);
     }
 
-    emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
+    if (tradeCallbackContract != address(0) && tradeCallback.length > 0) {
+      (bool success,) = tradeCallbackContract.call(tradeCallback);
+      require(success, "makerExecute tradeCallback must work");
+    }
+
+    emit Execute(
+      msg.sender,
+      order.olKey.outbound_tkn,
+      order.olKey.inbound_tkn,
+      order.olKey.tickSpacing,
+      order.offerId,
+      order.takerWants,
+      order.takerGives
+    );
 
     return bytes32(bytes(offerData.executeData));
   }
@@ -100,173 +180,236 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) public virtual override {
+    offersPosthookExecuted[order.olKey.hash()][order.offerId] = true;
     order; //shh
     result; //shh
     if (_shouldFailHook) {
       revert("posthookFail");
     }
 
-    if (shouldRepost_) {
-      mgv.updateOffer(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offer.wants(),
-        order.offer.gives(),
-        order.offerDetail.gasreq(),
-        0,
-        order.offer.prev(),
-        order.offerId
+    if (posthookCallbackContract != address(0) && posthookCallbackSelector.length > 0) {
+      (bool success,) = posthookCallbackContract.call(abi.encodeWithSelector(posthookCallbackSelector, (order)));
+      require(success, "makerPosthook posthookCallback must work");
+    }
+
+    if (posthookNoArgCallbackContract != address(0) && posthookNoArgCallback.length > 0) {
+      (bool success,) = posthookNoArgCallbackContract.call(posthookNoArgCallback);
+      require(success, "makerPosthook posthookNoArgCallback must work");
+    }
+
+    if (_shouldRepost) {
+      mgv.updateOfferByVolume(
+        order.olKey, order.offer.wants(), order.offer.gives(), order.offerDetail.gasreq(), 0, order.offerId
       );
     }
   }
 
-  function newOffer(uint wants, uint gives, uint gasreq, uint pivotId) public returns (uint) {
-    return newOffer(base, quote, wants, gives, gasreq, pivotId);
+  function newOfferByVolume(uint wants, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByVolume(olKey, wants, gives, gasreq);
   }
 
-  function newOffer(uint wants, uint gives, uint gasreq, uint pivotId, OfferData memory offerData)
+  function newOfferByVolume(uint wants, uint gives, uint gasreq, OfferData memory offerData) public returns (uint) {
+    return newOfferByVolume(olKey, wants, gives, gasreq, offerData);
+  }
+
+  function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint amount) public returns (uint) {
+    return newOfferByVolumeWithFunding(olKey, wants, gives, gasreq, 0, amount);
+  }
+
+  function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint amount, OfferData memory offerData)
     public
     returns (uint)
   {
-    return newOffer(base, quote, wants, gives, gasreq, pivotId, offerData);
+    return newOfferByVolumeWithFunding(olKey, wants, gives, gasreq, 0, amount, offerData);
   }
 
-  function newOfferWithFunding(uint wants, uint gives, uint gasreq, uint pivotId, uint amount) public returns (uint) {
-    return newOfferWithFunding(base, quote, wants, gives, gasreq, 0, pivotId, amount);
-  }
-
-  function newOfferWithFunding(
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint pivotId,
-    uint amount,
-    OfferData memory offerData
-  ) public returns (uint) {
-    return newOfferWithFunding(base, quote, wants, gives, gasreq, 0, pivotId, amount, offerData);
-  }
-
-  function newOfferWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint pivotId, uint amount)
+  function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint amount)
     public
     returns (uint)
   {
-    return newOfferWithFunding(base, quote, wants, gives, gasreq, gasprice, pivotId, amount);
+    return newOfferByVolumeWithFunding(olKey, wants, gives, gasreq, gasprice, amount);
   }
 
-  function newOffer(address _base, address _quote, uint wants, uint gives, uint gasreq, uint pivotId)
-    public
-    returns (uint)
-  {
+  function newOfferByVolume(OLKey memory _ol, uint wants, uint gives, uint gasreq) public returns (uint) {
     OfferData memory offerData;
-    return newOffer(_base, _quote, wants, gives, gasreq, pivotId, offerData);
+    return newOfferByVolume(_ol, wants, gives, gasreq, offerData);
   }
 
-  function newOffer(
-    address _base,
-    address _quote,
+  function newOfferByVolume(OLKey memory _ol, uint wants, uint gives, uint gasreq, OfferData memory offerData)
+    public
+    returns (uint)
+  {
+    return newOfferByVolumeWithFunding(_ol, wants, gives, gasreq, 0, 0, offerData);
+  }
+
+  function newOfferByVolumeWithFunding(OLKey memory _ol, uint wants, uint gives, uint gasreq, uint amount)
+    public
+    returns (uint)
+  {
+    return newOfferByVolumeWithFunding(_ol, wants, gives, gasreq, 0, amount);
+  }
+
+  function newOfferByVolumeWithFunding(
+    OLKey memory _ol,
     uint wants,
     uint gives,
     uint gasreq,
-    uint pivotId,
-    OfferData memory offerData
-  ) public returns (uint) {
-    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, 0, pivotId, 0, offerData);
-  }
-
-  function newOfferWithFunding(
-    address _base,
-    address _quote,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint pivotId,
-    uint amount
-  ) public returns (uint) {
-    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, 0, pivotId, amount);
-  }
-
-  function newOfferWithFunding(
-    address _base,
-    address _quote,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint pivotId,
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, 0, pivotId, amount, offerData);
+    return newOfferByVolumeWithFunding(_ol, wants, gives, gasreq, 0, amount, offerData);
   }
 
-  function newOffer(uint wants, uint gives, uint gasreq, uint gasprice, uint pivotId) public returns (uint) {
-    return newOfferWithFunding(base, quote, wants, gives, gasreq, gasprice, pivotId, 0);
+  function newOfferByVolume(uint wants, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+    return newOfferByVolumeWithFunding(olKey, wants, gives, gasreq, gasprice, 0);
   }
 
-  function newOfferWithFunding(
-    address _base,
-    address _quote,
+  function newOfferByVolumeWithFunding(
+    OLKey memory _ol,
     uint wants,
     uint gives,
     uint gasreq,
     uint gasprice,
-    uint pivotId,
     uint amount
   ) public returns (uint) {
     OfferData memory offerData;
-    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, gasprice, pivotId, amount, offerData);
+    return newOfferByVolumeWithFunding(_ol, wants, gives, gasreq, gasprice, amount, offerData);
   }
 
-  function newOfferWithFunding(
-    address _base,
-    address _quote,
+  function newOfferByVolumeWithFunding(
+    OLKey memory _ol,
     uint wants,
     uint gives,
     uint gasreq,
     uint gasprice,
-    uint pivotId,
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOffer{value: amount}(_base, _quote, wants, gives, gasreq, gasprice, pivotId);
-    offerDatas[_base][_quote][offerId] = offerData;
+    uint offerId = mgv.newOfferByVolume{value: amount}(_ol, wants, gives, gasreq, gasprice);
+    offerDatas[_ol.hash()][offerId] = offerData;
     return offerId;
   }
 
-  function updateOffer(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId, OfferData memory offerData)
+  function newOfferByTick(Tick tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTick(tick, gives, gasreq, 0);
+  }
+
+  function newFailingOfferByTick(Tick tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTickWithFunding(
+      olKey, tick, gives, gasreq, 0, 0, OfferData({shouldRevert: true, executeData: "someData"})
+    );
+  }
+
+  function newOfferByTick(Tick tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+    return newOfferByTick(olKey, tick, gives, gasreq, gasprice);
+  }
+
+  function newOfferByTick(OLKey memory _olKey, Tick tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTick(_olKey, tick, gives, gasreq, 0);
+  }
+
+  function newOfferByTick(OLKey memory _olKey, Tick tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+    return newOfferByTickWithFunding(_olKey, tick, gives, gasreq, gasprice, 0);
+  }
+
+  function newOfferByTickWithFunding(OLKey memory _ol, Tick tick, uint gives, uint gasreq, uint gasprice, uint amount)
     public
+    returns (uint)
   {
-    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, 0, offerData);
-  }
-
-  function updateOffer(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId) public {
     OfferData memory offerData;
-    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, 0, offerData);
+    return newOfferByTickWithFunding(_ol, tick, gives, gasreq, gasprice, amount, offerData);
   }
 
-  function updateOfferWithFunding(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId, uint amount) public {
-    OfferData memory offerData;
-    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, amount, offerData);
-  }
-
-  function updateOfferWithFunding(
-    uint wants,
+  function newOfferByTickWithFunding(
+    OLKey memory _ol,
+    Tick tick,
     uint gives,
     uint gasreq,
-    uint pivotId,
+    uint gasprice,
+    uint amount,
+    OfferData memory offerData
+  ) public returns (uint) {
+    uint offerId = mgv.newOfferByTick{value: amount}(_ol, tick, gives, gasreq, gasprice);
+    offerDatas[olKey.hash()][offerId] = offerData;
+    return offerId;
+  }
+
+  function updateOfferByTick(Tick tick, uint gives, uint gasreq, uint offerId) public {
+    updateOfferByTick(tick, gives, gasreq, 0, offerId);
+  }
+
+  function updateOfferByTick(Tick tick, uint gives, uint gasreq, uint gasprice, uint offerId) public {
+    OfferData memory offerData;
+    updateOfferByTickWithFunding(olKey, tick, gives, gasreq, gasprice, offerId, 0, offerData);
+  }
+
+  function updateOfferByTickWithFunding(
+    OLKey memory _olKey,
+    Tick tick,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
     uint offerId,
     uint amount,
     OfferData memory offerData
   ) public {
-    mgv.updateOffer{value: amount}(base, quote, wants, gives, gasreq, 0, pivotId, offerId);
-    offerDatas[base][quote][offerId] = offerData;
+    mgv.updateOfferByTick{value: amount}(_olKey, tick, gives, gasreq, gasprice, offerId);
+    offerDatas[_olKey.hash()][offerId] = offerData;
+  }
+
+  function updateOfferByVolume(uint wants, uint gives, uint gasreq, uint offerId, OfferData memory offerData) public {
+    updateOfferByVolumeWithFunding(wants, gives, gasreq, offerId, 0, offerData);
+  }
+
+  function updateOfferByVolume(uint wants, uint gives, uint gasreq, uint offerId) public {
+    updateOfferByVolume(olKey, wants, gives, gasreq, offerId);
+  }
+
+  function updateOfferByVolume(OLKey memory _olKey, uint wants, uint gives, uint gasreq, uint offerId) public {
+    OfferData memory offerData;
+    updateOfferByVolumeWithFunding(_olKey, wants, gives, gasreq, offerId, 0, offerData);
+  }
+
+  function updateOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint offerId, uint amount) public {
+    OfferData memory offerData;
+    updateOfferByVolumeWithFunding(wants, gives, gasreq, offerId, amount, offerData);
+  }
+
+  function updateOfferByVolumeWithFunding(
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint offerId,
+    uint amount,
+    OfferData memory offerData
+  ) public {
+    updateOfferByVolumeWithFunding(olKey, wants, gives, gasreq, offerId, amount, offerData);
+    offerDatas[olKey.hash()][offerId] = offerData;
+  }
+
+  function updateOfferByVolumeWithFunding(
+    OLKey memory _olKey,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint offerId,
+    uint amount,
+    OfferData memory offerData
+  ) public {
+    mgv.updateOfferByVolume{value: amount}(_olKey, wants, gives, gasreq, 0, offerId);
+    offerDatas[_olKey.hash()][offerId] = offerData;
   }
 
   function retractOffer(uint offerId) public returns (uint) {
-    return mgv.retractOffer(base, quote, offerId, false);
+    return retractOffer(olKey, offerId);
+  }
+
+  function retractOffer(OLKey memory _olKey, uint offerId) public returns (uint) {
+    return mgv.retractOffer(_olKey, offerId, false);
   }
 
   function retractOfferWithDeprovision(uint offerId) public returns (uint) {
-    return mgv.retractOffer(base, quote, offerId, true);
+    return mgv.retractOffer(olKey, offerId, true);
   }
 
   function provisionMgv(uint amount) public payable {
@@ -280,10 +423,43 @@ contract SimpleTestMaker is TrivialTestMaker {
   function mgvBalance() public view returns (uint) {
     return mgv.balanceOf(address(this));
   }
+
+  // Taker functions
+  function marketOrderByVolume(uint takerWants, uint takerGives) public returns (uint takerGot, uint takerGave) {
+    return marketOrderByVolume(olKey, takerWants, takerGives);
+  }
+
+  function marketOrderByVolume(OLKey memory _olKey, uint takerWants, uint takerGives)
+    public
+    returns (uint takerGot, uint takerGave)
+  {
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(_olKey, takerWants, takerGives, true);
+  }
+
+  function clean(uint offerId, uint takerWants) public returns (bool success) {
+    Tick tick = mgv.offers(olKey, offerId).tick();
+    return clean(olKey, offerId, tick, takerWants);
+  }
+
+  function clean(uint offerId, Tick tick, uint takerWants) public returns (bool success) {
+    return clean(olKey, offerId, tick, takerWants);
+  }
+
+  function clean(OLKey memory _olKey, uint offerId, uint takerWants) public returns (bool success) {
+    Tick tick = mgv.offers(olKey, offerId).tick();
+    return clean(_olKey, offerId, tick, takerWants);
+  }
+
+  function clean(OLKey memory _olKey, uint offerId, Tick tick, uint takerWants) public returns (bool success) {
+    MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](1);
+    targets[0] = MgvLib.CleanTarget(offerId, tick, type(uint48).max, takerWants);
+    (uint successes,) = mgv.cleanByImpersonation(_olKey, targets, address(this));
+    return successes > 0;
+  }
 }
 
 contract TestMaker is SimpleTestMaker, Test {
-  constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) SimpleTestMaker(mgv, base, quote) {}
+  constructor(IMangrove mgv, OLKey memory _ol) SimpleTestMaker(mgv, _ol) {}
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) public virtual override {
     if (expectedStatus != bytes32("")) {

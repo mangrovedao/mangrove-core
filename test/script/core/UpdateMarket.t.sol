@@ -1,15 +1,17 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
-import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {MangroveDeployer} from "@mgv/script/core/deployers/MangroveDeployer.s.sol";
+import {UpdateMarket} from "@mgv/script/periphery/UpdateMarket.s.sol";
 
-import {Test2} from "mgv_lib/Test2.sol";
+import {Test2} from "@mgv/lib/Test2.sol";
 
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {IERC20} from "mgv_src/IERC20.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 contract UpdateMarketTest is Test2 {
   MangroveDeployer deployer;
@@ -28,25 +30,26 @@ contract UpdateMarketTest is Test2 {
     deployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 
-  function test_updater(address tkn0, address tkn1) public {
-    Mangrove mgv = deployer.mgv();
+  function test_updater(OLKey memory olKey) public {
+    Market memory market = Market(olKey.outbound_tkn, olKey.inbound_tkn, olKey.tickSpacing);
+    IMangrove mgv = deployer.mgv();
     MgvReader reader = deployer.reader();
 
     UpdateMarket updater = new UpdateMarket();
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1));
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false);
+    updater.innerRun(reader, market);
+    assertEq(reader.isMarketOpen(market), false);
 
     vm.prank(chief);
-    mgv.activate(tkn0, tkn1, 1, 1, 1);
+    mgv.activate(olKey, 1, 1, 1);
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1));
-    assertEq(reader.isMarketOpen(tkn0, tkn1), true);
+    updater.innerRun(reader, market);
+    assertEq(reader.isMarketOpen(market), true);
 
     vm.prank(chief);
-    mgv.deactivate(tkn0, tkn1);
+    mgv.deactivate(olKey);
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1));
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false);
+    updater.innerRun(reader, market);
+    assertEq(reader.isMarketOpen(market), false);
   }
 }

@@ -2,16 +2,16 @@
 
 - fix: use forge-std from core
 
-# 1.5.11-2
+# 2.0.0-2
 
 - Introduce MangroveMeasureGasused for gasreq measurement in tests.
 
-# 1.5.11-1
+# 2.0.0-1
 
 - New remappings (e.g., "@mgv/src" instead of "mgv-src")
 - Expose gas-measurement
 
-# 1.5.11-0
+# 2.0.0-0
 
 - New tick-based API with constant-gas insert and update of offers (the volume-based API is still available)
 - Market orders now use a true limit price instead of avg. limit price
@@ -22,6 +22,11 @@
 - Sniping has been restricted to Cleaning: `snipe` has been replaced by `cleanByImpersonation` which only allows "sniping" of failing offers
 - Makers can no longer read the offer list during `makerExecute`
 - Mangrove is split into two contracts and uses delegatecall internally
+
+# 1.5.11
+
+- use Aave faucets on Mumbai for wbtc, dai and crv tokens
+- removes Mangrove's faucet addresses for wbtc and dai
 
 # 1.5.10
 

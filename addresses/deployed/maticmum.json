@@ -20,20 +20,12 @@
     "name": "WMATIC"
   },
   {
-    "address": "0xf402f6197d979F0A4cba61596921a3d762520570",
-    "name": "WBTC"
-  },
-  {
     "address": "0xe8099699aa4A79d89dBD20A63C50b7d35ED3CD9e",
     "name": "USDT"
   },
   {
     "address": "0xe9259C5B6936Ee6439654171AFd674b31a533985",
     "name": "USDC"
-  },
-  {
-    "address": "0x5b67e3fa6f8AF1ca80C78102B8c039a40B96689E",
-    "name": "DAI"
   },
   {
     "address": "0x406bF0fcE108dD8864627EC6816AaFF8336f8231",

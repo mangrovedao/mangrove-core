@@ -22,7 +22,7 @@ import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
  *  BASE=CRV \
  *  QUOTE=WBTC \
  *  GASPRICE_FACTOR=10 \
- *  forge script --fork-url mumbai KandelSower --private-key $MUMBAI_PRIVATE_KEY
+ *  forge script --fork-url mumbai KandelSower --private-key $MUMBAI_PRIVATE_KEY --verify --broadcast
  */
 
 contract KandelSower is Deployer, MangroveTest {

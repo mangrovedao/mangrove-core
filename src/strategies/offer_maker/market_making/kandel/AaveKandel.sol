@@ -67,17 +67,26 @@ contract AaveKandel is GeometricKandel {
   }
 
   ///@inheritdoc AbstractKandel
+  ///@notice tries to withdraw funds on this contract's balance and then reaches out to the router available funds for the remainder
   function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public override onlyAdmin {
-    if (baseAmount != 0) {
-      pooledRouter().withdraw(BASE, RESERVE_ID, baseAmount);
+    uint localBase = BASE.balanceOf(address(this));
+    uint localQuote = QUOTE.balanceOf(address(this));
+
+    uint baseAmount_ = localBase > baseAmount ? 0 : baseAmount - localBase;
+    uint quoteAmount_ = localQuote > quoteAmount ? 0 : quoteAmount - localQuote;
+
+    if (baseAmount_ > 0) {
+      pooledRouter().withdraw(BASE, RESERVE_ID, baseAmount_);
+      emit Debit(BASE, baseAmount_);
     }
-    if (quoteAmount != 0) {
-      pooledRouter().withdraw(QUOTE, RESERVE_ID, quoteAmount);
+    if (quoteAmount_ > 0) {
+      pooledRouter().withdraw(QUOTE, RESERVE_ID, quoteAmount_);
+      emit Debit(QUOTE, quoteAmount_);
     }
     super.withdrawFunds(baseAmount, quoteAmount, recipient);
   }
 
-  ///@notice returns the amount of the router's balance that belong to this contract for the token offered for the offer type.
+  ///@notice returns the amount of the router's that can be used by this contract, as well as local balance for the token offered for the offer type.
   ///@inheritdoc AbstractKandel
   function reserveBalance(OfferType ba) public view override returns (uint balance) {
     IERC20 token = outboundOfOfferType(ba);

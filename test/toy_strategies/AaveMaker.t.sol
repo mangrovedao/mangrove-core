@@ -28,9 +28,9 @@ contract AaveMakerTest is MangroveTest {
     dai = IERC20(fork.get("DAI"));
     weth = IERC20(fork.get("WETH"));
     usdc = IERC20(fork.get("USDC"));
-    v_attacker = new AaveCaller(fork.get("Aave"), 2);
-    s_attacker = new AaveCaller(fork.get("Aave"), 1);
-    lender = new AaveCaller(fork.get("Aave"), 2);
+    v_attacker = new AaveCaller(fork.get("AaveAddressProvider"), 2);
+    s_attacker = new AaveCaller(fork.get("AaveAddressProvider"), 1);
+    lender = new AaveCaller(fork.get("AaveAddressProvider"), 2);
   }
 
   struct HeapVars {

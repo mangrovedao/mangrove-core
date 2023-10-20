@@ -57,7 +57,7 @@ contract KandelSeederTest is MangroveTest {
 
     AaveKandelSeeder aaveKandelSeeder = new AaveKandelSeeder({
       mgv:IMangrove($(mgv)), 
-      addressesProvider: fork.get("Aave"), 
+      addressesProvider: fork.get("AaveAddressProvider"), 
       routerGasreq: 500_000, 
       aaveKandelGasreq: 128_001
     });

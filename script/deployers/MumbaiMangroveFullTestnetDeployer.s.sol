@@ -52,7 +52,7 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     Mangrove mgv = Mangrove(fork.get("Mangrove"));
     MgvReader reader = MgvReader(fork.get("MgvReader"));
     IPriceOracleGetter priceOracle =
-      IPriceOracleGetter(IPoolAddressesProvider(fork.get("Aave")).getAddress("PRICE_ORACLE"));
+      IPriceOracleGetter(IPoolAddressesProvider(fork.get("AaveAddressProvider")).getAddress("PRICE_ORACLE"));
     require(priceOracle.BASE_CURRENCY() == address(0), "script assumes base currency is in USD");
 
     // Deploy MangroveOrder

@@ -131,7 +131,10 @@ contract MangroveJsDeploy is Deployer {
       addressesProvider: aaveAddressProvider,
       aaveRouterGasreq: 318_000,
       aaveKandelGasreq: 338_000,
-      kandelGasreq: 128_000
+      kandelGasreq: 128_000,
+      deployMode: 2,
+      testBase: IERC20(fork.get("WETH")),
+      testQuote: IERC20(fork.get("USDC"))
     });
 
     broadcast();

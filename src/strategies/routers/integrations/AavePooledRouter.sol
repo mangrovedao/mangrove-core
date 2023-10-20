@@ -229,6 +229,8 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@dev outside a market order (i.e if `__pull__` is not called during offer logic's execution) the `token` balance of this router should be empty.
   /// This may not be the case when a "donation" occurred to this contract or if the maker posthook failed to push funds back to AAVE
   /// If the donation is large enough to cover the pull request we use the donation funds
+  /// @dev if `strict` is not true and when several strats share the same RESERVE_ID, there is a risk that if one of the strat reverts in posthook, it will not
+  /// deposit funds back onto the router which would make the other strats sharing the RESERVE_ID fail to deliver.
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal override returns (uint) {
     // The amount to redeem from AAVE
     uint toRedeem;

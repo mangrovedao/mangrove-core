@@ -8,7 +8,10 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 ///@title  AavePooledRouter deployer
 contract AavePooledRouterDeployer is Deployer {
   function run() public {
-    innerRun({addressProvider: envAddressOrName("AAVE", "Aave"), overhead: vm.envUint("GASREQ")});
+    innerRun({
+      addressProvider: envAddressOrName("AAVE_ADDRESS_PROVIDER", "AaveAddressProvider"),
+      overhead: vm.envUint("GASREQ")
+    });
   }
 
   function innerRun(address addressProvider, uint overhead) public {

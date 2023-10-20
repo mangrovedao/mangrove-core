@@ -44,18 +44,5 @@ contract KandelShutdown is Deployer {
       toFixed(quoteBalance, quoteDecimals),
       toFixed(weiBalance, 18)
     );
-
-    console.log("Retrieving pending...");
-    int pendingBase = kdl.pending(OfferType.Ask);
-    int pendingQuote = kdl.pending(OfferType.Bid);
-
-    baseAmount = (pendingBase > 0 ? uint(pendingBase) : 0);
-    quoteAmount = (pendingQuote > 0 ? uint(pendingQuote) : 0);
-    broadcast();
-    kdl.withdrawFunds(baseAmount, quoteAmount, broadcaster());
-
-    console.log(
-      "Retrieved %s base and %s quote tokens", toFixed(baseAmount, baseDecimals), toFixed(quoteAmount, quoteDecimals)
-    );
   }
 }

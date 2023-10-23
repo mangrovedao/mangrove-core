@@ -17,13 +17,22 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract KandelSeederDeployer is Deployer {
   function run() public {
+    bool deployAaveKandel = true;
+    bool deployKandel = true;
+    try vm.envBool("DEPLOY_AAVE_KANDEL") returns (bool deployAaveKandel_) {
+      deployAaveKandel = deployAaveKandel_;
+    } catch {}
+    try vm.envBool("DEPLOY_KANDEL") returns (bool deployKandel_) {
+      deployKandel = deployKandel_;
+    } catch {}
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       addressesProvider: envAddressOrName("AAVE_ADDRESS_PROVIDER", "AaveAddressProvider"),
       aaveKandelGasreq: 200_000,
       kandelGasreq: 200_000,
       aaveRouterGasreq: 380_000,
-      deployMode: vm.envUint("DEPLOY_MODE"), // 0: only KandelSeeder, 1: only AaveKandelSeeder, 2: both
+      deployAaveKandel: deployAaveKandel,
+      deployKandel: deployKandel,
       testBase: IERC20(envAddressOrName("TEST_BASE")),
       testQuote: IERC20(envAddressOrName("TEST_QUOTE"))
     });
@@ -36,11 +45,12 @@ contract KandelSeederDeployer is Deployer {
     uint aaveRouterGasreq,
     uint aaveKandelGasreq,
     uint kandelGasreq,
-    uint deployMode,
+    bool deployAaveKandel,
+    bool deployKandel,
     IERC20 testBase,
     IERC20 testQuote
   ) public returns (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) {
-    if (deployMode % 2 == 0) {
+    if (deployKandel) {
       prettyLog("Deploying Kandel seeder...");
       broadcast();
       seeder = new KandelSeeder(mgv, kandelGasreq);
@@ -51,7 +61,7 @@ contract KandelSeederDeployer is Deployer {
       new Kandel(mgv, testBase, testQuote, 1, 1, address(0));
       smokeTest(mgv, seeder, AbstractRouter(address(0)), testBase, testQuote);
     }
-    if (deployMode != 0) {
+    if (deployAaveKandel) {
       prettyLog("Deploying AaveKandel seeder...");
       // Bug workaround: Foundry has a bug where the nonce is not incremented when AaveKandelSeeder is deployed.
       //                 We therefore ensure that this happens.

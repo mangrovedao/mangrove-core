@@ -77,11 +77,9 @@ contract AaveKandel is GeometricKandel {
 
     if (baseAmount_ > 0) {
       pooledRouter().withdraw(BASE, RESERVE_ID, baseAmount_);
-      emit Debit(BASE, baseAmount_);
     }
     if (quoteAmount_ > 0) {
       pooledRouter().withdraw(QUOTE, RESERVE_ID, quoteAmount_);
-      emit Debit(QUOTE, quoteAmount_);
     }
     super.withdrawFunds(baseAmount, quoteAmount, recipient);
   }

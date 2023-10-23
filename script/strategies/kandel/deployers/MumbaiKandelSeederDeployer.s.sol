@@ -22,9 +22,10 @@ contract MumbaiKandelSeederDeployer is Deployer {
       aaveKandelGasreq: 200_000,
       kandelGasreq: 200_000,
       aaveRouterGasreq: 380_000,
-      deployMode:2,
-      testBase: IERC20(fork.get('CRV')), // make sure to use an AAVE faucet 
-      testQuote: IERC20(fork.get('WBTC')) // make sure to use an AAVE faucet
+      deployAaveKandel: true,
+      deployKandel:true,
+      testBase: IERC20(fork.get("CRV")), // make sure to use an AAVE faucet 
+      testQuote: IERC20(fork.get("WBTC")) // make sure to use an AAVE faucet
     });
   }
 }

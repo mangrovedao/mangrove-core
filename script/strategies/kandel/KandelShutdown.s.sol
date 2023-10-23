@@ -39,10 +39,22 @@ contract KandelShutdown is Deployer {
     weiBalance = broadcaster().balance - weiBalance;
 
     console.log(
-      "Recovered %s base, %s quote and %s native tokens",
+      "* Script should recover %s base, %s quote and %s native tokens",
       toFixed(baseBalance, baseDecimals),
       toFixed(quoteBalance, quoteDecimals),
       toFixed(weiBalance, 18)
     );
+    smokeTest(kdl, base, quote);
+  }
+
+  function smokeTest(GeometricKandel kdl, IERC20 base, IERC20 quote) internal view {
+    require(base.balanceOf(address(kdl)) == 0, "smokeTest: fail 1");
+    require(base.balanceOf(address(kdl.router())) == 0, "smokeTest: fail 2");
+    require(kdl.reserveBalance(OfferType.Ask) == 0, "smokeTest: fail 3");
+    require(quote.balanceOf(address(kdl)) == 0, "smokeTest: fail 4");
+    require(quote.balanceOf(address(kdl.router())) == 0, "smokeTest: fail 5");
+    require(kdl.reserveBalance(OfferType.Bid) == 0, "smokeTest: fail 6");
+    require(kdl.MGV().balanceOf(address(kdl)) == 0, "smokeTest: fail 7");
+    prettyLog("Simulation says all funds will be withdrawn");
   }
 }

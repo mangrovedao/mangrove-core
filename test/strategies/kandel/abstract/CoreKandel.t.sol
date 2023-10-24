@@ -1152,7 +1152,24 @@ abstract contract CoreKandelTest is KandelTest {
     vm.prank(maker);
     kdl.withdrawFunds(type(uint).max, type(uint).max, address(this));
     assertEq(base.balanceOf(address(this)), baseBalance, "Incorrect base withdrawal");
-    assertEq(quote.balanceOf(address(this)), quoteBalance, "Incorrect quote withdrawl");
+    assertEq(quote.balanceOf(address(this)), quoteBalance, "Incorrect quote withdrawal");
+  }
+
+  function test_withdrawAllWithLocal() public {
+    deal($(base), address(this), 1 ether);
+    deal($(quote), address(this), 100 * 10 ** 6);
+    TransferLib.approveToken(base, $(kdl), 0.5 ether);
+    TransferLib.approveToken(quote, $(kdl), 50 * 10 ** 6);
+
+    kdl.depositFunds(0.5 ether, 50 * 10 ** 6);
+    uint quoteBalance = kdl.reserveBalance(Bid);
+    uint baseBalance = kdl.reserveBalance(Ask);
+
+    address recipient = freshAddress();
+    vm.prank(maker);
+    kdl.withdrawFunds(type(uint).max, type(uint).max, recipient);
+    assertEq(base.balanceOf(recipient), baseBalance, "Incorrect base withdrawal");
+    assertEq(quote.balanceOf(recipient), quoteBalance, "Incorrect quote withdrawal");
   }
 
   function test_marketOrder_dualOfferUpdate_expectedGasreq() public {

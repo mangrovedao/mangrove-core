@@ -25,6 +25,12 @@
 - Makers can no longer read the offer list during `makerExecute`
 - Mangrove is split into two contracts and uses delegatecall internally
 
+# 1.5.12
+
+- fix: withdrawFunds from AaveKandel now taking local funds into account
+- fix: gasreq for AaveKandel in script no longer underestimated
+- updates address of addresses provider for Aave on mumbai testnet
+
 # 1.5.11
 
 - use Aave faucets on Mumbai for wbtc, dai and crv tokens

@@ -8,10 +8,6 @@
     "name": "MgvReader"
   },
   {
-    "address": "0x2A36f6293bB1F35c84655DB5e6E34604EFCf739d",
-    "name": "MgvCleaner"
-  },
-  {
     "address": "0x8F8ff080cA0554b02BFC36A5aD465954416271eF",
     "name": "MgvOracle"
   },

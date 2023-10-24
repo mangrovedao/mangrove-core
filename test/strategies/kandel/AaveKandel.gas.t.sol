@@ -19,7 +19,7 @@ contract AaveKandelGasTest is CoreKandelGasTest {
       gasprice: bufferedGasprice,
       reserveId: reserveId
     });
-    AavePooledRouter router = new AavePooledRouter(fork.get("Aave"), ROUTER_GASREQ);
+    AavePooledRouter router = new AavePooledRouter(fork.get("AaveAddressProvider"), ROUTER_GASREQ);
     router.setAaveManager(msg.sender);
     router.bind(address(kdl_));
     AaveKandel(payable(kdl_)).initialize(router);

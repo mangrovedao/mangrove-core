@@ -36,7 +36,7 @@ contract AaveKandelTest is CoreKandelTest {
       base = TestToken(fork.get("WETH"));
       quote = TestToken(fork.get("USDC"));
       setupMarket(base, quote);
-      aave = fork.get("Aave");
+      aave = fork.get("AaveAddressProvider");
     } else {
       super.__setForkEnvironment__();
       aave = address(new PoolAddressProviderMock(dynamic([address(base), address(quote)])));
@@ -282,7 +282,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_liquidity_flashloan_attack() public {
-    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    AaveCaller attacker = new AaveCaller(fork.get("AaveAddressProvider"), 2);
     deal($(quote), address(this), 1 ether);
     quote.approve({spender: address(mgv), amount: type(uint).max});
     attacker.setCallbackAddress(address(this));
@@ -304,7 +304,7 @@ contract AaveKandelTest is CoreKandelTest {
   function test_liquidity_borrow_snipe_attack() public {
     // base is weth and has a borrow cap, so trying the attack on quote
     address dai = fork.get("DAI");
-    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    AaveCaller attacker = new AaveCaller(fork.get("AaveAddressProvider"), 2);
     deal($(base), address(this), 1 ether);
     base.approve({spender: address(mgv), amount: type(uint).max});
     uint quoteSupply = attacker.get_supply(quote); // quote in 6 decimals
@@ -337,7 +337,7 @@ contract AaveKandelTest is CoreKandelTest {
     //printOrderBook($(quote), $(base));
     // base is weth and has a borrow cap, so trying the attack on quote
     address dai = fork.get("DAI");
-    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    AaveCaller attacker = new AaveCaller(fork.get("AaveAddressProvider"), 2);
     deal($(base), address(this), 1 ether);
     base.approve({spender: address(mgv), amount: type(uint).max});
     uint quoteSupply = attacker.get_supply(quote); // quote in 6 decimals
@@ -372,7 +372,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_cannot_create_aaveKandel_with_aToken_for_base() public {
-    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    AaveCaller attacker = new AaveCaller(fork.get("AaveAddressProvider"), 2);
     IERC20 aToken = attacker.overlying(base);
     vm.expectRevert("AaveKandel/cannotTradeAToken");
     new AaveKandel({
@@ -386,7 +386,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_cannot_create_aaveKandel_with_aToken_for_quote() public {
-    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    AaveCaller attacker = new AaveCaller(fork.get("AaveAddressProvider"), 2);
     IERC20 aToken = attacker.overlying(quote);
     vm.expectRevert("AaveKandel/cannotTradeAToken");
     new AaveKandel({

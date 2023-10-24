@@ -1,5 +1,7 @@
 # Next version
 
+# 1.5.12
+
 - fix: withdrawFunds from AaveKandel now taking local funds into account
 - fix: gasreq for AaveKandel in script no longer underestimated
 - updates address of addresses provider for Aave on mumbai testnet

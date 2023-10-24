@@ -30,17 +30,5 @@
   {
     "address": "0x406bF0fcE108dD8864627EC6816AaFF8336f8231",
     "name": "WETH"
-  },
-  {
-    "address": "0x3F3Fae0689e573630a66aba7A1d5081EfD850716",
-    "name": "AaveKandelSeeder"
-  },
-  {
-    "address": "0x644f1ac9a95B644454BFA78691f553B559E0e04C",
-    "name": "AavePooledRouter"
-  },
-  {
-    "address": "0x4D387a79946FD75c3c27878d06fA2Db788fdb267",
-    "name": "AaveKandel_CRV_WBTC"
   }
 ]

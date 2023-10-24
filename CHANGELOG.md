@@ -1,5 +1,7 @@
 # Next version
 
+- new addresses for AaveKandelSeeder and AavePooledRouter
+
 # 1.5.12
 
 - fix: withdrawFunds from AaveKandel now taking local funds into account

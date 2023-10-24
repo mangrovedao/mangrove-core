@@ -1,30 +1,34 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import "mgv_src/Mangrove.sol";
-import {IERC20} from "mgv_src/IERC20.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {UpdateMarket} from "@mgv/script/periphery/UpdateMarket.s.sol";
+import "@mgv/src/periphery/MgvReader.sol";
+import {IERC20} from "@mgv/lib/IERC20.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
  TKN1=USDC \
  TKN2=WETH \
- TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) gwei) \
- TKN2_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) gwei) \
+ TICK_SPACING=1 \
+ TKN1_IN_MWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) Mwei) \
+ TKN2_IN_MWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) Mwei) \
  FEE=30 \
  forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      tkn1: IERC20(envAddressOrName("TKN1")),
-      tkn2: IERC20(envAddressOrName("TKN2")),
-      tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
-      tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
+      market: Market({
+        tkn0: envAddressOrName("TKN1"),
+        tkn1: envAddressOrName("TKN2"),
+        tickSpacing: vm.envUint("TICK_SPACING")
+      }),
+      tkn1_in_Mwei: vm.envUint("TKN1_IN_MWEI"),
+      tkn2_in_Mwei: vm.envUint("TKN2_IN_MWEI"),
       fee: vm.envUint("FEE")
     });
   }
@@ -34,30 +38,31 @@ contract ActivateMarket is Deployer {
     gaspriceOverride: overrides current mangrove's gasprice for the computation of density - default innerRun uses mangrove's gasprice
     tkn1: first tokens
     tkn2: second tokens,
-    tkn1_in_gwei: price of one tkn1 (display units) in gwei
-    tkn2_in_gwei: price of one tkn2 (display units) in gwei
+    tickSpacing: tick spacing,
+    tkn1_in_Mwei: price of one tkn1 (display units) in Mwei (1Mwei = 1e-12 eth = 1e6 wei)
+    tkn2_in_Mwei: price of one tkn2 (display units) in Mwei 
     fee: fee in per 10_000
   */
 
   /* 
-    tknX_in_gwei should be obtained like this:
-    1. Get the price of one tknX display unit in native token, in display units.
-       For instance, on ethereum, the price of 1 WETH is 1e9 gwei
-    2. Multiply by 1e9
+    tknX_in_Mwei should be obtained like this:
+    1. Get the price of one tknX display unit in native token (also in display units, so 1e18 base units for the native token).
+    2. Multiply by 1e12
     3. Round to nearest integer
+
+    For instance, suppose 1ETH=$2 and 1USDT=$1, the price of 1 USDT is 1e12/2 Mwei.
   */
 
   function innerRun(
-    Mangrove mgv,
+    IMangrove mgv,
     MgvReader reader,
-    IERC20 tkn1,
-    IERC20 tkn2,
-    uint tkn1_in_gwei,
-    uint tkn2_in_gwei,
+    Market memory market,
+    uint tkn1_in_Mwei,
+    uint tkn2_in_Mwei,
     uint fee
   ) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+    Global global = mgv.global();
+    innerRun(mgv, global.gasprice(), reader, market, tkn1_in_Mwei, tkn2_in_Mwei, fee);
   }
 
   /**
@@ -65,33 +70,30 @@ contract ActivateMarket is Deployer {
    */
 
   function innerRun(
-    Mangrove mgv,
+    IMangrove mgv,
     uint gaspriceOverride,
     MgvReader reader,
-    IERC20 tkn1,
-    IERC20 tkn2,
-    uint tkn1_in_gwei,
-    uint tkn2_in_gwei,
+    Market memory market,
+    uint tkn1_in_Mwei,
+    uint tkn2_in_Mwei,
     uint fee
   ) public {
     new ActivateSemibook().innerRun({
       mgv: mgv,
       gaspriceOverride: gaspriceOverride,
-      outbound_tkn: tkn1,
-      inbound_tkn: tkn2,
-      outbound_in_gwei: tkn1_in_gwei,
+      olKey: toOLKey(market),
+      outbound_in_Mwei: tkn1_in_Mwei,
       fee: fee
     });
 
     new ActivateSemibook().innerRun({
       mgv: mgv,
       gaspriceOverride: gaspriceOverride,
-      outbound_tkn: tkn2,
-      inbound_tkn: tkn1,
-      outbound_in_gwei: tkn2_in_gwei,
+      olKey: toOLKey(flipped(market)),
+      outbound_in_Mwei: tkn2_in_Mwei,
       fee: fee
     });
 
-    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
+    new UpdateMarket().innerRun({reader: reader, market: market});
   }
 }

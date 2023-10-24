@@ -16,18 +16,6 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0xb4A9Ac8Ae5b405193271A0e62682c9be47d578B9",
-    "name": "KandelSeeder"
-  },
-  {
-    "address": "0x756fAc8bb6fb96A3b005ad7b3337052aE69aAf65",
-    "name": "MangroveOrder"
-  },
-  {
-    "address": "0xADdF5388C695e3F23A2509AA73677ED4a219f834",
-    "name": "MangroveOrder-Router"
-  },
-  {
     "address": "0x193163EeFfc795F9d573b171aB12cCDdE10392e8",
     "name": "WMATIC"
   },

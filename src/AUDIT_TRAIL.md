@@ -2,7 +2,7 @@
 
 ## Starting point
 
-Mangrove v5 is:
+Mangrove v1.5 (formerly Mangrove v5) is:
 
 mangrove.js@2fc357f369416afdc2846cc9d5be483b75169e8d/packages/mangrove-solidity/contracts/\*.sol
 
@@ -44,9 +44,9 @@ ruplacer 'P}' 'MgvStructs}' --go
 
 ruplacer 'Pack.post.sol" as P' 'Structs.post.sol" as MgvStructs' --go
 
-ruplacer 'P\.(.+?)\.t' 'MgvStructs.${1}Packed' --go
+ruplacer 'P\.(.+?)\.t' '${1}' --go
 
-ruplacer 'P\.(.+?)Struct' 'MgvStructs.${1}Unpacked' --go
+ruplacer 'P\.(.+?)Struct' '${1}Unpacked' --go
 
 ruplacer 'MgvLib as ML' 'MgvLib' --go
 

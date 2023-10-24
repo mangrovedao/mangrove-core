@@ -72,7 +72,7 @@ contract AaveKandel is GeometricKandel {
     uint localBase = BASE.balanceOf(address(this));
     uint localQuote = QUOTE.balanceOf(address(this));
 
-    // if amount is `uint(-1)` tell the router to withdraw all it can (i.e. pass `uint(-1)` to the router)
+    // if amount is `type(uint).max` tell the router to withdraw all it can (i.e. pass `type(uint).max` to the router)
     // else withdraw only if there is not enough funds on this contract to match amount
     uint baseAmount_ = baseAmount == type(uint).max ? baseAmount : localBase > baseAmount ? 0 : baseAmount - localBase;
     uint quoteAmount_ =

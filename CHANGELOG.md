@@ -25,6 +25,10 @@
 - Makers can no longer read the offer list during `makerExecute`
 - Mangrove is split into two contracts and uses delegatecall internally
 
+# 1.5.13
+
+- new addresses for AaveKandelSeeder and AavePooledRouter
+
 # 1.5.12
 
 - fix: withdrawFunds from AaveKandel now taking local funds into account

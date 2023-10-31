@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_test/lib/MangroveTest.sol";
-import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
+import "@mgv/test/lib/MangroveTest.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 contract MonitorTest is MangroveTest {
   TestMaker mkr;
@@ -16,10 +16,10 @@ contract MonitorTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    mkr = setupMaker($(base), $(quote), "Maker[$(A),$(B)]");
+    mkr = setupMaker(olKey, "Maker[$(A),$(B)]");
 
     monitor = freshAddress();
-    monitor_read_cd = abi.encodeCall(IMgvMonitor.read, ($(base), $(quote)));
+    monitor_read_cd = abi.encodeCall(IMgvMonitor.read, (olKey));
 
     mkr.provisionMgv(5 ether);
 
@@ -27,7 +27,7 @@ contract MonitorTest is MangroveTest {
   }
 
   function test_initial_monitor_values() public {
-    (MgvStructs.GlobalPacked config,) = mgv.config($(base), $(quote));
+    (Global config,) = mgv.config(olKey);
     assertTrue(!config.useOracle(), "initial useOracle should be false");
     assertTrue(!config.notify(), "initial notify should be false");
   }
@@ -37,7 +37,7 @@ contract MonitorTest is MangroveTest {
     mgv.setUseOracle(true);
     mgv.setNotify(true);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(0, 0));
-    (MgvStructs.GlobalPacked config,) = mgv.config($(base), $(quote));
+    (Global config,) = mgv.config(olKey);
     assertEq(config.monitor(), monitor, "monitor should be set");
     assertTrue(config.useOracle(), "useOracle should be set");
     assertTrue(config.notify(), "notify should be set");
@@ -46,33 +46,34 @@ contract MonitorTest is MangroveTest {
   function test_set_oracle_density_with_useOracle_works() public {
     mgv.setMonitor(monitor);
     mgv.setUseOracle(true);
-    mgv.setDensity($(base), $(quote), 898);
-    expectToMockCall(monitor, monitor_read_cd, abi.encode(0, 1));
-    (, MgvStructs.LocalPacked config) = mgv.config($(base), $(quote));
-    assertEq(config.density(), 1, "density should be set oracle");
+    mgv.setDensity96X32(olKey, 898 << 32);
+    expectToMockCall(monitor, monitor_read_cd, abi.encode(0, DensityLib.from96X32(1 << 32)));
+    (, Local config) = mgv.config(olKey);
+    assertEq(config.density().to96X32(), 1 << 32, "density should be set oracle");
   }
 
   function test_set_oracle_density_without_useOracle_fails() public {
     mgv.setMonitor(monitor);
-    mgv.setDensity($(base), $(quote), 898);
-    (, MgvStructs.LocalPacked config) = mgv.config($(base), $(quote));
-    assertEq(config.density(), 898, "density should be set by mgv");
+    uint density96X32 = 898 << 32;
+    mgv.setDensity96X32(olKey, density96X32);
+    (, Local config) = mgv.config(olKey);
+    assertEq(config.density().to96X32(), DensityLib.from96X32(density96X32).to96X32(), "density should be set by mgv");
   }
 
   function test_set_oracle_gasprice_with_useOracle_works() public {
     mgv.setMonitor(monitor);
-    mgv.setDensity($(base), $(quote), 898);
+    mgv.setDensity96X32(olKey, 898 << 32);
     mgv.setUseOracle(true);
     mgv.setGasprice(900);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(1, 0));
-    (MgvStructs.GlobalPacked config,) = mgv.config($(base), $(quote));
+    (Global config,) = mgv.config(olKey);
     assertEq(config.gasprice(), 1, "gasprice should be set by oracle");
   }
 
   function test_set_oracle_gasprice_without_useOracle_fails() public {
     mgv.setMonitor(monitor);
     mgv.setGasprice(900);
-    (MgvStructs.GlobalPacked config,) = mgv.config($(base), $(quote));
+    (Global config,) = mgv.config(olKey);
     assertEq(config.gasprice(), 900, "gasprice should be set by mgv");
   }
 
@@ -81,7 +82,7 @@ contract MonitorTest is MangroveTest {
     mgv.setUseOracle(true);
     vm.expectCall(monitor, monitor_read_cd);
     vm.expectRevert(bytes(""));
-    mgv.config($(base), $(quote));
+    mgv.config(olKey);
   }
 
   function test_notify_works_on_success_when_set() public {
@@ -89,53 +90,51 @@ contract MonitorTest is MangroveTest {
     mkr.approveMgv(base, 1 ether);
     mgv.setMonitor(monitor);
     mgv.setNotify(true);
-    uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofrId);
+    uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
+    Offer offer = mgv.offers(olKey, ofrId);
 
-    uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
+    Tick tick = offer.tick();
 
-    (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
-    _local = _local.best(1).lock(true);
+    (Global _global, Local _local) = mgv.config(olKey);
+    _local = _local.lock(true);
 
     MgvLib.SingleOrder memory order = MgvLib.SingleOrder({
-      outbound_tkn: $(base),
-      inbound_tkn: $(quote),
+      olKey: olKey,
       offerId: ofrId,
       offer: offer,
-      wants: 0.04 ether,
-      gives: 0.04 ether, // wants has been updated to offer price
-      offerDetail: mgv.offerDetails($(base), $(quote), ofrId),
+      takerWants: 0.04 ether,
+      takerGives: 0.04 ether, // price is 1
+      offerDetail: mgv.offerDetails(olKey, ofrId),
       global: _global,
       local: _local
     });
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
-    assertTrue(successes == 1, "snipe should succeed");
+    (uint got,,,) = mgv.marketOrderByTick(olKey, tick, 0.04 ether, true);
+    assertTrue(got > 0, "order should succeed");
   }
 
   function test_notify_works_on_fail_when_set() public {
     deal($(quote), $(this), 10 ether);
     mgv.setMonitor(address(monitor));
     mgv.setNotify(true);
-    uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofrId);
-    MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails($(base), $(quote), ofrId);
+    uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
+    Offer offer = mgv.offers(olKey, ofrId);
+    OfferDetail offerDetail = mgv.offerDetails(olKey, ofrId);
 
-    uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
+    Tick tick = offer.tick();
 
-    (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
+    (Global _global, Local _local) = mgv.config(olKey);
     // config sent during maker callback has stale best and, is locked
-    _local = _local.best(1).lock(true);
+    _local = _local.lock(true);
 
     MgvLib.SingleOrder memory order = MgvLib.SingleOrder({
-      outbound_tkn: $(base),
-      inbound_tkn: $(quote),
+      olKey: olKey,
       offerId: ofrId,
       offer: offer,
-      wants: 0.04 ether,
-      gives: 0.04 ether, // gives has been updated to offer price
+      takerWants: 0.04 ether,
+      takerGives: 0.04 ether, // price is 1
       offerDetail: offerDetail, // gasprice logged will still be as before failure
       global: _global,
       local: _local
@@ -143,7 +142,23 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
-    assertTrue(successes == 0, "snipe should fail");
+    (uint got,,,) = mgv.marketOrderByTick(olKey, tick, 0.04 ether, true);
+    assertTrue(got == 0, "order should fail");
+  }
+
+  // more a test of Mangrove's fallback implementation than of the Monitor
+  function test_monitor_fail_revData_is_correct(uint revLen, bytes1 byteData) public {
+    mgv.setMonitor(monitor);
+    mgv.setUseOracle(true);
+    revLen = bound(revLen, 0, 300);
+    bytes memory revData = new bytes(revLen);
+    for (uint i = 0; i < revLen; i++) {
+      revData[i] = byteData;
+    }
+
+    vm.mockCallRevert(monitor, abi.encodeCall(IMgvMonitor.read, (olKey)), revData);
+
+    vm.expectRevert(revData);
+    mgv.config(olKey);
   }
 }

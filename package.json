@@ -1,6 +1,6 @@
 {
   "name": "@mangrovedao/mangrove-core",
-  "version": "1.5.12",
+  "version": "2.0.0-3",
   "author": "Mangrove DAO",
   "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
@@ -13,13 +13,18 @@
     "corecov": "forge coverage --match-path 'test/core/*'",
     "build": "forge build && node copyArtifacts && node buildIndex && node checkNatspec",
     "clean": "forge clean; rimraf index.js dist",
-    "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",
-    "preproc": "node preprocessing/run.js",
-    "test": "forge test -vvv"
+    "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts lib/core/Constants.sol src/core/MgvLib.sol src/core/MgvCommon.sol src/core/MgvHasOffers.sol src/core/MgvOfferMaking.sol src/core/MgvOfferTaking.sol src/core/MgvOfferTakingWithPermit.sol src/core/MgvGovernable.sol src/core/MgvView.sol src/core/MgvAppendix.sol src/core/Mangrove.sol lib/core/DensityLib.sol lib/core/TickTreeLib.sol lib/core/TickLib.sol lib/core/BitLib.sol lib/core/OfferExtra.sol lib/core/OfferDetailExtra.sol lib/core/LocalExtra.sol",
+    "preproc": "ts-node preprocessing/run.ts",
+    "generate-ratios": "node test-ratios/generate_ratios.js",
+    "gas-measurement": "GAS_MATCH_PATH='test/core/gas/*' bash gas-measurement.sh",
+    "test-ratios": "FOUNDRY_PROFILE=test-ratios forge test -vv",
+    "test": "forge test -vvv",
+    "test:memory-intensive": "forge test --match-contract TickTree",
+    "test:fast": "forge test --no-match-contract TickTree -vvv"
   },
   "lint-staged": {
     "*.sol": "forge fmt",
-    "*.{js,css,md,json}": "prettier --write --ignore-unknown"
+    "*.{js,css,md,json,ts}": "prettier --write --ignore-unknown"
   },
   "files": [
     "/dist",
@@ -32,19 +37,24 @@
     "/lib",
     "/LICENSE",
     "/README.md",
-    "/doc"
+    "/doc",
+    "gas-measurement.sh"
   ],
   "devDependencies": {
+    "@types/node": "^20.8.5",
+    "bn.js": "^5.2.1",
     "husky": "^8.0.3",
-    "lint-staged": "^13.2.2",
+    "lint-staged": "^14.0.1",
+    "mathjs": "^11.11.1",
     "micromatch": "^4.0.5",
     "pinst": "^3.0.0",
-    "prettier": "^2.8.7",
-    "rimraf": "^5.0.0",
+    "prettier": "^3.0.3",
+    "rimraf": "^5.0.5",
     "shelljs": "^0.8.4",
-    "solcco": ">=1.0.11",
-    "solhint": "^3.4.1",
-    "solpp": "^0.11.5",
+    "solcco": ">=1.0.13",
+    "solhint": "^3.6.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2",
     "yargs": "^17.7.2"
   },
   "packageManager": "yarn@3.5.0"

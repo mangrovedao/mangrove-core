@@ -1,9 +1,5 @@
 [
   {
-    "address": "0x4CeDCB57Af02293231BAA9D39354D6BFDFD251e0",
-    "name": "AaveAddressProvider"
-  },
-  {
     "address": "0x4d184a4C8d79BbBdCC4E95A1AdEA2454c535280A",
     "name": "Gasbot"
   },

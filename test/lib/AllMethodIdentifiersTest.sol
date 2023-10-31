@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {stdJson} from "forge-std/StdJson.sol";
-import {Vm} from "forge-std/Vm.sol";
+import {stdJson} from "@mgv/forge-std/StdJson.sol";
+import {Vm} from "@mgv/forge-std/Vm.sol";
 
 library AllMethodIdentifiersTest {
   ///@notice Reads all methodIdentifiers (selectors) from ABI pointed to by relative path from project root.

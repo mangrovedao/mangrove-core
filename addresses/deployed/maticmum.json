@@ -8,24 +8,8 @@
     "name": "MgvReader"
   },
   {
-    "address": "0x2A36f6293bB1F35c84655DB5e6E34604EFCf739d",
-    "name": "MgvCleaner"
-  },
-  {
     "address": "0x8F8ff080cA0554b02BFC36A5aD465954416271eF",
     "name": "MgvOracle"
-  },
-  {
-    "address": "0xb4A9Ac8Ae5b405193271A0e62682c9be47d578B9",
-    "name": "KandelSeeder"
-  },
-  {
-    "address": "0x756fAc8bb6fb96A3b005ad7b3337052aE69aAf65",
-    "name": "MangroveOrder"
-  },
-  {
-    "address": "0xADdF5388C695e3F23A2509AA73677ED4a219f834",
-    "name": "MangroveOrder-Router"
   },
   {
     "address": "0x193163EeFfc795F9d573b171aB12cCDdE10392e8",
@@ -42,13 +26,5 @@
   {
     "address": "0x406bF0fcE108dD8864627EC6816AaFF8336f8231",
     "name": "WETH"
-  },
-  {
-    "address": "0xc889B8560a6285DB76df91227Eae0CB24a8FdC72",
-    "name": "AaveKandelSeeder"
-  },
-  {
-    "address": "0xb578B319426FD8112bA71295476Ae3a11F3BF533",
-    "name": "AavePooledRouter"
   }
 ]

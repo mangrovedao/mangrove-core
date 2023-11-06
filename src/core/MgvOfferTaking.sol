@@ -52,7 +52,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  /* There is a `ByVolume` variant where the taker specifies a desired total amount of `olKey.outbound_tkn` tokens (`takerWants`), and an available total amount of `olKey.inbound_tkn` (`takerGives`). Volumes should fit on 127 bits. */
+  /* There is a `ByVolume` variant where the taker specifies a desired total amount of `olKey.outbound_tkn` tokens (`takerWants`) and an available total amount of `olKey.inbound_tkn` (`takerGives`). Volumes should fit on 127 bits. */
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
@@ -228,7 +228,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Throughout the market order, `fillVolume` represents the amount left to buy (if `fillWants`) or sell (if `!fillWants`). */
       mor.fillVolume = fillVolume;
 
-      /* For the market order to start, the offer list needs to be both active, and not currently protected from reentrancy. */
+      /* For the market order to start, the offer list needs to be both active and not currently protected from reentrancy. */
       activeOfferListOnly(sor.global, sor.local);
       unlockedOfferListOnly(sor.local);
 
@@ -350,7 +350,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we
 
-      * lift the reentrancy lock, and
+      * lift the reentrancy lock and
       * update the storage
 
       so we are free from out of order storage writes.
@@ -471,7 +471,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* <a id="internalCleans/liftReentrancy"></a> Now that the current clean is over, we can lift the lock on the book. In the same operation we
 
-        * lift the reentrancy lock, and
+        * lift the reentrancy lock and
         * update the storage
 
         so we are free from out of order storage writes.
@@ -531,7 +531,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
       /* The flashloan is executed by call to `flashloan`. If the call reverts, it means the maker failed to send back `sor.takerWants` units of `olKey.outbound_tkn` to the taker. Notes :
        * `msg.sender` is Mangrove itself in those calls -- all operations related to the actual caller should be done outside of this call.
-       * any spurious exception due to an error in Mangrove code will be falsely blamed on the Maker, and its provision for the offer will be unfairly taken away.
+       * any spurious exception due to an error in Mangrove code will be falsely blamed on the Maker and its provision for the offer will be unfairly taken away.
        */
       bool success;
       bytes memory retdata;
@@ -554,7 +554,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* `success` is true: trade is complete */
       if (success) {
-        /* In case of success, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
+        /* In case of success, `retdata` encodes the gas used by the offer and an arbitrary 256 bits word sent by the maker.  */
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `internalMgvData` indicates trade success */
         internalMgvData = bytes32("mgv/tradeSuccess");

@@ -26,7 +26,7 @@ contract MgvOfferMaking is MgvHasOffers {
     Offer oldOffer;
   }
 
-  /* The function `newOffer` is for market makers only; no match with the existing offer list is done. The maker specifies how much `olKey.outbound_tkn` token it `gives`, and at which `tick` (which induces the price `1.0001^tick`). The actual tick of the offer will be the smallest tick offerTick > tick that satisfies offerTick % tickSpacing == 0.
+  /* The function `newOffer` is for market makers only; no match with the existing offer list is done. The maker specifies how much `olKey.outbound_tkn` token it `gives` and at which `tick` (which induces the price `1.0001^tick`). The actual tick of the offer will be the smallest tick offerTick > tick that satisfies offerTick % tickSpacing == 0.
 
      It also specify with `gasreq` how much gas should be given when executing their offer.
 
@@ -219,7 +219,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* Used by `updateOfferBy*` and `newOfferBy*`, this function optionally removes an offer then (re)inserts it in the tick tree. The `update` argument indicates whether the call comes from `updateOfferBy*` or `newOfferBy*`. */
   function writeOffer(OfferList storage offerList, OfferPack memory ofp, Tick insertionTick, bool update) internal {
     unchecked {
-      /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 26 bits. Otherwise it could be that `uint26(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint26(gasprice)` (using pseudocode here since the type uint26 does not exist). */
+      /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 26 bits. Otherwise it could be that `uint26(gasprice) < global_gasprice < gasprice` and the actual value we store is `uint26(gasprice)` (using pseudocode here since the type uint26 does not exist). */
       require(GlobalLib.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/tooBig");
 
       if (ofp.gasprice < ofp.global.gasprice()) {
@@ -423,7 +423,7 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
-      /* Now that we are done checking the current state of the leaf, we can update it. By reading the last id of the written offer's bin in the offer's leaf, we can check if the bin is currently empty or not (as an invariant, an empty bin has both `firstId` and `lastId` equal to 0, and a nonempty bin has both ids different from 0. 
+      /* Now that we are done checking the current state of the leaf, we can update it. By reading the last id of the written offer's bin in the offer's leaf, we can check if the bin is currently empty or not (as an invariant, an empty bin has both `firstId` and `lastId` equal to 0, and a nonempty bin has both ids different from 0). 
 
       Note that offers are always inserted at the end of their bin, so that earlier offer are taken first during market orders.
       */

@@ -16,7 +16,7 @@ contract MgvGovernable is MgvCommon {
 
   /* ## Transfer ERC20 tokens to governance.
 
-    If this function is called while an order is executing, the reentrancy may prevent a taker from receiving their tokens. This is fine as the order execution will then fail, and the tx will revert. So the most a malicious governance can do is render Mangrove unusable.
+    If this function is called while an order is executing, the reentrancy may prevent a taker from receiving their tokens. This is fine as the order execution will then fail and the tx will revert. So the most a malicious governance can do is render Mangrove unusable.
   */
   function withdrawERC20(address tokenAddress, uint value) external {
     authOnly();
@@ -86,7 +86,7 @@ contract MgvGovernable is MgvCommon {
   function setGasbase(OLKey memory olKey, uint offer_gasbase) public {
     unchecked {
       authOnly();
-      /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
+      /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct and b) overflow when used in calculations. */
       require(LocalLib.kilo_offer_gasbase_check(offer_gasbase / 1e3), LocalLib.kilo_offer_gasbase_size_error);
       // require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+

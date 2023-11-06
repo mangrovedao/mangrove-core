@@ -238,7 +238,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        * not set `prev`/`next` pointers to their correct locations at each offer taken (this is an optimization enabled by forbidding reentrancy).
        * after consuming a segment of offers, will update the current `best` offer to be the best remaining offer on the book. */
 
-      /* We start be enabling the reentrancy lock for this (`olKey.outbound_tkn`,`olKey.inbound_tkn`, `olKey.tickSpacing`) offer list. */
+      /* We start by enabling the reentrancy lock for this (`olKey.outbound_tkn`,`olKey.inbound_tkn`, `olKey.tickSpacing`) offer list. */
       sor.local = sor.local.lock(true);
       offerList.local = sor.local;
 

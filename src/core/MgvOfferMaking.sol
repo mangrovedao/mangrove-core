@@ -209,6 +209,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Since we only ever send money to the caller, we do not need to provide any particular amount of gas, the caller should manage this herself. */
       debitWei(msg.sender, amount);
       (noRevert,) = msg.sender.call{value: amount}("");
+      require(noRevert, "mgv/withdrawCallRevert");
     }
   }
 

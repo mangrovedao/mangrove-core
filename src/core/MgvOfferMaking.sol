@@ -26,7 +26,7 @@ contract MgvOfferMaking is MgvHasOffers {
     Offer oldOffer;
   }
 
-  /* The function `newOffer` is for market makers only; no match with the existing offer list is done. The maker specifies how much `olKey.outbound_tkn` token it `gives`, and at which `tick` (which is a power of 1.0001 and induces a price). The actual tick of the offer will be the smallest tick offerTick > tick that satisfies offerTick % tickSpacing == 0.
+  /* The function `newOffer` is for market makers only; no match with the existing offer list is done. The maker specifies how much `olKey.outbound_tkn` token it `gives`, and at which `tick` (which induces the price `1.0001^tick`). The actual tick of the offer will be the smallest tick offerTick > tick that satisfies offerTick % tickSpacing == 0.
 
      It also specify with `gasreq` how much gas should be given when executing their offer.
 

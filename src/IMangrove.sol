@@ -190,7 +190,7 @@ interface IMangrove is HasMgvEvents {
 
   ///@notice Creates a new offer on Mangrove, where the caller is the maker. The maker can implement the `IMaker` interface to be called during offer execution.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param tick Must be `>= MIN_TICK` and `<= MAX_TICK`. The tick (which is a power of 1.0001 and induces a price). The actual tick of the offer will be the smallest tick offerTick > tick that satisfies offerTick % tickSpacing == 0.
+  ///@param tick Must be `>= MIN_TICK` and `<= MAX_TICK`. The `tick` induces a price which is `1.0001^tick`. The actual tick of the offer will be the smallest tick `offerTick > tick` that satisfies `offerTick % tickSpacing == 0`.
   ///@param gives Must be `<= MAX_SAFE_VOLUME`. The amount of `olKey.outbound_tkn` the maker gives.
   ///@param gasreq The amount of gas required to execute the offer logic in the maker's `IMaker` implementation. This will limit the gas available, and the offer will fail if it spends more.
   ///@param gasprice The maximum gas price the maker is willing to pay a penalty for due to failing execution.
@@ -217,7 +217,7 @@ interface IMangrove is HasMgvEvents {
 
   ///@notice Updates an existing offer on Mangrove, where the caller is the maker.
   ///@param olKey The offer list key given by (maker) `outbound_tkn`, (maker) `inbound_tkn`, and `tickSpacing`.
-  ///@param tick Must be `>= MIN_TICK` and `<= MAX_TICK`. The tick (which is a power of 1.0001 and induces a price).
+  ///@param tick Must be `>= MIN_TICK` and `<= MAX_TICK`. The `tick` induces a price which is `1.0001^tick`.
   ///@param gives The amount of `olKey.outbound_tkn` the maker gives. Must be less than MAX_SAFE_VOLUME.
   ///@param gasreq The amount of gas required to execute the offer logic in the maker's `IMaker` implementation.
   ///@param gasprice The maximum gas price the maker is willing to pay a penalty for due to failing execution.

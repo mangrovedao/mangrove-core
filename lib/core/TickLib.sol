@@ -122,7 +122,7 @@ library TickLib {
     }
   }
 
-  /* ### (inbound,outbound) → ratio */
+  /* ### (inbound,outbound) → tick */
   function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick tick) {
     (uint man, uint exp) = ratioFromVolumes(inboundAmt, outboundAmt);
     return tickFromNormalizedRatio(man,exp);

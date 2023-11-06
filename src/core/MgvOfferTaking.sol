@@ -767,7 +767,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /*
      Penalty application summary:
 
-   * If the transaction was a success, we entirely refund the maker and send nothing to the taker.
+   * `applyPenalty` is not called if the offer executes successfully, so the offer remains provisioned. The maker can move the provision from the offer to its internal balance by calling `retractOffer(olKey,offerId,true)`.
    * Otherwise, the maker loses the cost of `gasused + offer_gasbase` gas. The gas price is estimated by `gasprice`.
    * To create the offer, the maker had to provision for `gasreq + offer_gasbase` gas at a price of `offerDetail.gasprice`.
    * We do not consider the tx.gasprice.

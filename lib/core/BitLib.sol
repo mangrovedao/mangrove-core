@@ -28,7 +28,6 @@ library BitLib {
     }
   }
 
-  // The fls function below is general-purpose and used by tests but not by Mangrove itself
   // Function fls is MIT License. Copyright (c) 2022 Solady.
 /// @dev find last set.
     /// Returns the index of the most significant bit of `x`,

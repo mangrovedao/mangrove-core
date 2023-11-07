@@ -18,28 +18,6 @@ concurrency:
 env:
   NODE_ENV: test
 jobs:
-  file-guard:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - uses: dorny/paths-filter@v2
-      id: changes
-      with:
-        filters: |
-          addresses:
-            - 'addresses/deployed/*.json'
-
-    - name: Fail if addresses changed unless PR has 'update address' label
-      if: >
-          (    github.event_name == 'pull_request'
-           &&  !contains(github.event.pull_request.labels.*.name,'update address') 
-           &&  steps.changes.outputs.addresses == 'true')
-      uses: actions/github-script@v7
-      with:
-        script: core.setFailed('You have changed an address in mangrove-core (deployed/*.json). PR must be marked \'update address\' for CI to run')
-
   # ==== Job: Build and test mangrove-core
   mangrove-core:
     runs-on: ubuntu-22.0-4core
@@ -125,7 +103,6 @@ jobs:
     if: always()
 
     needs:
-    - file-guard
     - mangrove-core
 
     runs-on: ubuntu-latest

@@ -10,7 +10,7 @@ contract MgvGovernable is MgvCommon {
 
   function authOnly() internal view {
     unchecked {
-      require(msg.sender == governance || msg.sender == address(this) || governance == address(0), "mgv/unauthorized");
+      require(msg.sender == _governance || msg.sender == address(this) || _governance == address(0), "mgv/unauthorized");
     }
   }
 
@@ -20,7 +20,7 @@ contract MgvGovernable is MgvCommon {
   */
   function withdrawERC20(address tokenAddress, uint value) external {
     authOnly();
-    require(transferToken(tokenAddress, governance, value), "mgv/withdrawERC20Fail");
+    require(transferToken(tokenAddress, _governance, value), "mgv/withdrawERC20Fail");
   }
 
   /* # Set configuration and Mangrove state */
@@ -160,7 +160,7 @@ contract MgvGovernable is MgvCommon {
     unchecked {
       authOnly();
       require(governanceAddress != address(0), "mgv/config/gov/not0");
-      governance = governanceAddress;
+      _governance = governanceAddress;
       emit SetGovernance(governanceAddress);
     }
   }

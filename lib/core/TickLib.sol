@@ -94,9 +94,9 @@ library TickLib {
   */
   
 
-  /* ### (inbound,outbound) → ratio */
+  /* ### (outbound,inbound) → ratio */
 
-  /* `ratioFromVolumes` converts a pair of (inbound,outbound) volumes to a floating-point, normalized ratio. It rounds down.
+  /* `ratioFromVolumes` converts a pair of (inbound,outbound) volumes to a floating-point, normalized ratio.
   * `outboundAmt = 0` has a special meaning and the highest possible price will be returned.
   * `inboundAmt = 0` has a special meaning if `outboundAmt != 0` and the lowest possible price will be returned.
   */
@@ -122,7 +122,7 @@ library TickLib {
     }
   }
 
-  /* ### (inbound,outbound) → tick */
+  /* ### (outbound,inbound) → ratio */
   function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick tick) {
     (uint man, uint exp) = ratioFromVolumes(inboundAmt, outboundAmt);
     return tickFromNormalizedRatio(man,exp);
@@ -276,8 +276,6 @@ library TickLib {
   /* Compute 1.0001^tick and returns it as a (mantissa,exponent) pair. Works by checking each set bit of `|tick|` multiplying by `1.0001^(-2**i)<<128` if the ith bit of tick is set. Since we inspect the absolute value of `tick`, `-1048576` is not a valid tick. If the tick is positive this computes `1.0001^-tick`, and we take the inverse at the end. For maximum precision some powers of 1.0001 are shifted until they occupy 128 bits. The `extra_shift` is recorded and added to the exponent.
 
   Since the resulting mantissa is left-shifted by 128 bits, if tick was positive, we divide `2**256` by the mantissa to get the 128-bit left-shifted inverse of the mantissa.
-
-  The error (relative to 1.0001^tick) may be negative or positive.
   */
   function nonNormalizedRatioFromTick(Tick tick) internal pure returns (uint man, uint exp) {
     uint absTick = Tick.unwrap(tick) < 0 ? uint(-Tick.unwrap(tick)) : uint(Tick.unwrap(tick));

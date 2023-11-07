@@ -149,7 +149,7 @@ library LeafLib {
 
   Explanation:
   Note that unlike in fields, have their low bin on the most significant bits.
-  `pos` is initially 1 if `leaf` has some nonzero bit in its MSB half, 0 otherwise. Then `pos` is `A | B`, where `A` is `iszero(ret)<<1`, so `A` is 0 if leaf has some nonzero bit in its MSB half, 2 otherwise. And `B` is 0 if `leaf >> (pos << 7)` has some nonzero bit in its most significant 192 bits, 0 otherwise.
+  `pos` is initially 1 if `leaf` has some nonzero bit in its MSB half, 0 otherwise. Then `pos` is `A | B`, where `A` is `iszero(pos)<<1`, so `A` is 0 if leaf has some nonzero bit in its MSB half, 2 otherwise. And `B` is 0 if `leaf >> (pos << 7)` has some nonzero bit in its most significant 192 bits, 0 otherwise.
   */
   function bestNonEmptyBinPos(Leaf leaf) internal pure returns (uint pos) {
     assembly("memory-safe") {

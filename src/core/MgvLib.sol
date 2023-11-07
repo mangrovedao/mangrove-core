@@ -72,7 +72,7 @@ library MgvLib {
     Local local;
   }
 
-  /* <a id="MgvLib/OrderResult"></a> `OrderResult` holds additional data for the maker and is given to them _after_ they fulfilled an offer. It gives them their own returned data from the previous call and an `mgvData` specifying whether Mangrove encountered an error. */
+  /* <a id="MgvLib/OrderResult"></a> `OrderResult` holds additional data for the maker and is given to them _after_ they fulfilled an offer. It gives them their own returned data from the previous call, and an `mgvData` specifying whether Mangrove encountered an error. */
 
   struct OrderResult {
     /* `makerData` holds a message that was either returned by the maker or passed as revert message at the end of the trade execution*/

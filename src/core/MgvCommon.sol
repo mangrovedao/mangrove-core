@@ -13,7 +13,7 @@ contract MgvCommon is HasMgvEvents {
   //+clear+
 
   /* The `governance` address. Governance is the only address that can configure parameters. */
-  address public governance;
+  address internal _governance;
 
   /* Global mgv configuration, encoded in a 256 bits word. The information encoded is detailed in [`structs.js`](#structs.js). */
   Global internal internal_global;

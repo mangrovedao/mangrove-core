@@ -195,6 +195,14 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.withdrawMgv(amt1 + 1);
   }
 
+  function test_withdraw_to_reverting_contract_fails(uint64 amt) public {
+    vm.assume(amt > 0);
+    mkr.provisionMgv(amt);
+    vm.mockCallRevert(address(mkr), amt, bytes.concat(""), bytes(""));
+    vm.expectRevert("mgv/withdrawCallRevert");
+    mkr.withdrawMgv(amt);
+  }
+
   function test_newOffer_without_mgv_balance_fails() public {
     vm.expectRevert("mgv/insufficientProvision");
     mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);

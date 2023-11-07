@@ -24,24 +24,24 @@ Contract inheritance:
                                         │
                                     MgvCommon
                                         │
-                       ┌────────────────┴──────────┐
-                       │                           │
-                 MgvHasOffers                      │
-                       │                           │
-           ┌───────────┴──────────┐                │
-           │                      │                │
-    MgvOfferTaking         MgvOfferMaking          │
-           │                      │                │
-           │                      │                │
-MgvOfferTakingWithPermit          │                │
-           │                      │                │
-           └───────────┬──────────┘                │
-                       │                           │
-                       │                           │
-                AbstractMangrove                   │
-                       │                           │
-                       ▼                           ▼
-                    Mangrove                  MgvAppendix
+                       ┌────────────────┴──────────────────┐
+                       │                                   │
+                 MgvHasOffers                              │
+                       │                                   │
+           ┌───────────┴──────────┐                 ┌──────┴──────┐
+           │                      │                 │             │
+    MgvOfferTaking         MgvOfferMaking     MgvGovernable    MgvView
+           │                      │                 │             │
+           │                      │                 └──────┬──────┘
+MgvOfferTakingWithPermit          │                        │
+           │                      │                        │
+           └───────────┬──────────┘                        │
+                       │                                   │
+                       │                                   │
+                AbstractMangrove                           │
+                       │                                   │
+                       ▼                                   ▼
+                    Mangrove                          MgvAppendix
 ```
 
 Overview of the changes between v1 and v2:

@@ -62,7 +62,7 @@ contract MgvHasOffers is MgvCommon {
             - If the root is now empty, return
   - Once we are done marking leaves/fields as empty, if the removed offer was the best there is at least one remaining offer, and if the caller requested it by setting `shouldUpdateBranch=true`, go down the tree and find the new best offer.
 
-  Each step must take into account the fact that the branch of the best offer is cached in `local`, and that loading a new best offer requires caching a different branch in `local`.
+  Each step must take into account the fact that the branch of the best offer is cached in `local` and that loading a new best offer requires caching a different branch in `local`.
 
   The reason why the caller might set `shouldUpdateBranch=false` is that it is itself about to insert an offer better than the current best offer. In that case, it will take care of caching the branch of the new best offer after calling `dislodgeOffer`.
 

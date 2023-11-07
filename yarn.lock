@@ -108,6 +108,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@mangrovedao/mangrove-core@workspace:."
   dependencies:
+    "@mangrovedao/mangrove-deployments": ^0.0.2-0
     "@types/node": ^20.9.0
     bn.js: ^5.2.1
     husky: ^8.0.3
@@ -125,6 +126,15 @@ __metadata:
     yargs: ^17.7.2
   languageName: unknown
   linkType: soft
+
+"@mangrovedao/mangrove-deployments@npm:^0.0.2-0":
+  version: 0.0.2-0
+  resolution: "@mangrovedao/mangrove-deployments@npm:0.0.2-0"
+  dependencies:
+    semver: ^7.5.4
+  checksum: 390701d2eba1a08753c318ca7dcb11f0c429b4d4392354c47f9538ed96385f72cdffc0fdd7ac21798a25d62956fabacd9e0ba5f263fca684b5a96cda5eb1d351
+  languageName: node
+  linkType: hard
 
 "@pkgjs/parseargs@npm:^0.11.0":
   version: 0.11.0
@@ -2088,7 +2098,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.3.7, semver@npm:^7.5.2":
+"semver@npm:^7.3.7, semver@npm:^7.5.2, semver@npm:^7.5.4":
   version: 7.5.4
   resolution: "semver@npm:7.5.4"
   dependencies:

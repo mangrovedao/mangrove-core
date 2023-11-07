@@ -11,9 +11,10 @@
     "postpack": "pinst --enable",
     "postinstall": "husky install",
     "corecov": "forge coverage --match-path 'test/core/*'",
-    "build": "forge build && node copyArtifacts && node buildIndex && node checkNatspec",
+    "build": "yarn run copyDeploymentAddresses && forge build && node copyArtifacts && node buildIndex && node checkNatspec",
     "clean": "forge clean; rimraf index.js dist",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts lib/core/Constants.sol src/core/MgvLib.sol src/core/MgvCommon.sol src/core/MgvHasOffers.sol src/core/MgvOfferMaking.sol src/core/MgvOfferTaking.sol src/core/MgvOfferTakingWithPermit.sol src/core/MgvGovernable.sol src/core/MgvView.sol src/core/MgvAppendix.sol src/core/Mangrove.sol lib/core/DensityLib.sol lib/core/TickTreeLib.sol lib/core/TickLib.sol lib/core/BitLib.sol lib/core/OfferExtra.sol lib/core/OfferDetailExtra.sol lib/core/LocalExtra.sol",
+    "copyDeploymentAddresses": "node copyDeploymentAddresses",
     "preproc": "ts-node preprocessing/run.ts",
     "generate-ratios": "node test-ratios/generate_ratios.js",
     "gas-measurement": "GAS_MATCH_PATH='test/core/gas/*' bash gas-measurement.sh",
@@ -41,6 +42,7 @@
     "gas-measurement.sh"
   ],
   "devDependencies": {
+    "@mangrovedao/mangrove-deployments": "^0.0.2-0",
     "@types/node": "^20.9.0",
     "bn.js": "^5.2.1",
     "husky": "^8.0.3",

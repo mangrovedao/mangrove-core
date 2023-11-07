@@ -7,6 +7,11 @@ import "@mgv/src/core/MgvCommon.sol";
 /* Contains view functions, to reduce Mangrove contract size */
 contract MgvView is MgvCommon {
   /* # Configuration Reads */
+  /* Get the address of Mangrove's governance. Only governance can successfully call functions of `MgvGovernable`. */
+  function governance() external view returns (address) {
+    return _governance;
+  }
+
   /* Reading the configuration for an offer list involves reading the config global to all offer lists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
   function config(OLKey memory olKey) external view returns (Global _global, Local _local) {
     unchecked {

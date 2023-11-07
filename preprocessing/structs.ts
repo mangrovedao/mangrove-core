@@ -24,7 +24,9 @@
 
    ## Ratio and price
 
-   In the comments, we use the word 'price' to refer to the ratio between the amount promised by an offer and the amount of requests in return. In the code however, we use the generic word `ratio` to avoid confusion with notions of price based on concepts such as 'quote' and 'base' tokens,etc.
+   In the comments, we use the word 'price' to refer to the ratio between the amount promised by an offer and the amount it requests in return. In the code however, we use the generic word `ratio` to avoid confusion with notions of price based on concepts such as 'quote' and 'base' tokens, etc.
+
+   The unit of price (and `ratio`) is `inbound_tkn`/`outbound_tkn`.
 
    ## `tickSpacing`
 

@@ -71,8 +71,6 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
-      require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
-      require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
       Tick tick = TickLib.tickFromVolumes(takerGives, takerWants);
       return marketOrderForByTick(olKey, tick, fillVolume, fillWants, taker);
@@ -92,7 +90,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
 
   /* # Misc. low-level functions */
 
-  /* Used by `*For` functions, it both checks that `msg.sender` was allowed to use the taker's funds, and decreases the former's allowance. */
+  /* Used by `*For` functions, it both checks that `msg.sender` was allowed to use the taker's funds and decreases the former's allowance. */
   function deductSenderAllowance(address outbound_tkn, address inbound_tkn, address owner, uint amount) internal {
     unchecked {
       mapping(address => uint) storage curriedAllow = _allowance[outbound_tkn][inbound_tkn][owner];

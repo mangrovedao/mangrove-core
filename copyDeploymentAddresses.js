@@ -1,10 +1,10 @@
 const deployments = require("@mangrovedao/mangrove-deployments");
 const fs = require("fs");
 const path = require("path");
+const config = require("./config");
 
-// FIXME: Move most of this logic into the mangrove-deployments package
-
-// FIXME: This is a hack to get the network names because the addresses files use non-canonical network names
+// This is a hack to get the network names because the addresses
+// file names use non-canonical network names from ethers.js
 const networkNames = {
   1: "mainnet",
   5: "goerli",
@@ -13,16 +13,18 @@ const networkNames = {
   80001: "maticmum",
 };
 
-// Get the latest deployments
-// FIXME: It should be possible to choose other versions
+// Query deployments based on the configuration in config.js
 const mangroveVersionDeployments = deployments.getMangroveVersionDeployments({
-  released: undefined,
+  version: config.coreDeploymentVersionRangePattern,
+  released: config.coreDeploymentVersionReleasedFilter,
 });
 const mgvOracleVersionDeployments = deployments.getMgvOracleVersionDeployments({
-  released: undefined,
+  version: config.coreDeploymentVersionRangePattern,
+  released: config.coreDeploymentVersionReleasedFilter,
 });
 const mgvReaderVersionDeployments = deployments.getMgvReaderVersionDeployments({
-  released: undefined,
+  version: config.coreDeploymentVersionRangePattern,
+  released: config.coreDeploymentVersionReleasedFilter,
 });
 // FIXME: Duplicated deployment/contract names should be removed from the token deployments
 const allTestErc20VersionDeployments =
@@ -36,17 +38,18 @@ const contractsDeployments = [
   mgvOracleVersionDeployments,
   mgvReaderVersionDeployments,
   ...allTestErc20VersionDeployments,
-];
+].filter((x) => x !== undefined);
 const deployedAddresses = {}; // network name => { name: string, address: string }[]
 // Iterate over each contract deployment and add the addresses to the deployedAddresses object
 for (const contractDeployments of contractsDeployments) {
-  for (const key in contractDeployments.networkAddresses) {
-    let networkDeployments = contractDeployments.networkAddresses[key];
-    const networkId = networkNames[key];
-    let networkAddresses = deployedAddresses[networkId];
+  for (const [networkId, networkDeployments] of Object.entries(
+    contractDeployments.networkAddresses,
+  )) {
+    const networkName = networkNames[+networkId];
+    let networkAddresses = deployedAddresses[networkName];
     if (networkAddresses === undefined) {
       networkAddresses = [];
-      deployedAddresses[networkId] = networkAddresses;
+      deployedAddresses[networkName] = networkAddresses;
     }
     networkAddresses.push({
       name:

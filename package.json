@@ -44,7 +44,7 @@
     "@types/node": "^20.9.0",
     "bn.js": "^5.2.1",
     "husky": "^8.0.3",
-    "lint-staged": "^14.0.1",
+    "lint-staged": "^15.0.2",
     "mathjs": "^11.11.1",
     "micromatch": "^4.0.5",
     "pinst": "^3.0.0",

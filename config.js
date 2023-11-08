@@ -14,6 +14,13 @@ exports.full_exports = ["SimpleTestMaker"];
 /////////////////////////////////////
 // mangrove-deployments configuration
 
+// Whether to fetch deployments from mangrove-deployments.
+// Setting this to false allows manually specifying the addresses to use
+// by writing them to the JSON files in the addresses/deployed directory.
+// This may be useful if one wants to use a non-primary deployment.
+// Default is true.
+exports.copyDeployments = true;
+
 // The SemVer range describing the versions of the Mangrove core contracts
 // to query mangrove-deployments for.
 // Default is the latest patch of the current package version.

@@ -25,8 +25,6 @@ const networkNames = {
 };
 
 // Construct the addresses object for each network
-// FIXME: For ERC20, name == symbol for now as this how it was done before. This should change to use the ERC20 id instead.
-//        This relies the fact that only one ERC20 instance is marked as 'default' for each network.
 const contextAddressesByNetwork = {}; // network name => { name: string, address: string }[]
 function getOrCreateNetworkAddresses(networkId) {
   const networkName = networkNames[+networkId];
@@ -57,18 +55,20 @@ for (const [erc20Id, erc20] of Object.entries(allErc20s)) {
     erc20.networkInstances,
   )) {
     const networkAddresses = getOrCreateNetworkAddresses(networkId);
-    // NOTE: There is only one instance here since only one ERC20 instance is marked as 'default' for each network.
     for (const [instanceId, networkInstance] of Object.entries(
       networkInstances,
     )) {
-      if (!networkInstance.default) {
-        continue;
-      }
       networkAddresses.push({
-        name: erc20.symbol,
+        name: instanceId,
         address: networkInstance.address,
       });
-      break;
+      // Also register the default instance as the token symbol for convenience
+      if (networkInstance.default) {
+        networkAddresses.push({
+          name: erc20.symbol,
+          address: networkInstance.address,
+        });
+      }
     }
   }
 }

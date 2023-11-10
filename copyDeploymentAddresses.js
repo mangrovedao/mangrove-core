@@ -35,31 +35,32 @@ const mgvReaderVersionDeployments = deployments.getMgvReaderVersionDeployments({
   version: config.coreDeploymentVersionRangePattern,
   released: config.coreDeploymentVersionReleasedFilter,
 });
-// FIXME: Duplicated deployment/contract names should be removed from the token deployments
-const allTestErc20VersionDeployments =
-  deployments.getAllTestErc20VersionDeployments({
-    released: undefined,
-  });
+
+// NB: Test token deployments are included in the context-addresses package,
+// so they are not queried from mangrove-deployments.
 
 // Construct the addresses object for each network
 const contractsDeployments = [
   mangroveVersionDeployments,
   mgvOracleVersionDeployments,
   mgvReaderVersionDeployments,
-  ...allTestErc20VersionDeployments,
 ].filter((x) => x !== undefined);
-const deployedAddresses = {}; // network name => { name: string, address: string }[]
-// Iterate over each contract deployment and add the addresses to the deployedAddresses object
+const deployedAddressesByNetwork = {}; // network name => { name: string, address: string }[]
+function getOrCreateNetworkAddresses(networkId) {
+  const networkName = networkNames[+networkId];
+  let networkAddresses = deployedAddressesByNetwork[networkName];
+  if (networkAddresses === undefined) {
+    networkAddresses = [];
+    deployedAddressesByNetwork[networkName] = networkAddresses;
+  }
+  return networkAddresses;
+}
+
 for (const contractDeployments of contractsDeployments) {
   for (const [networkId, networkDeployments] of Object.entries(
     contractDeployments.networkAddresses,
   )) {
-    const networkName = networkNames[+networkId];
-    let networkAddresses = deployedAddresses[networkName];
-    if (networkAddresses === undefined) {
-      networkAddresses = [];
-      deployedAddresses[networkName] = networkAddresses;
-    }
+    const networkAddresses = getOrCreateNetworkAddresses(networkId);
     networkAddresses.push({
       name:
         contractDeployments.deploymentName ?? contractDeployments.contractName,
@@ -69,8 +70,8 @@ for (const contractDeployments of contractsDeployments) {
 }
 
 // Replace the addresses files with the loaded deployment addresses
-for (const networkName in deployedAddresses) {
-  let addressesToWrite = deployedAddresses[networkName];
+for (const networkName in deployedAddressesByNetwork) {
+  let addressesToWrite = deployedAddressesByNetwork[networkName];
   const networkAddressesFilePath = path.join(
     __dirname,
     `./addresses/deployed/${networkName}.json`,

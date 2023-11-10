@@ -104,10 +104,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mangrovedao/context-addresses@npm:^0.0.2-0":
+  version: 0.0.2-0
+  resolution: "@mangrovedao/context-addresses@npm:0.0.2-0"
+  dependencies:
+    semver: ^7.5.4
+  checksum: ce9a6bdded4f22b55848215336908043507f2d5f9ec482274c01d03537428ac5460b30ca55e17f377a6a41ae2fd67722c1f53a7e944c3574bb47886f0036e742
+  languageName: node
+  linkType: hard
+
 "@mangrovedao/mangrove-core@workspace:.":
   version: 0.0.0-use.local
   resolution: "@mangrovedao/mangrove-core@workspace:."
   dependencies:
+    "@mangrovedao/context-addresses": ^0.0.2-0
     "@mangrovedao/mangrove-deployments": ^0.0.2-0
     "@types/node": ^20.9.0
     bn.js: ^5.2.1

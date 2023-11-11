@@ -33,7 +33,6 @@
     "/src",
     "/script",
     "/test/lib/**/*",
-    "/addresses/**/!(*.backup.json)",
     "foundry.toml",
     "remappings.txt",
     "/lib",

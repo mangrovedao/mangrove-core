@@ -36,7 +36,7 @@ jobs:
           (    github.event_name == 'pull_request'
            &&  !contains(github.event.pull_request.labels.*.name,'update address') 
            &&  steps.changes.outputs.addresses == 'true')
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: core.setFailed('You have changed an address in mangrove-core (deployed/*.json). PR must be marked \'update address\' for CI to run')
 

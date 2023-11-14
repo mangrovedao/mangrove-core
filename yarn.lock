@@ -105,11 +105,11 @@ __metadata:
   linkType: hard
 
 "@mangrovedao/context-addresses@npm:next":
-  version: 0.0.2-2
-  resolution: "@mangrovedao/context-addresses@npm:0.0.2-2"
+  version: 0.0.2-5
+  resolution: "@mangrovedao/context-addresses@npm:0.0.2-5"
   dependencies:
     semver: ^7.5.4
-  checksum: 1f9389c1533da92d6032d26cab4edb483a5608096933e8a70c733a26dea0f39208e514fd43006c6d5ad5a08c984f47dff5b5d252a85664854114b8b7d51b12b0
+  checksum: 4b926524f80b3886dad893d2415fb5d8f2a5b23e6d900112765cdad1b6cc90d017b025a59d0451da4aee50d4970ce6768f53d92d837808c7eb304da81d8343b7
   languageName: node
   linkType: hard
 

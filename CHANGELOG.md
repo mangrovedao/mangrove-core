@@ -1,5 +1,9 @@
 # Next version
 
+# 2.0.0-4
+
+- Use addresses from mangrove-deployments and context-addresses
+
 # 2.0.0-3
 
 - fix: use forge-std from core

@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const config = require("./config");
 
+const script = path.basename(__filename);
+
 if (!config.copyContextAddresses) {
   console.group(
     "Skipping copying context addresses from the context-addresses package.",
@@ -14,6 +16,8 @@ if (!config.copyContextAddresses) {
   console.groupEnd();
   process.exit(0);
 }
+
+console.log(`${script}: Copying context addresses...`);
 
 // This is a hack to get the network names because the addresses
 // file names use non-canonical network names from ethers.js
@@ -86,3 +90,5 @@ for (const networkName in contextAddressesByNetwork) {
     JSON.stringify(addressesToWrite, null, 2),
   );
 }
+
+console.log(`${script}: ...Done copying context addresses`);

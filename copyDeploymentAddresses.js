@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const config = require("./config");
 
+const script = path.basename(__filename);
+
 if (!config.copyDeployments) {
   console.group(
     "Skipping copying deployments from the mangrove-deployments package.",
@@ -12,6 +14,8 @@ if (!config.copyDeployments) {
   console.groupEnd();
   process.exit(0);
 }
+
+console.log(`${script}: Copying deployment addresses...`);
 
 // This is a hack to get the network names because the addresses
 // file names use non-canonical network names from ethers.js
@@ -82,3 +86,5 @@ for (const networkName in deployedAddressesByNetwork) {
     JSON.stringify(addressesToWrite, null, 2),
   );
 }
+
+console.log(`${script}: ...Done copying deployment addresses`);

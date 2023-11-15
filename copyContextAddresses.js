@@ -12,6 +12,7 @@ if (!config.copyContextAddresses) {
   );
   console.log("Using addresses/context/*.json files as-is instead.");
   console.groupEnd();
+  process.exit(0);
 }
 
 // This is a hack to get the network names because the addresses

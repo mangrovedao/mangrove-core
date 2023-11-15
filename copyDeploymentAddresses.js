@@ -10,6 +10,7 @@ if (!config.copyDeployments) {
   console.log("Set copyDeployments = true in config.js to enable copying.");
   console.log("Using addresses/deployed/*.json files as-is instead.");
   console.groupEnd();
+  process.exit(0);
 }
 
 // This is a hack to get the network names because the addresses

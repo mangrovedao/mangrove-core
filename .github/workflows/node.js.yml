@@ -39,23 +39,23 @@ jobs:
     - name: Foundry Setup
       uses: mangrovedao/.github/.github/actions/foundry-setup@master
 
-    - name: Solidity Compile
+    - name: Build
       run: yarn run build
 
     # Pinned forks are used in tests and utilize secrets. For PRs from forks these are not available
     # Let the tests attempt to run with demo endpoints which are more unstable.
-    - name: Mangrove Solidity Tests (fast)
+    - name: Solidity Tests (fast)
       run: yarn run test:fast
       env:
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL || 'https://polygon.llamarpc.com' }}
         MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL || 'unused' }}
 
     # Memory intensive tests run without -vvv as GitHub actions otherwise cancels the step due to memory usage
-    - name: Mangrove Solidity Tests (memory intensive)
+    - name: Solidity Tests (memory intensive)
       run: yarn run test:memory-intensive
 
       # For push runs we also create a coverage report
-    - name: Create coverage report for mangrove-solidity
+    - name: Create coverage report
       if: github.event_name != 'pull_request' 
       run: forge coverage --report lcov
       env:
@@ -70,7 +70,7 @@ jobs:
       if: github.event_name != 'pull_request' 
       run: echo "::set-output name=sha_for_head::$(git rev-parse HEAD)"
 
-    - name: Upload to Coveralls for mangrove-solidity
+    - name: Upload to Coveralls
       uses: coverallsapp/github-action@master
       if: github.event_name != 'pull_request' 
       with:

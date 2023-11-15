@@ -78,7 +78,7 @@ for (const [erc20Id, erc20] of Object.entries(allErc20s)) {
   }
 }
 
-// Replace the addresses files with the loaded context addresses
+// Create the addresses files with the loaded context addresses
 for (const networkName in contextAddressesByNetwork) {
   let addressesToWrite = contextAddressesByNetwork[networkName];
   const networkAddressesFilePath = path.join(

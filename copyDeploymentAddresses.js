@@ -74,7 +74,7 @@ for (const contractDeployments of contractsDeployments) {
   }
 }
 
-// Replace the addresses files with the loaded deployment addresses
+// Create the addresses files with the loaded deployment addresses
 for (const networkName in deployedAddressesByNetwork) {
   let addressesToWrite = deployedAddressesByNetwork[networkName];
   const networkAddressesFilePath = path.join(

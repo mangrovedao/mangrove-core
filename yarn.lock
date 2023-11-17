@@ -123,7 +123,7 @@ __metadata:
     bn.js: ^5.2.1
     husky: ^8.0.3
     lint-staged: ^15.1.0
-    mathjs: ^12.0.0
+    mathjs: ^12.1.0
     micromatch: ^4.0.5
     pinst: ^3.0.0
     prettier: ^3.1.0
@@ -1470,9 +1470,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mathjs@npm:^12.0.0":
-  version: 12.0.0
-  resolution: "mathjs@npm:12.0.0"
+"mathjs@npm:^12.1.0":
+  version: 12.1.0
+  resolution: "mathjs@npm:12.1.0"
   dependencies:
     "@babel/runtime": ^7.23.2
     complex.js: ^2.1.1
@@ -1485,7 +1485,7 @@ __metadata:
     typed-function: ^4.1.1
   bin:
     mathjs: bin/cli.js
-  checksum: e707fd2a127dafe27f4934cd889791553b164ba98eaffbebc25bc488208afe4b57a164950d30d48c887e93337f949885a0bef918bf96e1a181fb250726b1e7a8
+  checksum: 272691bb3e302c35a36c8e4f7ff947bfdd99adb59dede05611a58fb31ef720e07e4414e3f3560af71fb6411ea54af86c0ede47ff3cd343fea66f6d07b463b80e
   languageName: node
   linkType: hard
 

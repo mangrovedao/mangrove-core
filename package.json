@@ -44,7 +44,7 @@
   "devDependencies": {
     "@mangrovedao/context-addresses": "next",
     "@mangrovedao/mangrove-deployments": "next",
-    "@types/node": "^20.9.0",
+    "@types/node": "^20.9.2",
     "bn.js": "^5.2.1",
     "husky": "^8.0.3",
     "lint-staged": "^15.1.0",

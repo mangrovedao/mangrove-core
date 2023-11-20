@@ -57,7 +57,7 @@
     "solcco": ">=1.0.13",
     "solhint": "^4.0.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.2.2",
+    "typescript": "^5.3.2",
     "yargs": "^17.7.2"
   },
   "packageManager": "yarn@3.5.0"

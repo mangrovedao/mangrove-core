@@ -137,21 +137,40 @@ contract TickAndBinTest is MangroveTest {
     assertEq(Bin.wrap(bin).level2Index(), index);
   }
 
-  function test_normalizeRatio_ko() public {
+  function test_normalizeRatio_ko_mantissaIs0() public {
     vm.expectRevert("mgv/normalizeRatio/mantissaIs0");
     TickLib.normalizeRatio(0, 0);
+  }
+
+  function test_normalizeRatio_ko_expNegative() public {
     vm.expectRevert("mgv/normalizeRatio/lowExp");
     TickLib.normalizeRatio(type(uint).max, 0);
   }
 
-  function test_tickFromNormalizedRatio_ko() public {
+  function test_tickFromNormalizedRatio_ko_minRatioExp_mantissaTooSmall() public {
     vm.expectRevert("mgv/tickFromRatio/tooLow");
     TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA - 1, uint(MIN_RATIO_EXP));
+  }
+
+  function test_tickFromNormalizedRatio_ko_expTooBig() public {
     vm.expectRevert("mgv/tickFromRatio/tooLow");
     TickLib.tickFromNormalizedRatio(MIN_RATIO_MANTISSA, uint(MIN_RATIO_EXP + 1));
+  }
+
+  function test_tickFromNormalizedRatio_ko_maxRatioExp_mantissaTooBig() public {
     vm.expectRevert("mgv/tickFromRatio/tooHigh");
     TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA + 1, uint(MAX_RATIO_EXP));
-    vm.expectRevert("mgv/tickFromRatio/tooHigh");
+  }
+
+  function test_tickFromNormalizedRatio_ko_expTooSmall() public {
+    // NB: MAX_RATIO_EXP is zero and the exp argument is uint,
+    //     it is not possible pass an exp value that is smaller than MAX_RATIO_EXP,
+    //     since uint(MAX_RATIO_EXP - 1) = uint(-1) = type(uint)max.
+    //
+    //     For completeness and robustness against future changes, we keep this test,
+    //     but expecting a revert due to the ratio being too low instead of too high.
+    // vm.expectRevert("mgv/tickFromRatio/tooHigh");
+    vm.expectRevert("mgv/tickFromRatio/tooLow");
     TickLib.tickFromNormalizedRatio(MAX_RATIO_MANTISSA, uint(MAX_RATIO_EXP - 1));
   }
 

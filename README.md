@@ -82,11 +82,14 @@ To build, run
 $ yarn build
 ```
 
-## Address Configuration
+## Addresses and Configuration
 
-When writing scripts that uses the `Generic.sol` script, you can control what addresses are read.
+The repo supports the use of named addresses. The addresses and names are read from JSON files and, on deployment, written to the same JSON files.
 
-By default, it will try and look into the `{projectRoot}/mgvConfig.json` file, in order to find the paths to all the addresses folders you want to use. The file should look like this:
+By default, these addresses are located in `./addresses/` and are populated as part of the build process with the addresses in the npm packages [mangrove-deployments](https://github.com/mangrovedao/mangrove-deployments/)
+(Mangrove, periphery, and strat addresses) and [context-addresses](https://github.com/mangrovedao/context-addresses/) (eg token addresses).
+
+You can configure where the scripts will look for addresses files and it's possible to point to multiple directories. By default, the scripts will use the paths specified in the `{projectRoot}/mgvConfig.json` file:
 
 ```json
 {
@@ -97,7 +100,7 @@ By default, it will try and look into the `{projectRoot}/mgvConfig.json` file, i
 
 The `deployment_addresses_path` is the path to the folder where the addresses are written to when deploying. The `addresses_paths` is an array of paths to folders where the addresses are read from. The paths are relative to the project root.
 
-If you want to read addresses from other folders, then you can add paths to the json file. If you do not want to change the `mgvConfig.json` file, but still want to read some extra addresses. Then you you can set `MGV_ADDRESSES_PATHS` to the addresses paths that should be read from. And if you don't want to read the `mgvConfig.json` addresses at all, then you can set `MGV_READ_ADDRESSES_PATHS` to false. The `MGV_ADDRESSES_PATHS` variable has same structure as the `mgvConfig.json`. Here is an example:
+If you want to read addresses from other folders, then you can add paths to the json file. If you do not want to change the `mgvConfig.json` file, but still want to read some extra addresses, then you you can set `MGV_ADDRESSES_PATHS` to the addresses paths that should be read from. And if you don't want to read the `mgvConfig.json` addresses at all, then you can set `MGV_READ_ADDRESSES_PATHS` to `false`. The `MGV_ADDRESSES_PATHS` variable has same structure as the `mgvConfig.json`. Here is an example:
 
 ```shell
 export MGV_ADDRESSES_PATHS='{ "addresses_paths": ["/addresses/"] }'

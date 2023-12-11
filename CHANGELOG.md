@@ -1,25 +1,6 @@
 # Next version
 
-# 2.0.0-4
-
-- Use addresses from mangrove-deployments and context-addresses
-
-# 2.0.0-3
-
-- fix: use forge-std from core
-
-# 2.0.0-2
-
-- Introduce MangroveMeasureGasused for gasreq measurement in tests.
-
-# 2.0.0-1
-
-- New remappings (e.g., "@mgv/src" instead of "mgv-src")
-- Expose gas-measurement
-
-# 2.0.0-0
-
-- New tick-based API with constant-gas insert and update of offers (the volume-based API is still available)
+- New tick-based API with constant-gas insert, update, and retract of offers (the volume-based API is still available)
 - Market orders now use a true limit price instead of avg. limit price
 - Several parameter sizes have changed:
   - Density is stored as a float and presented as a fixed-point number
@@ -28,6 +9,9 @@
 - Sniping has been restricted to Cleaning: `snipe` has been replaced by `cleanByImpersonation` which only allows "sniping" of failing offers
 - Makers can no longer read the offer list during `makerExecute`
 - Mangrove is split into two contracts and uses delegatecall internally
+- New remappings (e.g., "@mgv/src" instead of "mgv-src")
+- Strat lib and strats have been split into a separate repo: https://github.com/mangrovedao/mangrove-strats/
+- Addresses are now read from the @mangrovedao/mangrove-deployments and @mangrovedao/context-addresses npm packages
 
 # 1.5.13
 

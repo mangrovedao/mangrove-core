@@ -1,24 +1,22 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Script2} from "mgv_lib/Script2.sol";
-import {ToyENS} from "mgv_lib/ToyENS.sol";
-import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
-import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
-import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
-import {EthereumFork} from "mgv_test/lib/forks/Ethereum.sol";
-import {ArbitrumFork} from "mgv_test/lib/forks/Arbitrum.sol";
-import {LocalFork} from "mgv_test/lib/forks/Local.sol";
-import {TestnetZkevmFork} from "mgv_test/lib/forks/TestnetZkevm.sol";
-import {GoerliFork} from "mgv_test/lib/forks/Goerli.sol";
-import {ZkevmFork} from "mgv_test/lib/forks/Zkevm.sol";
-import {console2 as console} from "forge-std/console2.sol";
+import {Script2} from "@mgv/lib/Script2.sol";
+import {ToyENS} from "@mgv/lib/ToyENS.sol";
+import {GenericFork} from "@mgv/test/lib/forks/Generic.sol";
+import {PolygonFork} from "@mgv/test/lib/forks/Polygon.sol";
+import {MumbaiFork} from "@mgv/test/lib/forks/Mumbai.sol";
+import {EthereumFork} from "@mgv/test/lib/forks/Ethereum.sol";
+import {ArbitrumFork} from "@mgv/test/lib/forks/Arbitrum.sol";
+import {LocalFork} from "@mgv/test/lib/forks/Local.sol";
+import {TestnetZkevmFork} from "@mgv/test/lib/forks/TestnetZkevm.sol";
+import {GoerliFork} from "@mgv/test/lib/forks/Goerli.sol";
+import {ZkevmFork} from "@mgv/test/lib/forks/Zkevm.sol";
+import {console2 as console} from "@mgv/forge-std/console2.sol";
 
 address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 string constant SINGLETON_FORK = "Deployer:Fork";
 string constant SINGLETON_BROADCASTER = "Deployer:broadcaster";
-
-// TODO Add constants for singleton labels (instead of repeating the string everywhere)
 
 /* Writes deployments in 2 ways:
    1. In a json file. Easier to write one directly than to parse&transform
@@ -106,7 +104,7 @@ abstract contract Deployer is Script2 {
     vm.broadcast(broadcaster());
   }
 
-  function prettyLog(string memory log) internal view {
+  function prettyLog(string memory log) internal pure {
     console.log("\u001b[33m*\u001b[0m", log);
   }
 
@@ -191,6 +189,7 @@ abstract contract Deployer is Script2 {
   // buffer for output file
   string out;
 
+  // FIXME use vm.writeJson https://github.com/foundry-rs/foundry/pull/3595
   function outputDeployment() internal {
     (string[] memory names, address[] memory addrs) = fork.allDeployed();
 
@@ -209,10 +208,10 @@ abstract contract Deployer is Script2 {
       line(end ? "  }" : "  },");
     }
     line("]");
-    string memory latestBackupFile = fork.addressesFileRoot("deployed.backup", "-latest");
+    string memory latestBackupFile = fork.addressesFileDeployment("deployed.backup", "-latest");
     string memory timestampedBackupFile =
-      fork.addressesFileRoot("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"));
-    string memory mainFile = fork.addressesFileRoot("deployed");
+      fork.addressesFileDeployment("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"));
+    string memory mainFile = fork.addressesFileDeployment("deployed");
     vm.writeFile(latestBackupFile, out);
     vm.writeFile(timestampedBackupFile, out);
     if (writeDeploy) {

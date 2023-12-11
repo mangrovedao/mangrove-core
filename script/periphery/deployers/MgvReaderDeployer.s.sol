@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
-import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {Script, console} from "@mgv/forge-std/Script.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
 
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
 
 /**
  * @notice deploys a MgvReader instance
@@ -13,15 +13,15 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 contract MgvReaderDeployer is Deployer {
   function run() public {
-    innerRun({mgv: Mangrove(envAddressOrName("MGV", "Mangrove"))});
+    innerRun({mgv: IMangrove(envAddressOrName("MGV", "Mangrove"))});
     outputDeployment();
   }
 
-  function innerRun(Mangrove mgv) public {
+  function innerRun(IMangrove mgv) public {
     MgvReader reader;
     broadcast();
     if (forMultisig) {
-      reader = new MgvReader{salt:salt}({mgv: address(mgv)});
+      reader = new MgvReader{salt: salt}({mgv: address(mgv)});
     } else {
       reader = new MgvReader({mgv: address(mgv)});
     }

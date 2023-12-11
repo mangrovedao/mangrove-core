@@ -1,5 +1,7 @@
 # Next version
 
+# 2.0.0
+
 - New tick-based API with constant-gas insert, update, and retract of offers (the volume-based API is still available)
 - Market orders now use a true limit price instead of avg. limit price
 - Several parameter sizes have changed:

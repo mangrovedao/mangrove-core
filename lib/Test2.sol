@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {Script2} from "mgv_lib/Script2.sol";
+import {Test, console2} from "@mgv/forge-std/Test.sol";
+import "@mgv/lib/Script2.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */
 /* You may want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
@@ -100,7 +100,7 @@ contract Test2 is Test, Script2 {
 
     // set code to nonzero so solidity-inserted extcodesize checks don't fail
     vm.etch(addr, bytes("not zero"));
-    vm.label(addr, label);
+    vm.label(addr, string.concat("fresh-address:",label));
     return (key, addr);
   }
 
@@ -183,5 +183,24 @@ contract Test2 is Test, Script2 {
       console2.log("Gas used: %s", gasDelta);
     }
     return gasDelta;
+  }
+
+  function measureTransferGas(address tkn) public returns (uint) {
+    address someone = freshAddress();
+    vm.prank(someone);
+    IERC20(tkn).approve(address(this), type(uint).max);
+    deal(tkn, someone, 10);
+    /* WARNING: gas metering is done by local execution, which means that on
+     * networks that have different EIPs activated, there will be discrepancies. */
+    uint post;
+    uint pre = gasleft();
+    IERC20(tkn).transferFrom(someone, address(this), 1);
+    post = gasleft();
+    return pre - post;
+  }
+
+  // Returns a relative error in basis points, to be used by assertApproxEqRel*
+  function relError(uint basis_points) internal pure returns (uint) {
+    return 1e18*basis_points/10_000;
   }
 }

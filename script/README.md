@@ -9,10 +9,10 @@ This is a script example:
 // This script is SmallMgvReaderDeployer.s.sol
 pragma solidity ^0.8.13;
 
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import "forge-std/console.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import "@mgv/forge-std/console.sol";
 
 contract SmallMgvReaderDeployer is Deployer {
   TestToken public myToken;

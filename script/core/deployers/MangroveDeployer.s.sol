@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
-import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvCleanerDeployer} from "mgv_script/periphery/deployers/MgvCleanerDeployer.s.sol";
-import {MgvReaderDeployer} from "mgv_script/periphery/deployers/MgvReaderDeployer.s.sol";
+import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
+import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
+import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {Deployer} from "@mgv/script/lib/Deployer.sol";
+import {MgvReaderDeployer} from "@mgv/script/periphery/deployers/MgvReaderDeployer.s.sol";
 
 contract MangroveDeployer is Deployer {
-  Mangrove public mgv;
+  IMangrove public mgv;
   MgvReader public reader;
-  MgvCleaner public cleaner;
   MgvOracle public oracle;
 
   function run() public {
@@ -37,9 +34,11 @@ contract MangroveDeployer is Deployer {
 
     broadcast();
     if (forMultisig) {
-      mgv = new Mangrove{salt:salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax});
+      mgv = IMangrove(
+        payable(address(new Mangrove{salt: salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
+      );
     } else {
-      mgv = new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax});
+      mgv = IMangrove(payable(address(new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax}))));
     }
     fork.set("Mangrove", address(mgv));
 
@@ -52,8 +51,5 @@ contract MangroveDeployer is Deployer {
 
     (new MgvReaderDeployer()).innerRun(mgv);
     reader = MgvReader(fork.get("MgvReader"));
-
-    (new MgvCleanerDeployer()).innerRun(mgv);
-    cleaner = MgvCleaner(fork.get("MgvCleaner"));
   }
 }

@@ -1,5 +1,18 @@
 # Next version
 
+- New tick-based API with constant-gas insert, update, and retract of offers (the volume-based API is still available)
+- Market orders now use a true limit price instead of avg. limit price
+- Several parameter sizes have changed:
+  - Density is stored as a float and presented as a fixed-point number
+  - `offer_gasbase` is now `kilo_offer_gasbase`
+  - `gasprice` is now in Mwei
+- Sniping has been restricted to Cleaning: `snipe` has been replaced by `cleanByImpersonation` which only allows "sniping" of failing offers
+- Makers can no longer read the offer list during `makerExecute`
+- Mangrove is split into two contracts and uses delegatecall internally
+- New remappings (e.g., "@mgv/src" instead of "mgv-src")
+- Strat lib and strats have been split into a separate repo: https://github.com/mangrovedao/mangrove-strats/
+- Addresses are now read from the @mangrovedao/mangrove-deployments and @mangrovedao/context-addresses npm packages
+
 # 1.5.13
 
 - new addresses for AaveKandelSeeder and AavePooledRouter
@@ -24,6 +37,18 @@
 - deploy new Mangrove and periphery contracts to Arbitrum
 - deploy MangroveOrder to Arbitrum
 - deploy KandelSeeders to Arbitrum
+
+# 1.5.8-2
+
+- Can now pin fork to an arbitrary block number
+
+# 1.5.8-1
+
+- Added MgvConfig to configure addresses. (See README for more info)
+
+# 1.5.8-0
+
+- Moved all strat related contracts, scripts, deployers, etc. to @mangrovedao/mangrove-strats.
 
 # 1.5.8
 

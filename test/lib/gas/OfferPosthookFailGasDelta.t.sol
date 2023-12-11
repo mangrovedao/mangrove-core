@@ -62,9 +62,9 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
       payable(
         address(
           new BeforePosthookGasMeasuringMangrove({
-          governance: $(this),
-          gasprice: options.gasprice,
-          gasmax: options.gasmax
+            governance: $(this),
+            gasprice: options.gasprice,
+            gasmax: options.gasmax
           })
         )
       )

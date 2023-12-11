@@ -190,25 +190,11 @@ contract MangroveTest is Test2, HasMgvEvents {
   function setupMangrove() public returns (IMangrove _mgv) {
     if (options.measureGasusedMangrove) {
       _mgv = IMangrove(
-        $(
-          new MangroveMeasureGasused({
-          governance: $(this),
-          gasprice: options.gasprice,
-          gasmax: options.gasmax
-          })
-        )
+        $(new MangroveMeasureGasused({governance: $(this), gasprice: options.gasprice, gasmax: options.gasmax}))
       );
     } else {
       _mgv = IMangrove(
-        payable(
-          address(
-            new Mangrove({
-            governance: $(this),
-            gasprice: options.gasprice,
-            gasmax: options.gasmax
-            })
-          )
-        )
+        payable(address(new Mangrove({governance: $(this), gasprice: options.gasprice, gasmax: options.gasmax})))
       );
     }
     vm.label($(_mgv), "Mangrove");

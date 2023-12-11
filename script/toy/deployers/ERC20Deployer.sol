@@ -20,12 +20,8 @@ contract ERC20Deployer is Deployer {
     uint dec = vm.envUint("DECIMALS");
     require(uint8(dec) == dec, "Decimals overflow");
     broadcast();
-    TestToken token = new TestToken({
-      admin: broadcaster(),
-      name: vm.envString("NAME"),
-      symbol: symbol,
-      _decimals: uint8(dec)
-    });
+    TestToken token =
+      new TestToken({admin: broadcaster(), name: vm.envString("NAME"), symbol: symbol, _decimals: uint8(dec)});
     fork.set(symbol, address(token));
     broadcast();
     token.setMintLimit(vm.envUint("MINT_LIMIT"));

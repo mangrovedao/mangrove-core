@@ -21,7 +21,7 @@ contract MgvReaderDeployer is Deployer {
     MgvReader reader;
     broadcast();
     if (forMultisig) {
-      reader = new MgvReader{salt:salt}({mgv: address(mgv)});
+      reader = new MgvReader{salt: salt}({mgv: address(mgv)});
     } else {
       reader = new MgvReader({mgv: address(mgv)});
     }

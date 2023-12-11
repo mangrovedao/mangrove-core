@@ -924,13 +924,13 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_admin_can_withdrawERC20(uint amount) public {
-    TestToken token = new TestToken(address(this),"Withdrawable","WDBL",18);
+    TestToken token = new TestToken(address(this), "Withdrawable", "WDBL", 18);
     deal(address(token), address(mgv), amount);
     mgv.withdrawERC20(address(token), amount);
   }
 
   function test_withdraw_failure_message(uint amount) public {
-    TestToken token = new TestToken(address(this),"Withdrawable","WDBL",18);
+    TestToken token = new TestToken(address(this), "Withdrawable", "WDBL", 18);
     vm.assume(amount > 0);
     deal(address(token), address(mgv), amount - 1);
     vm.expectRevert("mgv/withdrawERC20Fail");

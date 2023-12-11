@@ -48,13 +48,13 @@ contract MgvOracleTest is Test2 {
   event SetDensity96X32(uint density96X32);
 
   function test_authOnly() public {
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(address(0), address(0), 0);
 
     //does not revert
     mgvOracle._authOnly();
 
     address governance = freshAddress("governance");
-    mgvOracle = new MgvOracleForInternal( governance, address(0), 0);
+    mgvOracle = new MgvOracleForInternal(governance, address(0), 0);
 
     vm.expectRevert("MgvOracle/unauthorized");
     mgvOracle._authOnly();
@@ -67,7 +67,7 @@ contract MgvOracleTest is Test2 {
   }
 
   function test_setGovernance() public {
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(address(0), address(0), 0);
 
     assertEq(mgvOracle.getGovernance(), address(0), "governance should not be set yet");
 
@@ -78,7 +78,7 @@ contract MgvOracleTest is Test2 {
   }
 
   function test_setMutator() public {
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(address(0), address(0), 0);
 
     assertEq(mgvOracle.getMutator(), address(0), "mutator should not be set yet");
 

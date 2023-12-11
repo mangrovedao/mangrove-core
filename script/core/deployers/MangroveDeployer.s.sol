@@ -35,7 +35,7 @@ contract MangroveDeployer is Deployer {
     broadcast();
     if (forMultisig) {
       mgv = IMangrove(
-        payable(address(new Mangrove{salt:salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
+        payable(address(new Mangrove{salt: salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
       );
     } else {
       mgv = IMangrove(payable(address(new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax}))));

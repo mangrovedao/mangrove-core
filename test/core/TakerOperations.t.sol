@@ -759,7 +759,7 @@ contract TakerOperationsTest is MangroveTest {
   // - Mangrove still has enough gas to revert
   // Here we test the OOG case with a special token "OutOfGasToken"
   function test_unsafe_gas_left_fails_to_pay_taker() public {
-    OutOfGasToken oogtt = new OutOfGasToken(address(this),"OutOfGasToken","OOGTT",18);
+    OutOfGasToken oogtt = new OutOfGasToken(address(this), "OutOfGasToken", "OOGTT", 18);
     oogtt.setTaker(address(this));
     deal($(oogtt), address(mkr), 100 ether);
     mkr.approveMgv(oogtt, type(uint).max);
@@ -823,19 +823,11 @@ contract TakerOperationsTest is MangroveTest {
    * reaching the `revert("mgv/swapError")` statement. To trigger that error, I
    * make a BadMangrove contract with a misbehaving `flashloan` function. */
   function test_unreachable_swapError() public {
-    IMangrove badMgv = IMangrove(
-      payable(
-        new BadMangrove({
-        governance: $(this),
-        gasprice: 40,
-        gasmax: 2_000_000
-        })
-      )
-    );
+    IMangrove badMgv = IMangrove(payable(new BadMangrove({governance: $(this), gasprice: 40, gasmax: 2_000_000})));
     vm.label($(badMgv), "Bad Mangrove");
     badMgv.activate(olKey, 0, 0, 0);
 
-    TestMaker mkr2 = new TestMaker(IMangrove($(badMgv)),olKey);
+    TestMaker mkr2 = new TestMaker(IMangrove($(badMgv)), olKey);
     badMgv.fund{value: 10 ether}($(mkr2));
     mkr2.newOfferByVolume(1 ether, 1 ether, 1, 0);
     vm.expectRevert("mgv/swapError");

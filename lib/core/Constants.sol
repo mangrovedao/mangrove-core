@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 /* The constants below are written as literals to optimize gas. For all the relevant constants here, the non-literal expression that computes them is checked in `Constants.t.sol`. */

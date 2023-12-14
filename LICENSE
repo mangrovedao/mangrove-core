@@ -4,7 +4,8 @@ The files in this repo are covered by different licenses:
 
 * Mangrove Core contracts are licensed under Business Source License 1.1.
 * Contract interfaces (ABIs) are licensed under MIT License.
-* Tools and other pieces of code are licensed under GNU AFFERO GENERAL PUBLIC LICENSE v3.
+* Tools and other pieces of code are licensed under GNU AFFERO GENERAL PUBLIC LICENSE v3
+    or any later version.
 
 Each file header contains the SPDX license identifier of the license for that file.
 For more information about SPDX, please refer to <https://spdx.dev/>.

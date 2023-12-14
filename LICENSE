@@ -5,8 +5,8 @@ The files in this repo are covered by different licenses:
 * Mangrove Core contracts are licensed under Business Source License 1.1.
 * Contract interfaces (ABIs) and libraries useful for integrating with Mangrove
     are licensed under MIT License.
-* Tools and other pieces of code are licensed under GNU AFFERO GENERAL PUBLIC LICENSE v3
-    or any later version.
+* Tools, scripts, tests, and other pieces of code are licensed under
+    GNU AFFERO GENERAL PUBLIC LICENSE v3 or any later version.
 * OpenZeppelin code in ERC20.sol and ERC20Lib.sol is covered by the original
     MIT License (text included below).
 

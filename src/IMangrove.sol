@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: MIT
 // This file must be kept up-to-date with the actual Mangrove interface.
 
 pragma solidity >=0.7.0 <0.9.0;

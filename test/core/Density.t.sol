@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 // those tests should be run with -vv so correct gas estimates are shown
 

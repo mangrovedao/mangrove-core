@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 import {OfferDetail,OfferDetailUnpacked} from "@mgv/src/preprocessed/OfferDetail.post.sol";

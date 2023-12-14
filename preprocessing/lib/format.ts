@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // template tag that converts array to separate lines but keeps the current
 // indent level
 export const format = (strings: TemplateStringsArray, ...nuggets: any[]) => {

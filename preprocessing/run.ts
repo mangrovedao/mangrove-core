@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import * as fs from "fs";
 
 import struct_defs from "./structs";

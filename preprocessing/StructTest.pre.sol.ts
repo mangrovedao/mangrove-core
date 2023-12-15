@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 import { format, tabulate } from "./lib/format";
 
 export const template = ({ preamble, struct_utilities, struct: s }) => {
-  return format`// SPDX-License-Identifier: AGPL-3.0-or-later
+  return format`// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.13;
 

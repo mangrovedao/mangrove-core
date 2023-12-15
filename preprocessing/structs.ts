@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 /* # Mangrove Summary
    * Mangrove holds offer lists for `outbound_tkn`,`inbound_tkn` pairs with a given `tickSpacing`.
    * Offers are sorted in a tree (the "tick tree") where each available price point (a `bin`) holds a doubly linked list of offers.

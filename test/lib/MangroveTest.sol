@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import {Test2, toFixed, Test, console, toString, vm} from "@mgv/lib/Test2.sol";

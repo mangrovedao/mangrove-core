@@ -2,9 +2,7 @@
 
 - Update licenses:
   - Change license of Contants.sol and TickLib.sol from BUSL-1.1 to MIT
-  - Replace Unlicense and BSD-2-Clause with MIT
-  - Replace AGPL-3.0 with AGPL-3.0-or-later
-  - Consistently use AGPL-3.0-or-later for tools, scripts, and tests
+  - Replace Unlicense, BSD-2-Clause, and AGPL-3.0 with MIT
   - Restore MIT license for OpenZeppelin code
 
 # 2.0.0

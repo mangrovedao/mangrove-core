@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:	AGPL-2.0
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import {Script} from "@mgv/forge-std/Script.sol";

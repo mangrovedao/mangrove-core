@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import * as fs from "fs";
 
 import struct_defs from "./structs";

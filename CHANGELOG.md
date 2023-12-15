@@ -1,5 +1,12 @@
 # Next version
 
+# 2.0.1
+
+- Update licenses:
+  - Change license of Contants.sol and TickLib.sol from BUSL-1.1 to MIT
+  - Replace Unlicense, BSD-2-Clause, and AGPL-3.0 with MIT
+  - Restore MIT license for OpenZeppelin code
+
 # 2.0.0
 
 - New tick-based API with constant-gas insert, update, and retract of offers (the volume-based API is still available)

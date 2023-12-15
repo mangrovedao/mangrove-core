@@ -5,7 +5,7 @@ This directory contains scripts (`*.s.sol`) for deploying, configuring, and gove
 This is a script example:
 
 ```solidity
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier: MIT
 // This script is SmallMgvReaderDeployer.s.sol
 pragma solidity ^0.8.13;
 

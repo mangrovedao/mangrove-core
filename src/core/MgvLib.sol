@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: MIT
 
 /* `MgvLib` contains data structures returned by external calls to Mangrove and the interfaces it uses for its own external calls. */
 

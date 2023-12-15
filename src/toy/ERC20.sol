@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: MIT
+// Code adapted from OpenZeppelin Contracts
 pragma solidity >=0.8.0;
 
 import {IERC20} from "@mgv/lib/IERC20.sol";

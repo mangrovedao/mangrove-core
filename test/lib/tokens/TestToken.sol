@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier: MIT
 // !!! Warning !!!
 // This is a faucet token contract with freely mintable token intended for testing purpose.
 // Do not use for value bearing tokens!

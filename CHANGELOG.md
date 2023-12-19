@@ -1,5 +1,7 @@
 # Next version
 
+- Change @mangrovedao/mangrove-deployments and @mangrovedao/context-addresses dependencies from 'next' to '^1.0.0'
+
 # 2.0.1
 
 - Update licenses:

@@ -27,6 +27,7 @@ const networkNames = {
   137: "matic",
   42161: "arbitrum",
   80001: "maticmum",
+  11155111: "sepolia",
 };
 
 // Construct the addresses object for each network

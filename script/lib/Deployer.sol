@@ -11,6 +11,7 @@ import {ArbitrumFork} from "@mgv/test/lib/forks/Arbitrum.sol";
 import {LocalFork} from "@mgv/test/lib/forks/Local.sol";
 import {TestnetZkevmFork} from "@mgv/test/lib/forks/TestnetZkevm.sol";
 import {GoerliFork} from "@mgv/test/lib/forks/Goerli.sol";
+import {SepoliaFork} from "@mgv/test/lib/forks/Sepolia.sol";
 import {ZkevmFork} from "@mgv/test/lib/forks/Zkevm.sol";
 import {console2 as console} from "@mgv/forge-std/console2.sol";
 
@@ -68,6 +69,8 @@ abstract contract Deployer is Script2 {
         fork = new ArbitrumFork();
       } else if (block.chainid == 80001) {
         fork = new MumbaiFork();
+      } else if (block.chainid == 11155111) {
+        fork = new SepoliaFork();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }

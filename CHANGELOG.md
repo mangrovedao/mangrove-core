@@ -1,5 +1,7 @@
 # Next version
 
+- Add support for Sepolia
+
 # 2.0.2
 
 - Change @mangrovedao/mangrove-deployments and @mangrovedao/context-addresses dependencies from 'next' to '^1.0.0'

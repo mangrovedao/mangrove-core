@@ -25,6 +25,7 @@ const networkNames = {
   137: "matic",
   42161: "arbitrum",
   80001: "maticmum",
+  11155111: "sepolia",
 };
 
 // Query deployments based on the configuration in config.js
@@ -53,6 +54,11 @@ const contractsDeployments = [
 const deployedAddressesByNetwork = {}; // network name => { name: string, address: string }[]
 function getOrCreateNetworkAddresses(networkId) {
   const networkName = networkNames[+networkId];
+  if (networkName === undefined) {
+    throw new Error(
+      `Network ID ${networkId} is unknown. Please add it to the networkNames object in ${script}.`,
+    );
+  }
   let networkAddresses = deployedAddressesByNetwork[networkName];
   if (networkAddresses === undefined) {
     networkAddresses = [];

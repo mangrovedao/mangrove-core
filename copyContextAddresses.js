@@ -27,12 +27,18 @@ const networkNames = {
   137: "matic",
   42161: "arbitrum",
   80001: "maticmum",
+  11155111: "sepolia",
 };
 
 // Construct the addresses object for each network
 const contextAddressesByNetwork = {}; // network name => { name: string, address: string }[]
 function getOrCreateNetworkAddresses(networkId) {
   const networkName = networkNames[+networkId];
+  if (networkName === undefined) {
+    throw new Error(
+      `Network ID ${networkId} is unknown. Please add it to the networkNames object in ${script}.`,
+    );
+  }
   let networkAddresses = contextAddressesByNetwork[networkName];
   if (networkAddresses === undefined) {
     networkAddresses = [];

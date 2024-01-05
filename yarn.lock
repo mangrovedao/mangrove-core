@@ -119,7 +119,7 @@ __metadata:
   dependencies:
     "@mangrovedao/context-addresses": ^1.0.1
     "@mangrovedao/mangrove-deployments": ^1.0.1
-    "@types/node": ^20.9.0
+    "@types/node": ^20.10.6
     bn.js: ^5.2.1
     husky: ^8.0.3
     lint-staged: ^15.1.0
@@ -247,12 +247,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^20.9.0":
-  version: 20.9.0
-  resolution: "@types/node@npm:20.9.0"
+"@types/node@npm:^20.10.6":
+  version: 20.10.6
+  resolution: "@types/node@npm:20.10.6"
   dependencies:
     undici-types: ~5.26.4
-  checksum: bfd927da6bff8a32051fa44bb47ca32a56d2c8bc8ba0170770f181cc1fa3c0b05863c9b930f0ba8604a48d5eb0d319166601709ca53bf2deae0025d8b6c6b8a3
+  checksum: ada40e4ccbda3697dca88f8d13f4c996c493be6fbc15f5f5d3b91096d56bd700786a2c148a92a2b4c5d1f133379e63f754a786b3aebfc6a7d09fc7ea16dc017b
   languageName: node
   linkType: hard
 

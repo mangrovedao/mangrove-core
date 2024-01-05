@@ -27,6 +27,7 @@ fs_permissions = [{ access = "read-write", path = "./test-ratios/"}, { access = 
 polygon="${POLYGON_NODE_URL}"
 mumbai="${MUMBAI_NODE_URL}"
 ethereum="${ETHEREUM_NODE_URL}"
+sepolia="${SEPOLIA_NODE_URL}"
 testnet_zkevm="https://rpc.public.zkevm-test.net"
 zkevm="https://zkevm-rpc.com"
 goerli="${GOERLI_NODE_URL}"
@@ -34,6 +35,7 @@ arbitrum="${ARBITRUM_NODE_URL}"
 
 [etherscan]
 goerli={key="${GOERLI_API_KEY}"}
+sepolia={key="${SEPOLIA_API_KEY}"}
 mumbai={key="${POLYGON_API_KEY}"}
 polygon={key="${POLYGON_API_KEY}"}
 testnet_zkevm={key="${ZKEVM_API_KEY}",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
@@ -57,6 +59,7 @@ ignore = ['lib/**/*.sol','**/vendor/**/*.sol','**/preprocessed/**/*.sol']
 mumbai={key=""}
 polygon={key=""}
 goerli={key=""}
+sepolia={key=""}
 testnet_zkevm={key="",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
 zkevm={key="",chain=1101,url="https://api-zkevm.polygonscan.com/api"}
 arbitrum={key=""}

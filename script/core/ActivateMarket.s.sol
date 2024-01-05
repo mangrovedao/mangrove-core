@@ -9,13 +9,17 @@ import "@mgv/src/core/MgvLib.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
- TKN1=USDC \
- TKN2=WETH \
+
+ export NATIVE_IN_USDC=2259
+ export NATIVE_IN_ETH=1
+
+ TKN1=USDC.T/unknown1 \
+ TKN2=WETH.T/unknown1 \
  TICK_SPACING=1 \
- TKN1_IN_MWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) Mwei) \
- TKN2_IN_MWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) Mwei) \
+ TKN1_IN_MWEI=$( echo "scale=0; 10^12/$NATIVE_IN_USDC" | bc ) \
+ TKN2_IN_MWEI=$( echo "scale=0; 10^12/$NATIVE_IN_ETH" | bc ) \
  FEE=30 \
- forge script --fork-url mumbai ActivateMarket*/
+ forge script --fork-url sepolia ActivateMarket*/
 
 contract ActivateMarket is Deployer {
   function run() public {

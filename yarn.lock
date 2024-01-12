@@ -32,12 +32,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.23.2":
-  version: 7.23.2
-  resolution: "@babel/runtime@npm:7.23.2"
+"@babel/runtime@npm:^7.23.8":
+  version: 7.23.8
+  resolution: "@babel/runtime@npm:7.23.8"
   dependencies:
     regenerator-runtime: ^0.14.0
-  checksum: 6c4df4839ec75ca10175f636d6362f91df8a3137f86b38f6cd3a4c90668a0fe8e9281d320958f4fbd43b394988958585a17c3aab2a4ea6bf7316b22916a371fb
+  checksum: 0bd5543c26811153822a9f382fd39886f66825ff2a397a19008011376533747cd05c33a91f6248c0b8b0edf0448d7c167ebfba34786088f1b7eb11c65be7dfc3
   languageName: node
   linkType: hard
 
@@ -123,7 +123,7 @@ __metadata:
     bn.js: ^5.2.1
     husky: ^8.0.3
     lint-staged: ^15.1.0
-    mathjs: ^12.0.0
+    mathjs: ^12.3.0
     micromatch: ^4.0.5
     pinst: ^3.0.0
     prettier: ^3.1.0
@@ -1470,11 +1470,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mathjs@npm:^12.0.0":
-  version: 12.0.0
-  resolution: "mathjs@npm:12.0.0"
+"mathjs@npm:^12.3.0":
+  version: 12.3.0
+  resolution: "mathjs@npm:12.3.0"
   dependencies:
-    "@babel/runtime": ^7.23.2
+    "@babel/runtime": ^7.23.8
     complex.js: ^2.1.1
     decimal.js: ^10.4.3
     escape-latex: ^1.2.0
@@ -1485,7 +1485,7 @@ __metadata:
     typed-function: ^4.1.1
   bin:
     mathjs: bin/cli.js
-  checksum: e707fd2a127dafe27f4934cd889791553b164ba98eaffbebc25bc488208afe4b57a164950d30d48c887e93337f949885a0bef918bf96e1a181fb250726b1e7a8
+  checksum: f0b5d679a4f4dd535677ea62a92e09d7758e4b383709367e3476512525c121f24b44d59bea71f01d1eb02623305446550962712bf9e911b879d53ab2fe793b78
   languageName: node
   linkType: hard
 

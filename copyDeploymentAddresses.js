@@ -15,82 +15,56 @@ if (!config.copyDeployments) {
   process.exit(0);
 }
 
-console.log(`${script}: Copying deployment addresses...`);
+console.group(`${script}:`);
 
 // This is a hack to get the network names because the addresses
 // file names use non-canonical network names from ethers.js
-const networkNames = {
-  1: "mainnet",
-  5: "goerli",
-  137: "matic",
-  42161: "arbitrum",
-  80001: "maticmum",
-  11155111: "sepolia",
-};
+const networkNames = deployments.mangroveNetworkNames;
 
 // Query deployments based on the configuration in config.js
-const mangroveVersionDeployments = deployments.getMangroveVersionDeployments({
+console.log(
+  `Querying mangrove-deployments for core deployments of version ${
+    config.coreDeploymentVersionRangePattern
+  }, ${
+    config.coreDeploymentVersionReleasedFilter === undefined
+      ? "released or unreleased"
+      : config.coreDeploymentVersionReleasedFilter
+        ? "release"
+        : "unreleased"
+  }...`,
+);
+const latestCoreDeployments = deployments.getLatestCoreContractsPerNetwork({
   version: config.coreDeploymentVersionRangePattern,
   released: config.coreDeploymentVersionReleasedFilter,
 });
-const mgvOracleVersionDeployments = deployments.getMgvOracleVersionDeployments({
-  version: config.coreDeploymentVersionRangePattern,
-  released: config.coreDeploymentVersionReleasedFilter,
-});
-const mgvReaderVersionDeployments = deployments.getMgvReaderVersionDeployments({
-  version: config.coreDeploymentVersionRangePattern,
-  released: config.coreDeploymentVersionReleasedFilter,
-});
+console.group(`...found the following deployments of Mangrove:`);
+for (const [networkName, namedAddresses] of Object.entries(
+  latestCoreDeployments,
+)) {
+  console.log(
+    `${networkName}: ${namedAddresses.mangrove.version} at ${namedAddresses.mangrove.address}`,
+  );
+}
+console.groupEnd();
+console.log();
+
+console.log(`Copying deployment addresses...`);
 
 // NB: Test token deployments are included in the context-addresses package,
 // so they are not queried from mangrove-deployments.
-
-// Construct the addresses object for each network
-const contractsDeployments = [
-  mangroveVersionDeployments,
-  mgvOracleVersionDeployments,
-  mgvReaderVersionDeployments,
-].filter((x) => x !== undefined);
-const deployedAddressesByNetwork = {}; // network name => { name: string, address: string }[]
-function getOrCreateNetworkAddresses(networkId) {
-  const networkName = networkNames[+networkId];
-  if (networkName === undefined) {
-    throw new Error(
-      `Network ID ${networkId} is unknown. Please add it to the networkNames object in ${script}.`,
-    );
-  }
-  let networkAddresses = deployedAddressesByNetwork[networkName];
-  if (networkAddresses === undefined) {
-    networkAddresses = [];
-    deployedAddressesByNetwork[networkName] = networkAddresses;
-  }
-  return networkAddresses;
-}
-
-for (const contractDeployments of contractsDeployments) {
-  for (const [networkId, networkDeployments] of Object.entries(
-    contractDeployments.networkAddresses,
-  )) {
-    const networkAddresses = getOrCreateNetworkAddresses(networkId);
-    networkAddresses.push({
-      name:
-        contractDeployments.deploymentName ?? contractDeployments.contractName,
-      address: networkDeployments.primaryAddress,
-    });
-  }
-}
-
 // Create the addresses files with the loaded deployment addresses
-for (const networkName in deployedAddressesByNetwork) {
-  let addressesToWrite = deployedAddressesByNetwork[networkName];
+for (const [networkName, namedAddresses] of Object.entries(
+  deployments.toNamedAddressesPerNamedNetwork(latestCoreDeployments),
+)) {
   const networkAddressesFilePath = path.join(
     __dirname,
     `./addresses/deployed/${networkName}.json`,
   );
   fs.writeFileSync(
     networkAddressesFilePath,
-    JSON.stringify(addressesToWrite, null, 2),
+    JSON.stringify(namedAddresses, null, 2),
   );
 }
 
-console.log(`${script}: ...Done copying deployment addresses`);
+console.log(`...done copying deployment addresses`);
+console.groupEnd();

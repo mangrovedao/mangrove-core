@@ -130,7 +130,7 @@ __metadata:
     rimraf: ^5.0.5
     shelljs: ^0.8.4
     solcco: ">=1.0.13"
-    solhint: ^4.0.0
+    solhint: ^4.1.1
     ts-node: ^10.9.2
     typescript: ^5.3.3
     yargs: ^17.7.2
@@ -2242,9 +2242,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solhint@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "solhint@npm:4.0.0"
+"solhint@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "solhint@npm:4.1.1"
   dependencies:
     "@solidity-parser/parser": ^0.16.0
     ajv: ^6.12.6
@@ -2270,7 +2270,7 @@ __metadata:
       optional: true
   bin:
     solhint: solhint.js
-  checksum: 14d6091732ece1526711ab462f9aa17463d76b99948b6b2322bf4953fe325e1df8eabab9a4debaea65ca87c28b856e9d154ceee37d9b4d2d45069292e89c62a1
+  checksum: da2a263368d109364f8cc5e7cdae95f70e880585962aa3f0de379ed02905658d105463aa2dc1045fd7cbf0df6655a0d0c6e0fe6876fc2d7496104fba10ebdd30
   languageName: node
   linkType: hard
 

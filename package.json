@@ -46,7 +46,7 @@
     "@mangrovedao/mangrove-deployments": "^2.0.0",
     "@types/node": "^20.11.5",
     "bn.js": "^5.2.1",
-    "husky": "^8.0.3",
+    "husky": "^9.0.6",
     "lint-staged": "^15.2.0",
     "mathjs": "^12.3.0",
     "micromatch": "^4.0.5",

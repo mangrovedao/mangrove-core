@@ -121,7 +121,7 @@ __metadata:
     "@mangrovedao/mangrove-deployments": ^2.0.0
     "@types/node": ^20.11.5
     bn.js: ^5.2.1
-    husky: ^8.0.3
+    husky: ^9.0.7
     lint-staged: ^15.2.0
     mathjs: ^12.3.0
     micromatch: ^4.0.5
@@ -1094,12 +1094,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"husky@npm:^8.0.3":
-  version: 8.0.3
-  resolution: "husky@npm:8.0.3"
+"husky@npm:^9.0.7":
+  version: 9.0.7
+  resolution: "husky@npm:9.0.7"
   bin:
-    husky: lib/bin.js
-  checksum: 837bc7e4413e58c1f2946d38fb050f5d7324c6f16b0fd66411ffce5703b294bd21429e8ba58711cd331951ee86ed529c5be4f76805959ff668a337dbfa82a1b0
+    husky: bin.js
+  checksum: 42fc1b869a1f5778ba5088706e7280b28a725cc29abad42f8411c54e542890e5936020a8ba886996bde3e7c5573a5cbfd440a51817d0da7db14ce81e102267ed
   languageName: node
   linkType: hard
 

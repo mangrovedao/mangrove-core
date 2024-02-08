@@ -19,68 +19,38 @@ if (!config.copyContextAddresses) {
 
 console.log(`${script}: Copying context addresses...`);
 
-// This is a hack to get the network names because the addresses
-// file names use non-canonical network names from ethers.js
-const networkNames = {
-  1: "mainnet",
-  5: "goerli",
-  137: "matic",
-  42161: "arbitrum",
-  80001: "maticmum",
-  11155111: "sepolia",
-};
-
 // Construct the addresses object for each network
 const contextAddressesByNetwork = {}; // network name => { name: string, address: string }[]
-function getOrCreateNetworkAddresses(networkId) {
-  const networkName = networkNames[+networkId];
-  if (networkName === undefined) {
-    throw new Error(
-      `Network ID ${networkId} is unknown. Please add it to the networkNames object in ${script}.`,
-    );
-  }
+function getOrCreateNetworkAddresses(networkName) {
   let networkAddresses = contextAddressesByNetwork[networkName];
   if (networkAddresses === undefined) {
-    networkAddresses = [];
-    contextAddressesByNetwork[networkName] = networkAddresses;
+    networkAddresses = contextAddressesByNetwork[networkName] = [];
   }
   return networkAddresses;
 }
 
 // Accounts
 const allAccounts = contextAddresses.getAllAccounts();
-for (const [accountId, account] of Object.entries(allAccounts)) {
-  for (const [networkId, address] of Object.entries(account.networkAddresses)) {
-    const networkAddresses = getOrCreateNetworkAddresses(networkId);
-    networkAddresses.push({
-      name: accountId,
-      address: address,
-    });
-  }
+for (const [networkName, namedAddresses] of Object.entries(
+  contextAddresses.toNamedAddressesPerNamedNetwork(allAccounts),
+)) {
+  const networkAddresses = getOrCreateNetworkAddresses(networkName);
+  networkAddresses.push(...namedAddresses);
 }
 
 // Token addresses
 const allErc20s = contextAddresses.getAllErc20s();
-for (const [erc20Id, erc20] of Object.entries(allErc20s)) {
-  for (const [networkId, networkInstances] of Object.entries(
-    erc20.networkInstances,
-  )) {
-    const networkAddresses = getOrCreateNetworkAddresses(networkId);
-    for (const [instanceId, networkInstance] of Object.entries(
-      networkInstances,
-    )) {
-      networkAddresses.push({
-        name: instanceId,
-        address: networkInstance.address,
-      });
-      // Also register the default instance as the token symbol for convenience
-      if (networkInstance.default) {
-        networkAddresses.push({
-          name: erc20.symbol,
-          address: networkInstance.address,
-        });
-      }
-    }
+const allErc20InstancesPerNamedNetwork =
+  contextAddresses.toErc20InstancesPerNamedNetwork(allErc20s);
+for (const [networkName, erc20Instances] of Object.entries(
+  allErc20InstancesPerNamedNetwork,
+)) {
+  const networkAddresses = getOrCreateNetworkAddresses(networkName);
+  for (const { id, address } of erc20Instances) {
+    networkAddresses.push({
+      name: id,
+      address,
+    });
   }
 }
 

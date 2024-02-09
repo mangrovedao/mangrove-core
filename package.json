@@ -42,7 +42,7 @@
     "gas-measurement.sh"
   ],
   "devDependencies": {
-    "@mangrovedao/context-addresses": "^1.1.0",
+    "@mangrovedao/context-addresses": "^1.1.2",
     "@mangrovedao/mangrove-deployments": "^2.0.1",
     "@types/node": "^20.11.5",
     "bn.js": "^5.2.1",

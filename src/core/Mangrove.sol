@@ -8,8 +8,10 @@ import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
 import {MgvAppendix} from "@mgv/src/core/MgvAppendix.sol";
 import {MgvGovernable} from "@mgv/src/core/MgvGovernable.sol";
 
+import "@mgv/src/utils/BlastGasAndYieldClaimable.sol";
+
 /* <a id="Mangrove"></a> The `Mangrove` contract inherits both the maker and taker functionality. It also deploys `MgvAppendix` when constructed. */
-contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
+contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking, BlastGasAndYieldClaimable(msg.sender) {
   address internal immutable APPENDIX;
 
   constructor(address governance, uint gasprice, uint gasmax) MgvOfferTakingWithPermit("Mangrove") {

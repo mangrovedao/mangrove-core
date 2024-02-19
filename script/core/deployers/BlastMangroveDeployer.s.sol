@@ -11,47 +11,21 @@ import {BlastLib} from "@mgv/src/chains/blast/lib/BlastLib.sol";
 import {MangroveDeployer} from "./MangroveDeployer.s.sol";
 
 contract BlastMangroveDeployer is MangroveDeployer {
-  function run() public override {
-    innerRun({
-      chief: envAddressOrName("CHIEF", broadcaster()),
-      gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
-      gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000,
-      gasbot: envAddressOrName("GASBOT", "Gasbot")
-    });
-    outputDeployment();
-  }
-
   function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public override {
-    broadcast();
-    if (forMultisig) {
-      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
-    } else {
-      oracle = new MgvOracle({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
-    }
-    fork.set("MgvOracle", address(oracle));
-
-    broadcast();
-    if (forMultisig) {
-      mgv = IBlastMangrove(
-        payable(address(new BlastMangrove{salt: salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
-      );
-    } else {
-      mgv = IBlastMangrove(
-        payable(address(new BlastMangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
-      );
-    }
-    fork.set("Mangrove", address(mgv));
-
-    broadcast();
-    mgv.setMonitor(address(oracle));
-    broadcast();
-    mgv.setUseOracle(true);
-    broadcast();
-    mgv.setGovernance(chief);
+    super.innerRun(chief, gasprice, gasmax, gasbot);
     broadcast();
     BlastLib.BLAST.configureGovernorOnBehalf(chief, address(mgv));
+  }
 
-    (new MgvReaderDeployer()).innerRun(mgv);
-    reader = MgvReader(fork.get("MgvReader"));
+  function deployMangrove(address governance, uint gasprice, uint gasmax) public override {
+    if (forMultisig) {
+      mgv = IBlastMangrove(
+        payable(address(new BlastMangrove{salt: salt}({governance: governance, gasprice: gasprice, gasmax: gasmax})))
+      );
+    } else {
+      mgv = IBlastMangrove(
+        payable(address(new BlastMangrove({governance: governance, gasprice: gasprice, gasmax: gasmax})))
+      );
+    }
   }
 }

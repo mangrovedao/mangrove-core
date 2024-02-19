@@ -7,9 +7,9 @@ import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
 import {IBlastMangrove} from "@mgv/src/chains/blast/IBlastMangrove.sol";
 import {Deployer} from "@mgv/script/lib/Deployer.sol";
 import {MgvReaderDeployer} from "@mgv/script/periphery/deployers/MgvReaderDeployer.s.sol";
-import {BaseBlast} from "@mgv/src/chains/blast/utils/BaseBlast.sol";
+import {BlastLib} from "@mgv/src/chains/blast/lib/BlastLib.sol";
 
-contract MangroveDeployer is Deployer, BaseBlast {
+contract BlastMangroveDeployer is Deployer {
   IBlastMangrove public mgv;
   MgvReader public reader;
   MgvOracle public oracle;
@@ -52,7 +52,7 @@ contract MangroveDeployer is Deployer, BaseBlast {
     broadcast();
     mgv.setGovernance(chief);
     broadcast();
-    BLAST.configureGovernorOnBehalf(address(mgv), chief);
+    BlastLib.BLAST.configureGovernorOnBehalf(address(mgv), chief);
 
     (new MgvReaderDeployer()).innerRun(mgv);
     reader = MgvReader(fork.get("MgvReader"));

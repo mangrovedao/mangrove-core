@@ -16,7 +16,7 @@ contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
     unchecked {
       emit NewMgv();
 
-      APPENDIX = deployAppendix();
+      APPENDIX = address(new MgvAppendix());
 
       /* Set initial gasprice, gasmax, recursion depth and max gasreq for failing offers.  See `MgvAppendix` for why this happens through a delegatecall. */
       bool success;
@@ -37,11 +37,6 @@ contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGovernance, (governance)));
       require(success, "mgv/ctor/governance");
     }
-  }
-
-  /* Deploy a new `MgvAppendix` instance. */
-  function deployAppendix() internal virtual returns (address) {
-    return address(new MgvAppendix());
   }
 
   /* Fallback to `APPENDIX` if function selector is unknown. */

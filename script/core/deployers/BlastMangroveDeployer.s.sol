@@ -8,13 +8,10 @@ import {IBlastMangrove} from "@mgv/src/chains/blast/IBlastMangrove.sol";
 import {Deployer} from "@mgv/script/lib/Deployer.sol";
 import {MgvReaderDeployer} from "@mgv/script/periphery/deployers/MgvReaderDeployer.s.sol";
 import {BlastLib} from "@mgv/src/chains/blast/lib/BlastLib.sol";
+import {MangroveDeployer} from "./MangroveDeployer.s.sol";
 
-contract BlastMangroveDeployer is Deployer {
-  IBlastMangrove public mgv;
-  MgvReader public reader;
-  MgvOracle public oracle;
-
-  function run() public {
+contract BlastMangroveDeployer is MangroveDeployer {
+  function run() public override {
     innerRun({
       chief: envAddressOrName("CHIEF", broadcaster()),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
@@ -24,7 +21,7 @@ contract BlastMangroveDeployer is Deployer {
     outputDeployment();
   }
 
-  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
+  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public override {
     broadcast();
     if (forMultisig) {
       oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
@@ -52,7 +49,7 @@ contract BlastMangroveDeployer is Deployer {
     broadcast();
     mgv.setGovernance(chief);
     broadcast();
-    BlastLib.BLAST.configureGovernorOnBehalf(address(mgv), chief);
+    BlastLib.BLAST.configureGovernorOnBehalf(chief, address(mgv));
 
     (new MgvReaderDeployer()).innerRun(mgv);
     reader = MgvReader(fork.get("MgvReader"));

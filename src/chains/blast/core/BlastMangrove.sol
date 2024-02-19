@@ -10,8 +10,7 @@ import {GasMode, YieldMode} from "../interfaces/IBlast.sol";
 /// @title BlastMangrove
 /// @author Mangrove
 /// @notice A contract that inherits Mangrove and BlastGasAndYieldClaimable
-/// @dev if a change in governance is needed, then call the blast contract to change the claimer
-/// * Then call this contract to change the points admin with setPointsAdmin function
+/// @dev if a change in governance is needed, then call the blast contract to change the governance
 /// * finally change the admin
 contract BlastMangrove is Mangrove, IBlastPoints {
   constructor(address governance, uint gasprice, uint gasmax) Mangrove(governance, gasprice, gasmax) {

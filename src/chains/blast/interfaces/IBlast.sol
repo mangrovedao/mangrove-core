@@ -52,4 +52,8 @@ interface IBlast {
     external
     view
     returns (uint etherSeconds, uint etherBalance, uint lastUpdated, GasMode);
+
+  function isGovernor(address contractAddress) external view returns (bool);
+  function governorNotSet(address contractAddress) external view returns (bool);
+  function isAuthorized(address contractAddress) external view returns (bool);
 }

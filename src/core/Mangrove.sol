@@ -8,17 +8,15 @@ import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
 import {MgvAppendix} from "@mgv/src/core/MgvAppendix.sol";
 import {MgvGovernable} from "@mgv/src/core/MgvGovernable.sol";
 
-import "@mgv/src/utils/BlastGasAndYieldClaimable.sol";
-
 /* <a id="Mangrove"></a> The `Mangrove` contract inherits both the maker and taker functionality. It also deploys `MgvAppendix` when constructed. */
-contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking, BlastGasAndYieldClaimable(msg.sender) {
+contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
   address internal immutable APPENDIX;
 
   constructor(address governance, uint gasprice, uint gasmax) MgvOfferTakingWithPermit("Mangrove") {
     unchecked {
       emit NewMgv();
 
-      APPENDIX = address(new MgvAppendix());
+      APPENDIX = deployAppendix();
 
       /* Set initial gasprice, gasmax, recursion depth and max gasreq for failing offers.  See `MgvAppendix` for why this happens through a delegatecall. */
       bool success;
@@ -39,6 +37,11 @@ contract Mangrove is MgvOfferTakingWithPermit, MgvOfferMaking, BlastGasAndYieldC
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGovernance, (governance)));
       require(success, "mgv/ctor/governance");
     }
+  }
+
+  /* Deploy a new `MgvAppendix` instance. */
+  function deployAppendix() internal virtual returns (address) {
+    return address(new MgvAppendix());
   }
 
   /* Fallback to `APPENDIX` if function selector is unknown. */

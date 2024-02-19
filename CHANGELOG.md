@@ -4,6 +4,7 @@
 - Upgrade to @mangrovedao/context-addresses v1.1.2
 - Simplify copying of context addresses
 - Add support for Blast Sepolia
+- Add Blast Specific contracts
 
 # 2.0.3
 

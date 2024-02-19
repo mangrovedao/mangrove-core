@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {Mangrove} from "@mgv/src/core/Mangrove.sol";
+import {BlastMangrove} from "@mgv/src/chains/blast/core/BlastMangrove.sol";
 import {MgvReader} from "@mgv/src/periphery/MgvReader.sol";
 import {MgvOracle} from "@mgv/src/periphery/MgvOracle.sol";
-import {IMangrove} from "@mgv/src/IMangrove.sol";
+import {IBlastMangrove} from "@mgv/src/chains/blast/IBlastMangrove.sol";
 import {Deployer} from "@mgv/script/lib/Deployer.sol";
 import {MgvReaderDeployer} from "@mgv/script/periphery/deployers/MgvReaderDeployer.s.sol";
 import {BaseBlast} from "@mgv/src/chains/blast/utils/BaseBlast.sol";
 
 contract MangroveDeployer is Deployer, BaseBlast {
-  IMangrove public mgv;
+  IBlastMangrove public mgv;
   MgvReader public reader;
   MgvOracle public oracle;
 
@@ -35,11 +35,13 @@ contract MangroveDeployer is Deployer, BaseBlast {
 
     broadcast();
     if (forMultisig) {
-      mgv = IMangrove(
-        payable(address(new Mangrove{salt: salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
+      mgv = IBlastMangrove(
+        payable(address(new BlastMangrove{salt: salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
       );
     } else {
-      mgv = IMangrove(payable(address(new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax}))));
+      mgv = IBlastMangrove(
+        payable(address(new BlastMangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
+      );
     }
     fork.set("Mangrove", address(mgv));
 

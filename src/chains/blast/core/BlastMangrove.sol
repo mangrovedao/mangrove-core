@@ -12,9 +12,9 @@ import {BlastMgvAppendix} from "./BlastMgvAppendix.sol";
 /// * Then call this contract to change the points admin with setPointsAdmin function
 /// * finally change the admin
 contract BlastMangrove is Mangrove, BlastGasAndYieldClaimable {
-  constructor(address _governance, uint _gasprice, uint _gasmax)
-    Mangrove(_governance, _gasprice, _gasmax)
-    BlastGasAndYieldClaimable(_governance)
+  constructor(address governance, uint gasprice, uint gasmax)
+    Mangrove(governance, gasprice, gasmax)
+    BlastGasAndYieldClaimable(governance)
   {}
 
   function deployAppendix() internal override returns (address) {

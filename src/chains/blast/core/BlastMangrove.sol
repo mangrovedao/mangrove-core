@@ -5,7 +5,6 @@ import {Mangrove} from "../../../core/Mangrove.sol";
 import {IBlastPoints} from "../interfaces/IBlastPoints.sol";
 import {IBlastMangrove} from "../IBlastMangrove.sol";
 import {BlastLib} from "../lib/BlastLib.sol";
-import {GasMode, YieldMode} from "../interfaces/IBlast.sol";
 
 /// @title BlastMangrove
 /// @author Mangrove
@@ -14,7 +13,7 @@ import {GasMode, YieldMode} from "../interfaces/IBlast.sol";
 /// * finally change the admin
 contract BlastMangrove is Mangrove, IBlastPoints {
   constructor(address governance, uint gasprice, uint gasmax) Mangrove(governance, gasprice, gasmax) {
-    BlastLib.BLAST.configure(YieldMode.CLAIMABLE, GasMode.CLAIMABLE, governance);
+    BlastLib.BLAST.configureGovernor(governance);
   }
 
   function blastPointsAdmin() external view override returns (address) {

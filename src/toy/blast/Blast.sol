@@ -1,22 +1,10 @@
 // SPDX-License-Identifier: BSL 1.1 - Copyright 2024 MetaLayer Labs Ltd.
 pragma solidity ^0.8.15;
 
-import {GasMode, IGas} from "./Gas.sol";
+import {IGas} from "./Gas.sol";
+import {IBlast, GasMode, YieldMode} from "../../chains/blast/interfaces/IBlast.sol";
 
-enum YieldMode {
-  AUTOMATIC,
-  VOID,
-  CLAIMABLE
-}
-
-interface IYield {
-  function configure(address contractAddress, uint8 flags) external returns (uint);
-  function claim(address contractAddress, address recipientOfYield, uint desiredAmount) external returns (uint);
-  function getClaimableAmount(address contractAddress) external view returns (uint);
-  function getConfiguration(address contractAddress) external view returns (uint8);
-}
-
-contract Blast {
+contract Blast is IBlast {
   mapping(address => address) public governorMap;
 
   constructor() {}
@@ -35,7 +23,7 @@ contract Blast {
    * @return boolean indicating if the governor is not set
    */
 
-  function governorNotSet(address contractAddress) internal view returns (bool) {
+  function governorNotSet(address contractAddress) public view returns (bool) {
     return governorMap[contractAddress] == address(0);
   }
   /**

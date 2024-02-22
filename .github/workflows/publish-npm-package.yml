@@ -2,7 +2,7 @@
 # 
 # From the master branch, package bumps can be patch, minor, or major.
 #
-# From the develop branch, package bumps can only be prerelease
+# From the develop branch, package bumps can only be prerelease, prepatch, preminor, or premajor.
 name: "Publish npm package"
 
 on:
@@ -14,8 +14,10 @@ on:
         default: 'prerelease'
         type: choice
         options:
-        - test
         - prerelease
+        - prepatch
+        - preminor
+        - premajor
         - patch
         - minor
         - major

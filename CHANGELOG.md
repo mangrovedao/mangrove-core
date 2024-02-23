@@ -2,8 +2,14 @@
 
 - Upgrade to @mangrovedao/mangrove-deployments v2.1.1
 - Upgrade to @mangrovedao/context-addresses v1.2.0
+
+# 2.1.0-0
+
+- Upgrade to @mangrovedao/mangrove-deployments v2.0.1
+- Upgrade to @mangrovedao/context-addresses v1.1.2
 - Simplify copying of context addresses
 - Add support for Blast Sepolia
+- Add Blast Specific contracts
 
 # 2.0.3
 

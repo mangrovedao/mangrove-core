@@ -104,21 +104,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mangrovedao/context-addresses@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "@mangrovedao/context-addresses@npm:1.1.0"
+"@mangrovedao/context-addresses@npm:^1.1.4":
+  version: 1.1.4
+  resolution: "@mangrovedao/context-addresses@npm:1.1.4"
   dependencies:
     semver: ^7.5.4
-  checksum: fcab478000a25a9aa9d1c594fe4284fcae2eca6a67a5d6d7a5af753a989fd9ce30928d023e669d9bed6cba609b99cc953b9f6ede567274ae9d00c74828bfb790
+  checksum: 358c1dda7d3453a748e91aa1b9bfbe3f8db9364495dc1a98e0d0f4e172db229fb9c17b12a102976935c5ef2886da3f943a86a0136498b69cd07ead34712d2930
   languageName: node
   linkType: hard
 
-"@mangrovedao/context-addresses@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "@mangrovedao/context-addresses@npm:1.1.2"
+"@mangrovedao/context-addresses@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@mangrovedao/context-addresses@npm:1.2.0"
   dependencies:
     semver: ^7.5.4
-  checksum: f559266b50f86b6289eaef62440a9d7dc1b9d45942dab927925cf2d2572c4d4dd1e447c83d2482e82edd8c1562042b1b49d123d6f153e9943aa91cac3133c4d6
+  checksum: d6ab9384c2100163f86cae53d96f7ecdfa5ac51569ab4491622895345f339128560032d56462e958eeb09916463129d250b32198e3276e11f92aec91a9f96e20
   languageName: node
   linkType: hard
 
@@ -126,8 +126,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@mangrovedao/mangrove-core@workspace:."
   dependencies:
-    "@mangrovedao/context-addresses": ^1.1.2
-    "@mangrovedao/mangrove-deployments": ^2.0.1
+    "@mangrovedao/context-addresses": ^1.2.0
+    "@mangrovedao/mangrove-deployments": ^2.1.1
     "@types/node": ^20.11.5
     bn.js: ^5.2.1
     husky: ^8.0.3
@@ -146,13 +146,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@mangrovedao/mangrove-deployments@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@mangrovedao/mangrove-deployments@npm:2.0.1"
+"@mangrovedao/mangrove-deployments@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "@mangrovedao/mangrove-deployments@npm:2.1.1"
   dependencies:
-    "@mangrovedao/context-addresses": ^1.1.0
+    "@mangrovedao/context-addresses": ^1.1.4
     semver: ^7.5.4
-  checksum: 52ee701b6a4c6aeb1f3d9a1729a988169ef56085a9e2f23039ea498e6ff60a6ad43d32ec6ae111c18e2298f96baf55afcb23c4ee9f28e04e634a0f53066cf014
+  checksum: 0d97701d7f7f9b13f76e752474479544f5496eed01610c30c700c0f2710745fa1be5eb7fc4882bc5154091e6548a7b88198f23aa45de59c9823b1ed8caa3daf6
   languageName: node
   linkType: hard
 

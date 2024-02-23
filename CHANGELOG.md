@@ -1,5 +1,7 @@
 # Next version
 
+- Add support for Blast in deployment scripts
+
 # 2.1.0
 
 ## Blast support

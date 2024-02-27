@@ -15,9 +15,6 @@ import {IBlastPoints} from "../interfaces/IBlastPoints.sol";
 /// @dev WETH and USDB can safely use automatic mode as fees are already stored on the contract
 ///   and extractable by governance.
 contract BlastMangrove is Mangrove {
-  IBlast public immutable BLAST_CONTRACT;
-  IBlastPoints public immutable BLAST_POINTS_CONTRACT;
-
   constructor(
     address governance,
     uint gasprice,
@@ -27,15 +24,13 @@ contract BlastMangrove is Mangrove {
     IBlastPoints blastPointsContract,
     address blastPointsOperator
   ) Mangrove(governance, gasprice, gasmax) {
-    BLAST_CONTRACT = blastContract;
-    BLAST_POINTS_CONTRACT = blastPointsContract;
-
     // Ensure yield and gas fees are claimable by `blastGovernor`
     // NB: ETH yield MUST NOT use automatic mode as governance has no way to extract the yield.
-    BLAST_CONTRACT.configureClaimableYield();
-    BLAST_CONTRACT.configureClaimableGas();
-    BLAST_CONTRACT.configureGovernor(blastGovernor);
+    blastContract.configureClaimableYield();
 
-    BLAST_POINTS_CONTRACT.configurePointsOperator(blastPointsOperator);
+    blastContract.configureClaimableGas();
+    blastContract.configureGovernor(blastGovernor);
+
+    blastPointsContract.configurePointsOperator(blastPointsOperator);
   }
 }

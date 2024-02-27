@@ -6,9 +6,15 @@ import {IBlastMangrove} from "@mgv/src/chains/blast/IBlastMangrove.sol";
 import {IBlast} from "@mgv/src/chains/blast/interfaces/IBlast.sol";
 import {IBlastPoints} from "@mgv/src/chains/blast/interfaces/IBlastPoints.sol";
 
+import {StdCheats} from "@mgv/forge-std/StdCheats.sol";
+
 import {MangroveDeployer} from "./MangroveDeployer.s.sol";
 
-contract BlastMangroveDeployer is MangroveDeployer {
+// NB: Must be executed with the --skip-simulation --slow flags:
+// - Skip simulation because the Blast predeploys are not known by forge
+// - Slow because Blast Sepolia (and maybe Blast) fails to execute transactions
+//     that interact with a contract that was deployed in the same block.
+contract BlastMangroveDeployer is MangroveDeployer, StdCheats {
   IBlast public blastContract;
   IBlastPoints public blastPointsContract;
 
@@ -48,6 +54,11 @@ contract BlastMangroveDeployer is MangroveDeployer {
     blastPointsContract = _blastPointsContract;
     blastGovernor = _blastGovernor;
     blastPointsOperator = _blastPointsOperator;
+
+    // forge doesn't know the Blast predeploys, so we need to deploy them.
+    // Otherwise, the script fails (even with the --skip-simulation flag).
+    deployCodeTo("Blast.sol", address(blastContract));
+    deployCodeTo("BlastPoints.sol", address(blastPointsContract));
 
     super.innerRun(chief, gasprice, gasmax, gasbot);
   }

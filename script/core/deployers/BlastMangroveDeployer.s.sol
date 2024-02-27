@@ -64,6 +64,7 @@ contract BlastMangroveDeployer is MangroveDeployer, StdCheats {
   }
 
   function deployMangrove(address governance, uint gasprice, uint gasmax) public override {
+    broadcast();
     if (forMultisig) {
       mgv = IBlastMangrove(
         payable(

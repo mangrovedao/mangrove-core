@@ -32,7 +32,6 @@ contract MangroveDeployer is Deployer {
     }
     fork.set("MgvOracle", address(oracle));
 
-    broadcast();
     deployMangrove(broadcaster(), gasprice, gasmax);
     fork.set("Mangrove", address(mgv));
 
@@ -48,6 +47,7 @@ contract MangroveDeployer is Deployer {
   }
 
   function deployMangrove(address governance, uint gasprice, uint gasmax) public virtual {
+    broadcast();
     if (forMultisig) {
       mgv = IMangrove(
         payable(address(new Mangrove{salt: salt}({governance: governance, gasprice: gasprice, gasmax: gasmax})))

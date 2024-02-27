@@ -13,7 +13,7 @@ contract MangroveDeployer is Deployer {
   MgvReader public reader;
   MgvOracle public oracle;
 
-  function run() public {
+  function run() public virtual {
     innerRun({
       chief: envAddressOrName("CHIEF", broadcaster()),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,

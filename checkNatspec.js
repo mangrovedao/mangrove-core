@@ -2,6 +2,9 @@
 This script verifies that select files have natspec comments for all parameters and return values of functions
 */
 
+// TODO: In forge 0.2.0 (d58ab7f 2024-02-27T00:16:43.649244000Z), this script no longer works:
+// The generated JSON files no longer have an AST field.
+
 const fs = require("fs");
 const path = require("path");
 const cwd = process.cwd();

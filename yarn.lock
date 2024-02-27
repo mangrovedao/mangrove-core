@@ -113,12 +113,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mangrovedao/context-addresses@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "@mangrovedao/context-addresses@npm:1.2.0"
+"@mangrovedao/context-addresses@npm:^1.2.2-1":
+  version: 1.2.2-1
+  resolution: "@mangrovedao/context-addresses@npm:1.2.2-1"
   dependencies:
     semver: ^7.5.4
-  checksum: d6ab9384c2100163f86cae53d96f7ecdfa5ac51569ab4491622895345f339128560032d56462e958eeb09916463129d250b32198e3276e11f92aec91a9f96e20
+  checksum: f37dc2836274ff5c8592df4f2e5227338b9a31955ad7fd2ccb9914119fdb9593afed755676da982771c79c98834671cc08818d3dfaf06a75db0fe2b6f8e20283
   languageName: node
   linkType: hard
 
@@ -126,7 +126,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@mangrovedao/mangrove-core@workspace:."
   dependencies:
-    "@mangrovedao/context-addresses": ^1.2.0
+    "@mangrovedao/context-addresses": ^1.2.2-1
     "@mangrovedao/mangrove-deployments": ^2.1.1
     "@types/node": ^20.11.5
     bn.js: ^5.2.1

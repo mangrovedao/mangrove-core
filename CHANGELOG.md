@@ -1,7 +1,14 @@
 # Next version
 
 - Upgrade to @mangrovedao/mangrove-deployments v2.1.1
-- Upgrade to @mangrovedao/context-addresses v1.2.0
+- Upgrade to @mangrovedao/context-addresses v1.2.2-1
+
+## Blast support
+
+- Use the standard addresses infrastructure in Blast contracts and scripts
+- Update support for Blast Points to match the latest integration docs: https://blastpublic.notion.site/PUBLIC-Blast-Mainnet-Points-API-f8abea9d6e67417890d4a300ecbe5827
+- Configure Blast Points operator on deployment of `BlastMangrove`
+- Configure claimable yield and gas fees on deployment of `BlastMangrove`
 
 # 2.1.0-0
 

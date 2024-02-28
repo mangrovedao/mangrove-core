@@ -33,6 +33,7 @@ zkevm="https://zkevm-rpc.com"
 goerli="${GOERLI_NODE_URL}"
 arbitrum="${ARBITRUM_NODE_URL}"
 blast_sepolia="${BLAST_SEPOLIA_NODE_URL}"
+blast="${BLAST_NODE_URL}"
 
 [etherscan]
 goerli={key="${GOERLI_API_KEY}"}

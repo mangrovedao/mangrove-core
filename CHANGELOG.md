@@ -1,5 +1,7 @@
 # Next version
 
+# 2.1.0
+
 ## Blast support
 
 - Add support for Blast Sepolia

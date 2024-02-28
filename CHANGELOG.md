@@ -1,6 +1,7 @@
 # Next version
 
 - Add support for Blast in deployment scripts
+- Upgrade to @mangrovedao/context-addresses v1.3.1
 
 # 2.1.0
 

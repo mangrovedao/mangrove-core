@@ -1,5 +1,7 @@
 # Next version
 
+- Add blast fork
+
 # 2.1.0
 
 ## Blast support

@@ -29,10 +29,14 @@ function getOrCreateNetworkAddresses(networkName) {
   return networkAddresses;
 }
 
-// Accounts
+// Accounts & Blast addresses
 const allAccounts = contextAddresses.getAllAccounts();
+const allBlastAddresses = contextAddresses.getAllBlastAddresses();
 for (const [networkName, namedAddresses] of Object.entries(
-  contextAddresses.toNamedAddressesPerNamedNetwork(allAccounts),
+  contextAddresses.toNamedAddressesPerNamedNetwork(
+    allAccounts,
+    allBlastAddresses,
+  ),
 )) {
   const networkAddresses = getOrCreateNetworkAddresses(networkName);
   networkAddresses.push(...namedAddresses);

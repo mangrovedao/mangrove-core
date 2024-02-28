@@ -13,7 +13,7 @@ contract MangroveDeployer is Deployer {
   MgvReader public reader;
   MgvOracle public oracle;
 
-  function run() public {
+  function run() public virtual {
     innerRun({
       chief: envAddressOrName("CHIEF", broadcaster()),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
@@ -23,7 +23,7 @@ contract MangroveDeployer is Deployer {
     outputDeployment();
   }
 
-  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
+  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public virtual {
     broadcast();
     if (forMultisig) {
       oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
@@ -32,14 +32,7 @@ contract MangroveDeployer is Deployer {
     }
     fork.set("MgvOracle", address(oracle));
 
-    broadcast();
-    if (forMultisig) {
-      mgv = IMangrove(
-        payable(address(new Mangrove{salt: salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
-      );
-    } else {
-      mgv = IMangrove(payable(address(new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax}))));
-    }
+    deployMangrove(broadcaster(), gasprice, gasmax);
     fork.set("Mangrove", address(mgv));
 
     broadcast();
@@ -51,5 +44,16 @@ contract MangroveDeployer is Deployer {
 
     (new MgvReaderDeployer()).innerRun(mgv);
     reader = MgvReader(fork.get("MgvReader"));
+  }
+
+  function deployMangrove(address governance, uint gasprice, uint gasmax) public virtual {
+    broadcast();
+    if (forMultisig) {
+      mgv = IMangrove(
+        payable(address(new Mangrove{salt: salt}({governance: governance, gasprice: gasprice, gasmax: gasmax})))
+      );
+    } else {
+      mgv = IMangrove(payable(address(new Mangrove({governance: governance, gasprice: gasprice, gasmax: gasmax}))));
+    }
   }
 }

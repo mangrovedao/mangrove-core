@@ -1,6 +1,7 @@
 # Next version
 
 - Upgrade to @mangrovedao/context-addresses v1.3.2 (contains Blast mainnet accounts)
+- Add Multicall2 contract and deployer script to ease deployment on chains that don't have it (needed by mangrove.js)
 
 # 2.1.1
 

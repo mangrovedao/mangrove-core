@@ -1,6 +1,7 @@
 # Next version
 
-- Upgrade to @mangrovedao/context-addresses v1.3.2 (contains Blast mainnet accounts)
+- Upgrade to @mangrovedao/context-addresses v1.3.4 (contains Blast mainnet addresses)
+- Upgrade to @mangrovedao/mangrove-deployments v2.2.2
 
 # 2.1.1
 

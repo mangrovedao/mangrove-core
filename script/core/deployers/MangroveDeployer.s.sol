@@ -15,7 +15,7 @@ contract MangroveDeployer is Deployer {
 
   function run() public virtual {
     innerRun({
-      chief: envAddressOrName("CHIEF", broadcaster()),
+      chief: envAddressOrName("CHIEF", "MgvGovernance"),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
       gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000,
       gasbot: envAddressOrName("GASBOT", "Gasbot")

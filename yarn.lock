@@ -104,15 +104,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mangrovedao/context-addresses@npm:^1.1.4":
-  version: 1.1.4
-  resolution: "@mangrovedao/context-addresses@npm:1.1.4"
-  dependencies:
-    semver: ^7.5.4
-  checksum: 358c1dda7d3453a748e91aa1b9bfbe3f8db9364495dc1a98e0d0f4e172db229fb9c17b12a102976935c5ef2886da3f943a86a0136498b69cd07ead34712d2930
-  languageName: node
-  linkType: hard
-
 "@mangrovedao/context-addresses@npm:^1.3.2":
   version: 1.3.2
   resolution: "@mangrovedao/context-addresses@npm:1.3.2"
@@ -122,12 +113,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mangrovedao/context-addresses@npm:^1.3.4":
+  version: 1.3.4
+  resolution: "@mangrovedao/context-addresses@npm:1.3.4"
+  dependencies:
+    semver: ^7.5.4
+  checksum: bbe6cd76dfdb4aa75f8502f58ef3edd841ccc3650f26be7fde887060070ef0968a457221e5640c8dbad9af6b9205d708a47e10a2e88b1372b1baa8708eb74435
+  languageName: node
+  linkType: hard
+
 "@mangrovedao/mangrove-core@workspace:.":
   version: 0.0.0-use.local
   resolution: "@mangrovedao/mangrove-core@workspace:."
   dependencies:
-    "@mangrovedao/context-addresses": ^1.3.2
-    "@mangrovedao/mangrove-deployments": ^2.1.1
+    "@mangrovedao/context-addresses": ^1.3.4
+    "@mangrovedao/mangrove-deployments": ^2.2.2
     "@types/node": ^20.11.5
     bn.js: ^5.2.1
     husky: ^8.0.3
@@ -146,13 +146,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@mangrovedao/mangrove-deployments@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "@mangrovedao/mangrove-deployments@npm:2.1.1"
+"@mangrovedao/mangrove-deployments@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "@mangrovedao/mangrove-deployments@npm:2.2.2"
   dependencies:
-    "@mangrovedao/context-addresses": ^1.1.4
+    "@mangrovedao/context-addresses": ^1.3.2
     semver: ^7.5.4
-  checksum: 0d97701d7f7f9b13f76e752474479544f5496eed01610c30c700c0f2710745fa1be5eb7fc4882bc5154091e6548a7b88198f23aa45de59c9823b1ed8caa3daf6
+  checksum: 1091750ff29aa741474804da48c1870ad601bfd4a34e4f901fc6a9d160ac47149b1fe05103dd239630fd3e93d281aaca28dd11b0c44bf268b697738b12a2dd45
   languageName: node
   linkType: hard
 

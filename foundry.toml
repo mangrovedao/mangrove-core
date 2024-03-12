@@ -43,7 +43,11 @@ polygon={key="${POLYGON_API_KEY}"}
 testnet_zkevm={key="${ZKEVM_API_KEY}",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
 zkevm={key="${ZKEVM_API_KEY}",chain=1101,url="https://api-zkevm.polygonscan.com/api"}
 arbitrum={key="${ARBITRUM_API_KEY}"}
-blast={key="${BLAST_API_KEY}",url="https://api.routescan.io/v2/network/mainnet/evm/81457/etherscan"}
+# Blast has two main block explorers, Blast Scan and Blast Explorer (which relies on Routescan)
+# By default, we verify on Blast Scan
+blast={key="${BLAST_API_KEY}",url="https://api.blastscan.io/api"}
+# blast={key="verifyContract",url="https://api.routescan.io/v2/network/mainnet/evm/81457/etherscan"}
+# Blast Scan for Blast Sepolia relies on Routescan
 blast_sepolia={key="${BLAST_SEPOLIA_API_KEY}",url="https://api.routescan.io/v2/network/testnet/evm/168587773/etherscan"}
 
 # The remappings are in remappings.txt so vscode solidity ext. can read them
@@ -67,5 +71,5 @@ sepolia={key=""}
 testnet_zkevm={key="",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
 zkevm={key="",chain=1101,url="https://api-zkevm.polygonscan.com/api"}
 arbitrum={key=""}
-blast={key="",url="https://api.routescan.io/v2/network/mainnet/evm/81457/etherscan"}
+blast={key="",url="https://api.blastscan.io/api"}
 blast_sepolia={key="",url="https://api.routescan.io/v2/network/testnet/evm/168587773/etherscan"}

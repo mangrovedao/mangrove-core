@@ -5,6 +5,7 @@ import "@mgv/src/periphery/MgvReader.sol";
 import {IERC20} from "@mgv/lib/IERC20.sol";
 import {Deployer} from "@mgv/script/lib/Deployer.sol";
 import "@mgv/lib/Debug.sol";
+import "@mgv/src/core/MgvLib.sol";
 
 /* Update market information on MgvReader.
    
@@ -35,6 +36,11 @@ contract UpdateMarket is Deployer {
     reader.updateMarket(market);
 
     logReaderState("[after  script]", reader, market);
+  }
+
+  function simpleInnerRun(MgvReader reader, OLKey memory olKey) public {
+    Market memory market = Market({tkn0: olKey.outbound_tkn, tkn1: olKey.inbound_tkn, tickSpacing: olKey.tickSpacing});
+    innerRun(reader, market);
   }
 
   function logReaderState(string memory intro, MgvReader reader, Market memory market) internal view {

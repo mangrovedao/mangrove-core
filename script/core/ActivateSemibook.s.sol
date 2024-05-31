@@ -95,4 +95,15 @@ contract ActivateSemibook is Test2, Deployer {
     broadcast();
     mgv.activate({olKey: olKey, fee: fee, density96X32: density96X32, offer_gasbase: gasbase});
   }
+
+  function innerSimpleRun(
+    IMangrove mgv, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
+    OLKey memory olKey,
+    uint fee,
+    uint density96X32,
+    uint gasbase
+  ) public {
+    broadcast();
+    mgv.activate({olKey: olKey, fee: fee, density96X32: density96X32, offer_gasbase: gasbase});
+  }
 }

@@ -55,7 +55,7 @@
     "rimraf": "^5.0.5",
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.13",
-    "solhint": "^4.0.0",
+    "solhint": "^4.5.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "yargs": "^17.7.2"

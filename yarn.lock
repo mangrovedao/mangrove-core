@@ -139,7 +139,7 @@ __metadata:
     rimraf: ^5.0.5
     shelljs: ^0.8.4
     solcco: ">=1.0.13"
-    solhint: ^4.0.0
+    solhint: ^4.5.4
     ts-node: ^10.9.2
     typescript: ^5.3.3
     yargs: ^17.7.2
@@ -197,12 +197,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@solidity-parser/parser@npm:^0.16.0":
-  version: 0.16.0
-  resolution: "@solidity-parser/parser@npm:0.16.0"
-  dependencies:
-    antlr4ts: ^0.5.0-alpha.4
-  checksum: 6ccbdab334331a58fde2a739cff76d5a99d836186b7899e8e027266f2af2a4bddc77c9c2abd01307cea6c470345d48edc470049e9672143b73f4aff3c8976183
+"@solidity-parser/parser@npm:^0.18.0":
+  version: 0.18.0
+  resolution: "@solidity-parser/parser@npm:0.18.0"
+  checksum: 970d991529d632862fa88e107531339d84df35bf0374e31e8215ce301b19a01ede33fccf4d374402649814263f8bc278a8e6d62a0129bb877539fbdd16a604cc
   languageName: node
   linkType: hard
 
@@ -368,19 +366,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"antlr4@npm:^4.11.0":
-  version: 4.12.0
-  resolution: "antlr4@npm:4.12.0"
-  checksum: f70a7765e1c44d678abd6500f2d9659a9d64c572e433576bf82b09b38179ce1191327cfd04d848036651989ba887c1a53da2a41a516dfe93d8e78b5d63801624
-  languageName: node
-  linkType: hard
-
-"antlr4ts@npm:^0.5.0-alpha.4":
-  version: 0.5.0-dev
-  resolution: "antlr4ts@npm:0.5.0-dev"
-  dependencies:
-    source-map-support: ^0.5.16
-  checksum: 640dae2229124372b0329315e9614ae983bb80b1af237d8c0b3e90a2d85fb534e851c51d65d1897c92b36d27851d041ad8d95aab44af19cf7355b3ad11a3ddbf
+"antlr4@npm:^4.13.1-patch-1":
+  version: 4.13.1
+  resolution: "antlr4@npm:4.13.1"
+  checksum: 76dcb0c8ed2d0b83a16641579668088919f51d1288551604e3cdff46c67955b3eef25892aead9de1eca203b3968536fa952e6931f35ba877780af37971c055f1
   languageName: node
   linkType: hard
 
@@ -458,13 +447,6 @@ __metadata:
   dependencies:
     fill-range: ^7.0.1
   checksum: e2a8e769a863f3d4ee887b5fe21f63193a891c68b612ddb4b68d82d1b5f3ff9073af066c343e9867a393fe4c2555dcb33e89b937195feb9c1613d259edfcd459
-  languageName: node
-  linkType: hard
-
-"buffer-from@npm:^1.0.0":
-  version: 1.1.2
-  resolution: "buffer-from@npm:1.1.2"
-  checksum: 0448524a562b37d4d7ed9efd91685a5b77a50672c556ea254ac9a6d30e3403a517d8981f10e565db24e8339413b43c97ca2951f10e399c6125a0d8911f5679bb
   languageName: node
   linkType: hard
 
@@ -2252,13 +2234,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solhint@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "solhint@npm:4.0.0"
+"solhint@npm:^4.5.4":
+  version: 4.5.4
+  resolution: "solhint@npm:4.5.4"
   dependencies:
-    "@solidity-parser/parser": ^0.16.0
+    "@solidity-parser/parser": ^0.18.0
     ajv: ^6.12.6
-    antlr4: ^4.11.0
+    antlr4: ^4.13.1-patch-1
     ast-parents: ^0.0.1
     chalk: ^4.1.2
     commander: ^10.0.0
@@ -2280,21 +2262,11 @@ __metadata:
       optional: true
   bin:
     solhint: solhint.js
-  checksum: 14d6091732ece1526711ab462f9aa17463d76b99948b6b2322bf4953fe325e1df8eabab9a4debaea65ca87c28b856e9d154ceee37d9b4d2d45069292e89c62a1
+  checksum: 1c869d85048bbef988bf6ac855d53fc8faf07d88cf90f4da9619ec53ee617bc910fe8d9bf06251de22f1c3292b800754e77e4b060e7b8536f8076e4733a1162c
   languageName: node
   linkType: hard
 
-"source-map-support@npm:^0.5.16":
-  version: 0.5.21
-  resolution: "source-map-support@npm:0.5.21"
-  dependencies:
-    buffer-from: ^1.0.0
-    source-map: ^0.6.0
-  checksum: 43e98d700d79af1d36f859bdb7318e601dfc918c7ba2e98456118ebc4c4872b327773e5a1df09b0524e9e5063bb18f0934538eace60cca2710d1fa687645d137
-  languageName: node
-  linkType: hard
-
-"source-map@npm:^0.6.0, source-map@npm:^0.6.1":
+"source-map@npm:^0.6.1":
   version: 0.6.1
   resolution: "source-map@npm:0.6.1"
   checksum: 59ce8640cf3f3124f64ac289012c2b8bd377c238e316fb323ea22fbfe83da07d81e000071d7242cad7a23cd91c7de98e4df8830ec3f133cb6133a5f6e9f67bc2

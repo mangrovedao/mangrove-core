@@ -7,6 +7,7 @@ The files in this repo are covered by different licenses:
     integrating with Mangrove) is licensed under the MIT License.
 * OpenZeppelin code in ERC20.sol and ERC20Lib.sol is covered by the original
     MIT License (text included below).
+* Blast.sol code is Licenced under BSL 1.1 - Copyright 2024 MetaLayer Labs Ltd.
 
 Each file header contains the SPDX license identifier of the license for that file.
 For more information about SPDX, please refer to <https://spdx.dev/>.

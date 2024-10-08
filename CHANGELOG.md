@@ -1,6 +1,29 @@
 # Next version
 
-- Upgrade to @mangrovedao/mangrove-deployments v2.0.0
+# 2.1.2-0
+
+- Upgrade to @mangrovedao/context-addresses v1.3.4 (contains Blast mainnet addresses)
+- Upgrade to @mangrovedao/mangrove-deployments v2.2.2
+
+# 2.1.1
+
+- Add support for Blast in deployment scripts
+- Upgrade to @mangrovedao/context-addresses v1.3.1
+
+# 2.1.0
+
+## Blast support
+
+- Add support for Blast Sepolia
+- Add Blast specific contracts, in particular `BlastMangrove` which extends `Mangrove` with support for Blast yield, gas fees, and Blast Points
+- Configure Blast Points operator on deployment of `BlastMangrove`
+- Configure claimable yield and gas fees on deployment of `BlastMangrove`
+
+## Dependencies
+
+- Upgrade to @mangrovedao/mangrove-deployments v2.1.1
+- Upgrade to @mangrovedao/context-addresses v1.3.0
+- Simplify copying of context addresses
 
 # 2.0.3
 

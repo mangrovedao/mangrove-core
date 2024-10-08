@@ -104,12 +104,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mangrovedao/context-addresses@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "@mangrovedao/context-addresses@npm:1.0.1"
+"@mangrovedao/context-addresses@npm:^1.3.2":
+  version: 1.3.2
+  resolution: "@mangrovedao/context-addresses@npm:1.3.2"
   dependencies:
     semver: ^7.5.4
-  checksum: b719e4ff4e071680d34d61deb42481c24de2218a035ecad25492f43458f810b9562e2a6667fba0ecefec5aa57c9c7ce1c2dc9ede8673a8a096fb1042832e3e86
+  checksum: 2d347a3673a85a1b3eba8bfc4413f6ae588910b0f787bd06c36a62255f77b45ac1106022ed6241f032d59333e0560a81b1f08f2526406e69133a848e2e45d170
+  languageName: node
+  linkType: hard
+
+"@mangrovedao/context-addresses@npm:^1.3.4":
+  version: 1.3.4
+  resolution: "@mangrovedao/context-addresses@npm:1.3.4"
+  dependencies:
+    semver: ^7.5.4
+  checksum: bbe6cd76dfdb4aa75f8502f58ef3edd841ccc3650f26be7fde887060070ef0968a457221e5640c8dbad9af6b9205d708a47e10a2e88b1372b1baa8708eb74435
   languageName: node
   linkType: hard
 
@@ -117,11 +126,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@mangrovedao/mangrove-core@workspace:."
   dependencies:
-    "@mangrovedao/context-addresses": ^1.0.1
-    "@mangrovedao/mangrove-deployments": ^2.0.0
+    "@mangrovedao/context-addresses": ^1.3.4
+    "@mangrovedao/mangrove-deployments": ^2.2.2
     "@types/node": ^20.11.5
     bn.js: ^5.2.1
-    husky: ^8.0.3
+    husky: ^9.1.6
     lint-staged: ^15.2.0
     mathjs: ^12.3.0
     micromatch: ^4.0.5
@@ -137,12 +146,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@mangrovedao/mangrove-deployments@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@mangrovedao/mangrove-deployments@npm:2.0.0"
+"@mangrovedao/mangrove-deployments@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "@mangrovedao/mangrove-deployments@npm:2.2.2"
   dependencies:
+    "@mangrovedao/context-addresses": ^1.3.2
     semver: ^7.5.4
-  checksum: d64a06a5986d6c11fb1b0757b7d5488441cc0f450936f7dd32fe359d05577630b54553c8bf305fcd6c0169636dd0701fae0bbaf1b38a8f51516e0a7fb462d062
+  checksum: 1091750ff29aa741474804da48c1870ad601bfd4a34e4f901fc6a9d160ac47149b1fe05103dd239630fd3e93d281aaca28dd11b0c44bf268b697738b12a2dd45
   languageName: node
   linkType: hard
 
@@ -1094,12 +1104,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"husky@npm:^8.0.3":
-  version: 8.0.3
-  resolution: "husky@npm:8.0.3"
+"husky@npm:^9.1.6":
+  version: 9.1.6
+  resolution: "husky@npm:9.1.6"
   bin:
-    husky: lib/bin.js
-  checksum: 837bc7e4413e58c1f2946d38fb050f5d7324c6f16b0fd66411ffce5703b294bd21429e8ba58711cd331951ee86ed529c5be4f76805959ff668a337dbfa82a1b0
+    husky: bin.js
+  checksum: 421ccd8850378231aaefd70dbe9e4f1549b84ffe3a6897f93a202242bbc04e48bd498169aef43849411105d9fcf7c192b757d42661e28d06b934a609a4eb8771
   languageName: node
   linkType: hard
 

@@ -17,10 +17,6 @@ if (!config.copyDeployments) {
 
 console.group(`${script}:`);
 
-// This is a hack to get the network names because the addresses
-// file names use non-canonical network names from ethers.js
-const networkNames = deployments.mangroveNetworkNames;
-
 // Query deployments based on the configuration in config.js
 console.log(
   `Querying mangrove-deployments for core deployments of version ${

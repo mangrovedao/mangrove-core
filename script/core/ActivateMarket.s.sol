@@ -23,18 +23,35 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 
 contract ActivateMarket is Deployer {
   function run() public {
-    innerRun({
-      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
-      reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: Market({
-        tkn0: envAddressOrName("TKN1"),
-        tkn1: envAddressOrName("TKN2"),
-        tickSpacing: vm.envUint("TICK_SPACING")
-      }),
-      tkn1_in_Mwei: vm.envUint("TKN1_IN_MWEI"),
-      tkn2_in_Mwei: vm.envUint("TKN2_IN_MWEI"),
-      fee: vm.envUint("FEE")
-    });
+    uint simple = vm.envUint("SIMPLE");
+    if (simple == 1) {
+      simpleInnerRun(
+        IMangrove(envAddressOrName("MGV", "Mangrove")),
+        MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
+        OLKey({
+          outbound_tkn: envAddressOrName("TKN1"),
+          inbound_tkn: envAddressOrName("TKN2"),
+          tickSpacing: vm.envUint("TICK_SPACING")
+        }),
+        vm.envUint("FEE"),
+        vm.envUint("DENSITY96X32_0"),
+        vm.envUint("DENSITY96X32_1"),
+        vm.envUint("GASBASE")
+      );
+    } else {
+      innerRun({
+        mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
+        reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
+        market: Market({
+          tkn0: envAddressOrName("TKN1"),
+          tkn1: envAddressOrName("TKN2"),
+          tickSpacing: vm.envUint("TICK_SPACING")
+        }),
+        tkn1_in_Mwei: vm.envUint("TKN1_IN_MWEI"),
+        tkn2_in_Mwei: vm.envUint("TKN2_IN_MWEI"),
+        fee: vm.envUint("FEE")
+      });
+    }
   }
 
   /* Activates a market on mangrove. Two semibooks are activated, one where the first tokens is outbound and the second inbound, and the reverse.
@@ -72,7 +89,6 @@ contract ActivateMarket is Deployer {
   /**
    * innerRun with gasprice override to allow requiring a higher density without require more bounties from makers
    */
-
   function innerRun(
     IMangrove mgv,
     uint gaspriceOverride,
@@ -99,5 +115,33 @@ contract ActivateMarket is Deployer {
     });
 
     new UpdateMarket().innerRun({reader: reader, market: market});
+  }
+
+  function simpleInnerRun(
+    IMangrove mgv,
+    MgvReader reader,
+    OLKey memory olKey,
+    uint fee,
+    uint density96X32_0,
+    uint density96X32_1,
+    uint gasbase
+  ) public {
+    new ActivateSemibook().innerSimpleRun({
+      mgv: mgv,
+      olKey: olKey,
+      fee: fee,
+      density96X32: density96X32_0,
+      gasbase: gasbase
+    });
+
+    new ActivateSemibook().innerSimpleRun({
+      mgv: mgv,
+      olKey: olKey.flipped(),
+      fee: fee,
+      density96X32: density96X32_1,
+      gasbase: gasbase
+    });
+
+    new UpdateMarket().simpleInnerRun(reader, olKey);
   }
 }

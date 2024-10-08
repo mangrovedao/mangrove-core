@@ -12,8 +12,12 @@ import {LocalFork} from "@mgv/test/lib/forks/Local.sol";
 import {TestnetZkevmFork} from "@mgv/test/lib/forks/TestnetZkevm.sol";
 import {GoerliFork} from "@mgv/test/lib/forks/Goerli.sol";
 import {SepoliaFork} from "@mgv/test/lib/forks/Sepolia.sol";
+import {BlastFork} from "@mgv/test/lib/forks/Blast.sol";
+import {BlastSepoliaFork} from "@mgv/test/lib/forks/BlastSepolia.sol";
 import {ZkevmFork} from "@mgv/test/lib/forks/Zkevm.sol";
 import {console2 as console} from "@mgv/forge-std/console2.sol";
+import {BaseFork} from "@mgv/test/lib/forks/Base.sol";
+import {BaseSepoliaFork} from "@mgv/test/lib/forks/BaseSepolia.sol";
 
 address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 string constant SINGLETON_FORK = "Deployer:Fork";
@@ -63,14 +67,22 @@ abstract contract Deployer is Script2 {
         fork = new ZkevmFork();
       } else if (block.chainid == 1442) {
         fork = new TestnetZkevmFork();
+      } else if (block.chainid == 8453) {
+        fork = new BaseFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
       } else if (block.chainid == 42161) {
         fork = new ArbitrumFork();
       } else if (block.chainid == 80001) {
         fork = new MumbaiFork();
+      } else if (block.chainid == 81457) {
+        fork = new BlastFork();
+      } else if (block.chainid == 84532) {
+        fork = new BaseSepoliaFork();
       } else if (block.chainid == 11155111) {
         fork = new SepoliaFork();
+      } else if (block.chainid == 168587773) {
+        fork = new BlastSepoliaFork();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }

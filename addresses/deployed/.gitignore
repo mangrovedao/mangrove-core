@@ -1,7 +1,0 @@
-# Ignore files
-*
-# Ignore subdirectories
-*/
-# Don't ignore the README nor this file
-!.gitignore
-!README.md

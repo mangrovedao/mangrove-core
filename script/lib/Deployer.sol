@@ -18,6 +18,7 @@ import {ZkevmFork} from "@mgv/test/lib/forks/Zkevm.sol";
 import {console2 as console} from "@mgv/forge-std/console2.sol";
 import {BaseFork} from "@mgv/test/lib/forks/Base.sol";
 import {BaseSepoliaFork} from "@mgv/test/lib/forks/BaseSepolia.sol";
+import {MegaETHTestnetFork} from "@mgv/test/lib/forks/MegaETHTestnet.sol";
 
 address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 string constant SINGLETON_FORK = "Deployer:Fork";
@@ -67,6 +68,8 @@ abstract contract Deployer is Script2 {
         fork = new ZkevmFork();
       } else if (block.chainid == 1442) {
         fork = new TestnetZkevmFork();
+      } else if (block.chainid == 6342) {
+        fork = new MegaETHTestnetFork();
       } else if (block.chainid == 8453) {
         fork = new BaseFork();
       } else if (block.chainid == 31337) {

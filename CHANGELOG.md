@@ -1,5 +1,7 @@
 # Next version
 
+- Added MegaETH testnet to deployer
+
 # 2.1.2-0
 
 - Upgrade to @mangrovedao/context-addresses v1.3.4 (contains Blast mainnet addresses)
